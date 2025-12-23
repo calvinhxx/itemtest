@@ -1,0 +1,10 @@
+# Vs workspace files
+*.vs
+
+# binary files
+build/
+
+# custom user files
+*.user
+.vscode/settings.json
+.qtcreator/
