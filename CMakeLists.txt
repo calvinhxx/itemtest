@@ -24,7 +24,9 @@ else()
 endif()
 
 if(MSVC)
-	# 设置静态运行时库
+	add_definitions(-DUNICODE -D_UNICODE)
+	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>")
+	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:utf-8>")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 endif()
 
