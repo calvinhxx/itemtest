@@ -8,3 +8,6 @@ build/
 *.user
 .vscode/settings.json
 .qtcreator/
+
+# mac
+.DS_Store
