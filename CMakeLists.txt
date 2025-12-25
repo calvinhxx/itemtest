@@ -8,6 +8,26 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Prefer a specific Qt installation when multiple versions exist.
+# Usage:
+#   cmake -B build-qt693 -DQT_ROOT="/Users/calvinhxx/Qt/6.9.3/macos && cmake --build build-qt693"
+set(QT_ROOT "" CACHE PATH "Qt installation prefix to prefer (e.g. /Users/you/Qt/6.x.x/macos or /opt/homebrew/opt/qt).")
+if(QT_ROOT)
+	list(PREPEND CMAKE_PREFIX_PATH "${QT_ROOT}")
+endif()
+# Debug: print where Qt was found from (helps diagnose Conda/Homebrew/SDK conflicts)
+message(STATUS "Using Qt major=${QT_VERSION_MAJOR}")
+if(QT_VERSION_MAJOR EQUAL 6)
+	message(STATUS "Qt6_DIR=${Qt6_DIR}")
+else()
+	message(STATUS "Qt5_DIR=${Qt5_DIR}")
+endif()
+
+if(MSVC)
+	# 设置静态运行时库
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+endif()
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
@@ -31,9 +51,11 @@ foreach(v ${SRC})
 	message(STATUS ${v})
 endforeach()
 
-add_executable(itemstest
-    ${SRC}
-)
+add_library(itemstest_lib STATIC ${SRC})
+target_link_libraries(itemstest_lib PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_include_directories(itemstest_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_link_libraries(itemstest PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-
+# ut
+enable_testing()
+add_subdirectory(third_party/googletest)
+add_subdirectory(tests)
