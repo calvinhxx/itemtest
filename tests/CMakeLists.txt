@@ -10,7 +10,11 @@ macro(add_qt_test_module module_name source_file)
         GTest::gtest_main
     )
     target_include_directories(${module_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src ${CMAKE_CURRENT_SOURCE_DIR})
-
+    if(MSVC)
+        target_compile_definitions(${module_name} PRIVATE UNICODE _UNICODE)
+        target_compile_options(${module_name} PRIVATE "$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>" "$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:utf-8>")
+        target_compile_options(${module_name} PRIVATE "$<$<CXX_COMPILER_ID:MSVC>:/MTd>")
+    endif()
     # 自动将该执行文件中的所有 TEST_F 注册到 CTest 系统
     gtest_discover_tests(${module_name})
 endmacro()

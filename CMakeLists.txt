@@ -23,13 +23,6 @@ else()
 	message(STATUS "Qt5_DIR=${Qt5_DIR}")
 endif()
 
-if(MSVC)
-	add_definitions(-DUNICODE -D_UNICODE)
-	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>")
-	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:utf-8>")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-endif()
-
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
@@ -56,6 +49,11 @@ endforeach()
 add_library(itemstest_lib STATIC ${SRC})
 target_link_libraries(itemstest_lib PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_include_directories(itemstest_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+if(MSVC)
+	target_compile_definitions(itemstest_lib PRIVATE UNICODE _UNICODE)
+	target_compile_options(itemstest_lib PRIVATE "$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>" "$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:utf-8>")
+	target_compile_options(itemstest_lib PRIVATE "$<$<CXX_COMPILER_ID:MSVC>:/MTd>")
+endif()
 
 # ut
 enable_testing()
