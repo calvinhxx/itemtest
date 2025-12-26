@@ -8,6 +8,15 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(MSVC)
+	add_definitions(-DUNICODE -D_UNICODE)
+	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT")
+	set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MT")
+endif()
+
 # Prefer a specific Qt installation when multiple versions exist.
 # Usage:
 #   cmake -B build-qt693 -DQT_ROOT="/Users/calvinhxx/Qt/6.9.3/macos && cmake --build build-qt693"
@@ -49,11 +58,6 @@ endforeach()
 add_library(itemstest_lib STATIC ${SRC})
 target_link_libraries(itemstest_lib PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_include_directories(itemstest_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-if(MSVC)
-	target_compile_definitions(itemstest_lib PRIVATE UNICODE _UNICODE)
-	target_compile_options(itemstest_lib PRIVATE "$<$<CXX_COMPILER_ID:MSVC>:/source-charset:utf-8>" "$<$<CXX_COMPILER_ID:MSVC>:/execution-charset:utf-8>")
-	target_compile_options(itemstest_lib PRIVATE "$<$<CXX_COMPILER_ID:MSVC>:/MTd>")
-endif()
 
 # ut
 enable_testing()
