@@ -73,10 +73,11 @@ void AnchorLayout::setGeometry(const QRect& rect) {
 
     QRect parentRect = contentsRect(); // 获取布局可用区域
 
-    // 1. 初始化几何状态：优先取真实大小，再取建议大小
+    // 1. 初始化几何状态：始终优先使用 sizeHint()
+    // 对于 QLabel 等内容自适应控件，sizeHint() 会随内容变化；
+    // 对于显式 setFixedSize() 的控件，sizeHint() 就是那个固定值。
     for (Item& it : m_items) {
-        QWidget* w = it.item->widget();
-        QSize s = (w && w->size().isValid()) ? w->size() : it.item->sizeHint();
+        QSize s = it.item->sizeHint();
         it.geometry = QRect(QPoint(parentRect.left(), parentRect.top()), s);
     }
 
@@ -89,9 +90,8 @@ void AnchorLayout::setGeometry(const QRect& rect) {
             Item& it = m_items[i];
             QRect oldGeom = it.geometry;
             
-            // 获取当前项最可靠的尺寸
-            QWidget* currentW = it.item->widget();
-            QSize s = (currentW && currentW->size().isValid()) ? currentW->size() : it.item->sizeHint();
+            // 获取当前项最可靠的建议尺寸
+            QSize s = it.item->sizeHint();
 
             if (it.anchors.fill) {
                 it.geometry = parentRect.marginsRemoved(it.anchors.fillMargins);

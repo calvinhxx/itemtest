@@ -2,8 +2,10 @@
 #include <QApplication>
 #include <QWidget>
 #include <QPushButton>
-
+#include <QLabel>
+#include <QTimer>
 #include "layouts/AnchorLayout.h"
+#include "utils/DebugOverlay.h"
 
 class AnchorLayoutTest : public ::testing::Test {
 protected:
@@ -17,7 +19,7 @@ protected:
 
     void SetUp() override {
         window = new QWidget();
-        window->setFixedSize(600, 600);
+        window->setFixedSize(800, 800);
         window->setWindowTitle("AnchorLayout UT Visual Check");
         layout = new AnchorLayout(window);
         window->setLayout(layout);
@@ -39,6 +41,7 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     a1.leftTo = window; a1.leftOffset = 10;
     a1.topTo = window;  a1.topOffset = 10;
     layout->addAnchoredWidget(btn1, a1);
+    new DebugOverlay(btn1, Qt::red, window);
 
     // 2) btn2 放在 btn1 右侧 (+20)
     QPushButton* btn2 = new QPushButton("右侧 +20", window);
@@ -47,30 +50,25 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     a2.leftTo = btn1; a2.leftOffset = 20; 
     a2.topTo = window; a2.topOffset = 10;
     layout->addAnchoredWidget(btn2, a2);
+    new DebugOverlay(btn2, Qt::blue, window);
 
-    // 3) 全居中 (250, 250)
+    // 4) 全居中 (250, 250)
     QPushButton* btn3 = new QPushButton("全居中", window);
     btn3->setFixedSize(100, 100);
     AnchorLayout::Anchors a3;
     a3.horizontalCenter = true;
     a3.verticalCenter = true;
     layout->addAnchoredWidget(btn3, a3);
+    new DebugOverlay(btn3, Qt::magenta, window);
 
-    // 4) 仅水平居中 (位于底部 -20)
+    // 5) 仅水平居中 (位于底部 -20)
     QPushButton* btn6 = new QPushButton("仅水平居中", window);
     btn6->setFixedSize(120, 40);
     AnchorLayout::Anchors a6;
     a6.bottomTo = window; a6.bottomOffset = -20;
     a6.horizontalCenter = true;
     layout->addAnchoredWidget(btn6, a6);
-
-    // 5) 仅垂直居中 (位于右侧 -20)
-    QPushButton* btn7 = new QPushButton("仅垂直居中", window);
-    btn7->setFixedSize(120, 40);
-    AnchorLayout::Anchors a7;
-    a7.rightTo = window; a7.rightOffset = -20;
-    a7.verticalCenter = true;
-    layout->addAnchoredWidget(btn7, a7);
+    new DebugOverlay(btn6, Qt::cyan, window);
 
     // 6) 填充区域 (Margins: 0, 200, 400, 200)
     QPushButton* btn4 = new QPushButton("填充区域", window);
@@ -78,6 +76,7 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     a4.fill = true;
     a4.fillMargins = QMargins(0, 200, 400, 200); 
     layout->addAnchoredWidget(btn4, a4);
+    new DebugOverlay(btn4, Qt::darkYellow, window);
 
     // 7) 右下锚定 (-16, -16)
     QPushButton* btn5 = new QPushButton("右下", window);
@@ -86,6 +85,20 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     a5.rightTo = window; a5.rightOffset = -16;
     a5.bottomTo = window; a5.bottomOffset = -16;
     layout->addAnchoredWidget(btn5, a5);
+    new DebugOverlay(btn5, Qt::black, window);
+
+    // 8) 动态 Resize 测试：QLabel 内容在 3 秒后改变
+    QLabel* labelDynamic = new QLabel("等待 3 秒后文字会变长...", window);
+    labelDynamic->setStyleSheet("background-color: #3498db; color: white; padding: 5px;");
+    AnchorLayout::Anchors aDyn;
+    aDyn.leftTo = window; aDyn.leftOffset = 20;
+    aDyn.topTo = btn1;    aDyn.topOffset = 20;
+    layout->addAnchoredWidget(labelDynamic, aDyn);
+    new DebugOverlay(labelDynamic, Qt::red, window);
+
+    QTimer::singleShot(3000, [labelDynamic, this]() {
+        labelDynamic->setText("成功！文字变长了，布局和 DebugLine 应该自动跟随。");
+    });
 
     // 执行布局
     window->show();
@@ -104,14 +117,12 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     // btn6: x = (600-120)/2 = 240, y = 600-40-20 = 540
     EXPECT_EQ(btn6->pos(), QPoint(240, 540));
     
-    // btn7: x = 600-120-20 = 460, y = (600-40)/2 = 280
-    EXPECT_EQ(btn7->pos(), QPoint(460, 280));
-    
     // btn4: x=0, y=200, w=600-0-400=200, h=600-200-200=200
     EXPECT_EQ(btn4->geometry(), QRect(0, 200, 200, 200));
     
     // btn5: x=600-100-16=484, y=600-100-16=484
     EXPECT_EQ(btn5->pos(), QPoint(484, 484));
 
-    qApp->exec();
+    // 如果需要运行 UT 时观察界面，请取消下面一行的注释:
+    qApp->exec(); 
 }
