@@ -3,7 +3,7 @@
 #include <QWidget>
 #include <QString>
 
-#include "items/ResponsiveLabel.h"
+#include "items/interface/ResponsiveLabel.h"
 #include "viewmodel/VM_ResponsiveLabel.h"
 
 class ResponsiveLabelTest : public ::testing::Test {

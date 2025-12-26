@@ -3,8 +3,8 @@
 #include <QWidget>
 #include <QString>
 
-#include "items/ResponsivePushbutton.h"
-#include "items/ResponsiveLabel.h"
+#include "items/interface/ResponsivePushbutton.h"
+#include "items/interface/ResponsiveLabel.h"
 #include "viewmodel/VM_ResponsivePushbutton.h"
 #include "viewmodel/VM_ResponsiveLabel.h"
 #include "layouts/AnchorLayout.h"

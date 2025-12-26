@@ -4,9 +4,9 @@
 #include <QVBoxLayout>
 #include <QLabel>
 
-#include "items/ResponsiveDialog.h"
-#include "items/ResponsiveLabel.h"
-#include "items/ResponsivePushbutton.h"
+#include "items/interface/ResponsiveDialog.h"
+#include "items/interface/ResponsiveLabel.h"
+#include "items/interface/ResponsivePushbutton.h"
 #include "viewmodel/VM_ResponsiveDialog.h"
 #include "viewmodel/VM_ResponsiveLabel.h"
 #include "viewmodel/VM_ResponsivePushbutton.h"

@@ -15,9 +15,10 @@ macro(add_qt_test_module module_name source_file)
 endmacro()
 
 # items
-add_qt_test_module(test_responsive_label items/TestResponsiveLabel.cpp)
-add_qt_test_module(test_responsive_pushbutton items/TestResponsivePushbutton.cpp)
-add_qt_test_module(test_responsive_dialog items/TestResponsiveDialog.cpp)
+add_qt_test_module(test_responsive_label items/interface/TestResponsiveLabel.cpp)
+add_qt_test_module(test_responsive_pushbutton items/interface/TestResponsivePushbutton.cpp)
+add_qt_test_module(test_responsive_dialog items/interface/TestResponsiveDialog.cpp)
+add_qt_test_module(test_popup items/instance/TestPopup.cpp)
 # layouts
 add_qt_test_module(test_anchor_layout layouts/TestAnchorLayout.cpp)
 
