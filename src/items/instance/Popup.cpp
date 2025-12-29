@@ -1,36 +1,42 @@
 #include "Popup.h"
 #include <QPainter>
 #include <QPainterPath>
-#include <QRegion>
 #include <QMouseEvent>
+#include <QEasingCurve>
 
 Popup::Popup(QWidget *parent) : ResponsiveDialog(parent) {
-    // 1. 去掉系统默认标题栏
-    // 增加 Qt::CustomizeWindowHint 以确保在所有 Windows 版本上都能隐藏标题栏
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog | Qt::CustomizeWindowHint);
-    
-    // 2. 设置背景透明，以便实现自定义的圆角效果
     setAttribute(Qt::WA_TranslucentBackground);
-
-    // 设置默认边距，给阴影留出空间
     setContentsMargins(m_shadowWidth, m_shadowWidth, m_shadowWidth, m_shadowWidth);
+
+    m_animation = new QPropertyAnimation(this, "animationScale", this);
+    m_animation->setDuration(300);
+
+    // 只在这里连接一次，逻辑更优雅
+    connect(m_animation, &QPropertyAnimation::finished, this, [this]() {
+        if (m_animationScale < 0.1) {
+            ResponsiveDialog::setVisible(false);
+        }
+    });
 }
 
-void Popup::setCornerRadius(int radius) {
-    if (m_cornerRadius == radius) return;
-    m_cornerRadius = radius;
-    update();
-}
+void Popup::setVisible(bool visible) {
+    if (visible == isVisible() && m_animation->state() != QPropertyAnimation::Running) return;
 
-void Popup::setBorderColor(const QColor &color) {
-    m_borderColor = color;
-    update();
-}
-
-void Popup::setShadowWidth(int width) {
-    m_shadowWidth = width;
-    setContentsMargins(m_shadowWidth, m_shadowWidth, m_shadowWidth, m_shadowWidth);
-    update();
+    m_animation->stop();
+    if (visible) {
+        m_animation->setStartValue(m_animationScale);
+        m_animation->setEndValue(1.0);
+        m_animation->setEasingCurve(QEasingCurve::OutBack);
+        
+        ResponsiveDialog::setVisible(true);
+        m_animation->start();
+    } else {
+        m_animation->setStartValue(m_animationScale);
+        m_animation->setEndValue(0.0);
+        m_animation->setEasingCurve(QEasingCurve::InBack);
+        m_animation->start();
+    }
 }
 
 void Popup::mousePressEvent(QMouseEvent *event) {
@@ -49,40 +55,36 @@ void Popup::mouseMoveEvent(QMouseEvent *event) {
 
 void Popup::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event);
-    
+    if (m_animationScale < 0.01) return;
+
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    
-    // 1. 绘制阴影效果
-    // 实际内容区域需要缩进 m_shadowWidth
+
+    // 关键简化：通过变换实现缩放，而不是操作 geometry
+    painter.translate(rect().center());
+    painter.scale(m_animationScale, m_animationScale);
+    painter.translate(-rect().center());
+
     QRect contentRect = rect().adjusted(m_shadowWidth, m_shadowWidth, -m_shadowWidth, -m_shadowWidth);
     
+    // 1. 阴影
     for (int i = 0; i < m_shadowWidth; ++i) {
-        QPainterPath shadowPath;
-        // 阴影逐层扩散，透明度逐层降低
         int alpha = 30 * (m_shadowWidth - i) / m_shadowWidth;
         painter.setPen(Qt::NoPen);
         painter.setBrush(QColor(0, 0, 0, alpha));
-        
-        // 绘制比内容区域稍大的圆角矩形作为阴影层
-        shadowPath.addRoundedRect(contentRect.adjusted(-i, -i, i, i), m_cornerRadius + i, m_cornerRadius + i);
-        painter.drawPath(shadowPath);
+        painter.drawRoundedRect(contentRect.adjusted(-i, -i, i, i), m_cornerRadius + i, m_cornerRadius + i);
     }
     
-    // 2. 绘制主体背景
-    QPainterPath path;
-    path.addRoundedRect(contentRect, m_cornerRadius, m_cornerRadius);
-    
+    // 2. 背景
     painter.setPen(Qt::NoPen);
     painter.setBrush(palette().window());
-    painter.drawPath(path);
+    painter.drawRoundedRect(contentRect, m_cornerRadius, m_cornerRadius);
     
-    // 3. 绘制边框
+    // 3. 边框
     if (m_borderWidth > 0) {
-        painter.setRenderHint(QPainter::Antialiasing);
         painter.setPen(QPen(m_borderColor, m_borderWidth));
         painter.setBrush(Qt::NoBrush);
-        painter.drawPath(path);
+        painter.drawRoundedRect(contentRect, m_cornerRadius, m_cornerRadius);
     }
 }
 
