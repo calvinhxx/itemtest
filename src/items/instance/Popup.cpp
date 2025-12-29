@@ -68,6 +68,8 @@ void Popup::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void Popup::paintEvent(QPaintEvent *event) {
+    ResponsiveDialog::paintEvent(event);
+
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
@@ -96,6 +98,5 @@ void Popup::paintEvent(QPaintEvent *event) {
         painter.setBrush(Qt::NoBrush);
         painter.drawRoundedRect(contentRect, m_cornerRadius, m_cornerRadius);
     }
-    ResponsiveDialog::paintEvent(event);
 }
 
