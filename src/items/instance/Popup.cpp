@@ -9,33 +9,36 @@ Popup::Popup(QWidget *parent) : ResponsiveDialog(parent) {
     setAttribute(Qt::WA_TranslucentBackground);
     setContentsMargins(m_shadowWidth, m_shadowWidth, m_shadowWidth, m_shadowWidth);
 
-    m_animation = new QPropertyAnimation(this, "animationScale", this);
-    m_animation->setDuration(300);
+    // 显示动画预配置
+    m_showAnimation = new QPropertyAnimation(this, "animationScale", this);
+    m_showAnimation->setDuration(300);
+    m_showAnimation->setStartValue(0.0);
+    m_showAnimation->setEndValue(1.0);
+    m_showAnimation->setEasingCurve(QEasingCurve::OutBack);
 
-    // 只在这里连接一次，逻辑更优雅
-    connect(m_animation, &QPropertyAnimation::finished, this, [this]() {
-        if (m_animationScale < 0.1) {
-            ResponsiveDialog::setVisible(false);
-        }
+    // 关闭动画预配置
+    m_closeAnimation = new QPropertyAnimation(this, "animationScale", this);
+    m_closeAnimation->setDuration(300);
+    m_closeAnimation->setStartValue(1.0);
+    m_closeAnimation->setEndValue(0.0);
+    m_closeAnimation->setEasingCurve(QEasingCurve::InBack);
+
+    connect(m_closeAnimation, &QPropertyAnimation::finished, this, [this]() {
+        ResponsiveDialog::setVisible(false);
     });
 }
 
 void Popup::setVisible(bool visible) {
-    if (visible == isVisible() && m_animation->state() != QPropertyAnimation::Running) return;
+    if ((visible == isVisible()) || (m_showAnimation->state() == QPropertyAnimation::Running)) 
+        return;
 
-    m_animation->stop();
     if (visible) {
-        m_animation->setStartValue(m_animationScale);
-        m_animation->setEndValue(1.0);
-        m_animation->setEasingCurve(QEasingCurve::OutBack);
-        
+        m_closeAnimation->stop();
         ResponsiveDialog::setVisible(true);
-        m_animation->start();
+        m_showAnimation->start();
     } else {
-        m_animation->setStartValue(m_animationScale);
-        m_animation->setEndValue(0.0);
-        m_animation->setEasingCurve(QEasingCurve::InBack);
-        m_animation->start();
+        m_showAnimation->stop();
+        m_closeAnimation->start();
     }
 }
 

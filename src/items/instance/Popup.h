@@ -38,7 +38,8 @@ private:
     QPoint m_dragPosition; 
     
     qreal m_animationScale = 0.0;
-    QPropertyAnimation *m_animation = nullptr;
+    QPropertyAnimation *m_showAnimation = nullptr;
+    QPropertyAnimation *m_closeAnimation = nullptr;
 };
 
 #endif // POPUP_H
