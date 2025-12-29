@@ -29,17 +29,36 @@ Popup::Popup(QWidget *parent) : ResponsiveDialog(parent) {
 }
 
 void Popup::setVisible(bool visible) {
-    if ((visible == isVisible()) || (m_showAnimation->state() == QPropertyAnimation::Running)) 
-        return;
+    // 逻辑修正：判断“目标状态”是否与“实际期望状态”一致
+    // 即使当前物理窗口 isVisible()，但如果正在执行关闭动画，逻辑上也应该视为要“重新显示”
+    bool isEffectivelyVisible = isVisible() && m_closeAnimation->state() != QPropertyAnimation::Running;
+    if (visible == isEffectivelyVisible) return;
 
     if (visible) {
         m_closeAnimation->stop();
+        m_showAnimation->setStartValue(m_animationScale); // 从当前缩放位置平滑开始
         ResponsiveDialog::setVisible(true);
         m_showAnimation->start();
     } else {
         m_showAnimation->stop();
+        m_closeAnimation->setStartValue(m_animationScale); // 从当前缩放位置平滑收缩
         m_closeAnimation->start();
     }
+}
+
+void Popup::done(int r) {
+    // 拦截 QDialog 的 accept/reject/close 等产生的 done() 调用
+    // 先执行动画，动画结束后再调用基类的 done()
+    m_showAnimation->stop();
+    m_closeAnimation->setStartValue(m_animationScale);
+    
+    // 重新连接信号，确保 done(r) 被正确调用
+    disconnect(m_closeAnimation, &QPropertyAnimation::finished, nullptr, nullptr);
+    connect(m_closeAnimation, &QPropertyAnimation::finished, this, [this, r]() {
+        ResponsiveDialog::done(r);
+    });
+    
+    m_closeAnimation->start();
 }
 
 void Popup::mousePressEvent(QMouseEvent *event) {
@@ -57,13 +76,9 @@ void Popup::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void Popup::paintEvent(QPaintEvent *event) {
-    Q_UNUSED(event);
-    if (m_animationScale < 0.01) return;
-
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // 关键简化：通过变换实现缩放，而不是操作 geometry
     painter.translate(rect().center());
     painter.scale(m_animationScale, m_animationScale);
     painter.translate(-rect().center());
@@ -89,5 +104,6 @@ void Popup::paintEvent(QPaintEvent *event) {
         painter.setBrush(Qt::NoBrush);
         painter.drawRoundedRect(contentRect, m_cornerRadius, m_cornerRadius);
     }
+    ResponsiveDialog::paintEvent(event);
 }
 

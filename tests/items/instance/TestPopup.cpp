@@ -64,9 +64,13 @@ TEST_F(PopupTest, AnimationToggleCheck) {
     toggleBtn->move((harness->width() - toggleBtn->width()) / 2, 
                     (harness->height() - toggleBtn->height()) / 2);
 
-    // 交互逻辑
-    QObject::connect(toggleBtn, &QPushButton::clicked, [vm]() {
-        vm->setVisible(!vm->visible());
+    // 交互逻辑：直接调用标准 API show() 和 close()
+    QObject::connect(toggleBtn, &QPushButton::clicked, [this]() {
+        if (popup->isVisible()) {
+            popup->close();
+        } else {
+            popup->show();
+        }
     });
 
     harness->show();
