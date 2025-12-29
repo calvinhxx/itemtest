@@ -46,21 +46,6 @@ void Popup::setVisible(bool visible) {
     }
 }
 
-void Popup::done(int r) {
-    // 拦截 QDialog 的 accept/reject/close 等产生的 done() 调用
-    // 先执行动画，动画结束后再调用基类的 done()
-    m_showAnimation->stop();
-    m_closeAnimation->setStartValue(m_animationScale);
-    
-    // 重新连接信号，确保 done(r) 被正确调用
-    disconnect(m_closeAnimation, &QPropertyAnimation::finished, nullptr, nullptr);
-    connect(m_closeAnimation, &QPropertyAnimation::finished, this, [this, r]() {
-        ResponsiveDialog::done(r);
-    });
-    
-    m_closeAnimation->start();
-}
-
 void Popup::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         m_dragPosition = event->globalPos() - frameGeometry().topLeft();

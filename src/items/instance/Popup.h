@@ -17,10 +17,6 @@ public:
 
     // 标准 API 重写
     void setVisible(bool visible) override;
-    
-public slots:
-    void done(int r) override; // 拦截 accept(), reject() 等
-
     // 动画属性访问器
     qreal animationScale() const { return m_animationScale; }
     void setAnimationScale(qreal s) { m_animationScale = s; update(); }
