@@ -40,9 +40,8 @@ private:
     QPoint m_dragPosition; 
     
     qreal m_animationScale = 0.0;
-    QPropertyAnimation *m_showAnimation = nullptr;
-    QPropertyAnimation *m_closeAnimation = nullptr;
-    int m_resultCode = 0; // 记录对话框结果码
+    QPropertyAnimation *m_animation = nullptr;
+    int m_resultCode = 0;
 };
 
 #endif // POPUP_H

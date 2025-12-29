@@ -9,46 +9,48 @@ Popup::Popup(QWidget *parent) : ResponsiveDialog(parent) {
     setAttribute(Qt::WA_TranslucentBackground);
     setContentsMargins(m_shadowWidth, m_shadowWidth, m_shadowWidth, m_shadowWidth);
 
-    // 显示动画预配置
-    m_showAnimation = new QPropertyAnimation(this, "animationScale", this);
-    m_showAnimation->setDuration(300);
-    m_showAnimation->setStartValue(0.0);
-    m_showAnimation->setEndValue(1.0);
-    m_showAnimation->setEasingCurve(QEasingCurve::OutBack);
+    // 单个动画对象，处理所有缩放逻辑
+    m_animation = new QPropertyAnimation(this, "animationScale", this);
+    m_animation->setDuration(300);
 
-    // 关闭动画预配置
-    m_closeAnimation = new QPropertyAnimation(this, "animationScale", this);
-    m_closeAnimation->setDuration(300);
-    m_closeAnimation->setStartValue(1.0);
-    m_closeAnimation->setEndValue(0.0);
-    m_closeAnimation->setEasingCurve(QEasingCurve::InBack);
-
-    connect(m_closeAnimation, &QPropertyAnimation::finished, this, [this]() {
-        ResponsiveDialog::done(m_resultCode);
+    // 统一的动画结束处理
+    connect(m_animation, &QPropertyAnimation::finished, this, [this]() {
+        if (m_animationScale < 0.01) {
+            // 只有在收缩到 0 时，才执行真正的 QDialog 结束逻辑
+            ResponsiveDialog::done(m_resultCode);
+        }
     });
 }
 
 void Popup::setVisible(bool visible) {
-    // 逻辑修正：判断“目标状态”是否与“实际期望状态”一致
-    // 即使当前物理窗口 isVisible()，但如果正在执行关闭动画，逻辑上也应该视为要“重新显示”
-    bool isEffectivelyVisible = isVisible() && m_closeAnimation->state() != QPropertyAnimation::Running;
-    if (visible == isEffectivelyVisible) return;
-
     if (visible) {
-        m_closeAnimation->stop();
-        m_showAnimation->setStartValue(m_animationScale); // 从当前缩放位置平滑开始
+        m_animation->stop();
+        m_animation->setStartValue(m_animationScale);
+        m_animation->setEndValue(1.0);
+        m_animation->setEasingCurve(QEasingCurve::OutBack);
+        
         ResponsiveDialog::setVisible(true);
-        m_showAnimation->start();
+        m_animation->start();
     } else {
-        m_showAnimation->stop();
-        m_closeAnimation->setStartValue(m_animationScale); // 从当前缩放位置平滑收缩
-        m_closeAnimation->start();
+        // 如果当前比例已经接近 0，说明已经是“最终隐藏”阶段，直接调用基类
+        if (m_animationScale < 0.01 || !isVisible()) {
+            ResponsiveDialog::setVisible(false);
+            return;
+        }
+
+        // 否则，拦截隐藏请求，启动收缩动画
+        m_animation->stop();
+        m_animation->setStartValue(m_animationScale);
+        m_animation->setEndValue(0.0);
+        m_animation->setEasingCurve(QEasingCurve::InBack);
+        m_animation->start();
     }
 }
 
 void Popup::done(int r) {
     m_resultCode = r;
-    setVisible(false);
+    // hide() 本质会调用 setVisible(false)，从而触发上面的动画逻辑
+    hide();
 }
 
 void Popup::mousePressEvent(QMouseEvent *event) {
