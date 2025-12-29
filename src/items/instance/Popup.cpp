@@ -3,43 +3,73 @@
 #include <QPainterPath>
 #include <QMouseEvent>
 #include <QEasingCurve>
+#include <QLayout>
 
 Popup::Popup(QWidget *parent) : ResponsiveDialog(parent) {
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog | Qt::CustomizeWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setContentsMargins(m_shadowWidth, m_shadowWidth, m_shadowWidth, m_shadowWidth);
 
-    // 单个动画对象，处理所有缩放逻辑
     m_animation = new QPropertyAnimation(this, "animationScale", this);
     m_animation->setDuration(300);
 
-    // 统一的动画结束处理
     connect(m_animation, &QPropertyAnimation::finished, this, [this]() {
+        m_isAnimating = false;
         if (m_animationScale < 0.01) {
-            // 只有在收缩到 0 时，才执行真正的 QDialog 结束逻辑
+            m_isFinalizing = true;
             ResponsiveDialog::done(m_resultCode);
+            m_isFinalizing = false;
+        } else {
+            // 动画结束，显示真实子控件，恢复交互
+            for (auto* child : findChildren<QWidget*>()) {
+                if (child->parent() == this) child->show();
+            }
+            update();
         }
     });
 }
 
+void Popup::updateSnapshot() {
+    // 隐藏自身背景，仅捕捉内容
+    m_isAnimating = false;
+    for (auto* child : findChildren<QWidget*>()) {
+        if (child->parent() == this) child->show();
+    }
+    
+    // 强制布局生效并渲染快照
+    if (layout()) layout()->activate();
+    m_contentSnapshot = this->grab(rect());
+    
+    // 进入动画模式：隐藏真实控件
+    m_isAnimating = true;
+    for (auto* child : findChildren<QWidget*>()) {
+        if (child->parent() == this) child->hide();
+    }
+}
+
 void Popup::setVisible(bool visible) {
+    if (m_isFinalizing) {
+        ResponsiveDialog::setVisible(visible);
+        return;
+    }
+
     if (visible) {
+        if (isVisible() && m_animation->state() == QPropertyAnimation::Running && m_animation->endValue().toReal() > 0.5) return;
+
         m_animation->stop();
+        ResponsiveDialog::setVisible(true); // 必须先 show 才能 grab
+        updateSnapshot();
+
         m_animation->setStartValue(m_animationScale);
         m_animation->setEndValue(1.0);
         m_animation->setEasingCurve(QEasingCurve::OutBack);
-        
-        ResponsiveDialog::setVisible(true);
         m_animation->start();
     } else {
-        // 如果当前比例已经接近 0，说明已经是“最终隐藏”阶段，直接调用基类
-        if (m_animationScale < 0.01 || !isVisible()) {
-            ResponsiveDialog::setVisible(false);
-            return;
-        }
+        if (!isVisible() || (m_animation->state() == QPropertyAnimation::Running && m_animation->endValue().toReal() < 0.5)) return;
 
-        // 否则，拦截隐藏请求，启动收缩动画
         m_animation->stop();
+        updateSnapshot();
+
         m_animation->setStartValue(m_animationScale);
         m_animation->setEndValue(0.0);
         m_animation->setEasingCurve(QEasingCurve::InBack);
@@ -49,8 +79,7 @@ void Popup::setVisible(bool visible) {
 
 void Popup::done(int r) {
     m_resultCode = r;
-    // hide() 本质会调用 setVisible(false)，从而触发上面的动画逻辑
-    hide();
+    setVisible(false);
 }
 
 void Popup::mousePressEvent(QMouseEvent *event) {
@@ -68,35 +97,43 @@ void Popup::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void Popup::paintEvent(QPaintEvent *event) {
-    ResponsiveDialog::paintEvent(event);
+    Q_UNUSED(event);
+    if (m_animationScale < 0.01) return;
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform); // 保证快照缩放平滑
 
+    // 整个窗口内容的中心缩放
     painter.translate(rect().center());
     painter.scale(m_animationScale, m_animationScale);
     painter.translate(-rect().center());
 
-    QRect contentRect = rect().adjusted(m_shadowWidth, m_shadowWidth, -m_shadowWidth, -m_shadowWidth);
-    
-    // 1. 阴影
-    for (int i = 0; i < m_shadowWidth; ++i) {
-        int alpha = 30 * (m_shadowWidth - i) / m_shadowWidth;
+    if (m_isAnimating && !m_contentSnapshot.isNull()) {
+        // 动画模式：绘制快照（包含阴影、背景和所有子控件）
+        painter.drawPixmap(0, 0, m_contentSnapshot);
+    } else {
+        // 非动画模式：绘制基础背景（子控件由 Qt 自动渲染）
+        QRect contentRect = rect().adjusted(m_shadowWidth, m_shadowWidth, -m_shadowWidth, -m_shadowWidth);
+        
+        // 1. 阴影
+        for (int i = 0; i < m_shadowWidth; ++i) {
+            int alpha = 30 * (m_shadowWidth - i) / m_shadowWidth;
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(QColor(0, 0, 0, alpha));
+            painter.drawRoundedRect(contentRect.adjusted(-i, -i, i, i), m_cornerRadius + i, m_cornerRadius + i);
+        }
+        
+        // 2. 背景
         painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor(0, 0, 0, alpha));
-        painter.drawRoundedRect(contentRect.adjusted(-i, -i, i, i), m_cornerRadius + i, m_cornerRadius + i);
-    }
-    
-    // 2. 背景
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(palette().window());
-    painter.drawRoundedRect(contentRect, m_cornerRadius, m_cornerRadius);
-    
-    // 3. 边框
-    if (m_borderWidth > 0) {
-        painter.setPen(QPen(m_borderColor, m_borderWidth));
-        painter.setBrush(Qt::NoBrush);
+        painter.setBrush(palette().window());
         painter.drawRoundedRect(contentRect, m_cornerRadius, m_cornerRadius);
+        
+        // 3. 边框
+        if (m_borderWidth > 0) {
+            painter.setPen(QPen(m_borderColor, m_borderWidth));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawRoundedRect(contentRect, m_cornerRadius, m_cornerRadius);
+        }
     }
 }
-

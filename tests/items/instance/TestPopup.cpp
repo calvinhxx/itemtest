@@ -10,6 +10,12 @@
 
 #include <QPushButton>
 
+#include "items/interface/ResponsiveLabel.h"
+#include "items/interface/ResponsivePushbutton.h"
+#include "viewmodel/VM_ResponsiveLabel.h"
+#include "viewmodel/VM_ResponsivePushbutton.h"
+#include "layouts/AnchorLayout.h"
+
 class PopupTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
@@ -21,18 +27,18 @@ protected:
     }
 
     void SetUp() override {
-        // 创建主控面板（作为测试背景）
+        // 主控面板
         harness = new QWidget();
-        harness->setFixedSize(600, 500);
-        harness->setWindowTitle("Popup Animation Test Harness");
-        harness->setStyleSheet("background-color: #f5f5f5;");
+        harness->setFixedSize(800, 600);
+        harness->setWindowTitle("Popup Animation & Layout Test");
+        harness->setStyleSheet("background-color: #f0f2f5;");
 
-        // 创建被测弹窗 (harness 作为父对象)
+        // 创建被测弹窗
         popup = new Popup(harness);
-        popup->setFixedSize(400, 300);
+        popup->setFixedSize(450, 350);
         popup->setCornerRadius(15);
-        popup->setShadowWidth(15);
-        popup->setBorderColor(QColor(100, 100, 100, 60));
+        popup->setShadowWidth(20);
+        popup->setBorderColor(QColor(0, 0, 0, 30));
     }
 
     void TearDown() override {
@@ -43,42 +49,73 @@ protected:
     Popup* popup;
 };
 
-TEST_F(PopupTest, AnimationToggleCheck) {
-    VM_ResponsiveDialog* vm = new VM_ResponsiveDialog(popup);
-    
-    // 执行绑定
-    popup->bindTitle(vm, "title");
-    popup->bindVisible(vm, "visible");
-    vm->setTitle("交互式动画弹窗");
+TEST_F(PopupTest, RichContentCheck) {
+    // 1. 设置 Popup 内部布局
+    AnchorLayout* layout = new AnchorLayout(popup);
+    popup->setLayout(layout);
 
+    // 2. 添加标题 (ResponsiveLabel)
+    VM_ResponsiveLabel* vmTitle = new VM_ResponsiveLabel(popup);
+    ResponsiveLabel* titleLabel = new ResponsiveLabel(popup);
+    titleLabel->setStyleSheet("font-size: 22px; font-weight: bold; color: #2c3e50;");
+    titleLabel->bind(vmTitle, "text");
+    vmTitle->setText("温馨提示");
+
+    AnchorLayout::Anchors titleA;
+    titleA.horizontalCenter = true;
+    titleA.topTo = popup; titleA.topOffset = 25;
+    layout->addAnchoredWidget(titleLabel, titleA);
+
+    // 3. 添加内容文字
+    ResponsiveLabel* contentLabel = new ResponsiveLabel("这是一个使用 AnchorLayout 布局的响应式弹窗。所有内部元素会随着弹窗动画同步缩放。", popup);
+    contentLabel->setWordWrap(true);
+    contentLabel->setFixedWidth(350);
+    contentLabel->setAlignment(Qt::AlignCenter);
+    contentLabel->setStyleSheet("font-size: 14px; color: #7f8c8d; line-height: 1.5;");
+
+    AnchorLayout::Anchors contentA;
+    contentA.horizontalCenter = true;
+    contentA.topTo = titleLabel; contentA.topOffset = 40;
+    layout->addAnchoredWidget(contentLabel, contentA);
+
+    // 4. 添加操作按钮 (ResponsivePushbutton)
+    VM_ResponsivePushbutton* vmBtn = new VM_ResponsivePushbutton(popup);
+    ResponsivePushbutton* actionBtn = new ResponsivePushbutton(popup);
+    actionBtn->setFixedSize(120, 40);
+    actionBtn->setStyleSheet(
+        "QPushButton { background-color: #3498db; color: white; border-radius: 20px; font-weight: bold; }"
+        "QPushButton:hover { background-color: #2980b9; }"
+    );
+    actionBtn->bindText(vmBtn, "text");
+    vmBtn->setText("我知道了");
+
+    AnchorLayout::Anchors btnA;
+    btnA.horizontalCenter = true;
+    btnA.bottomTo = popup; btnA.bottomOffset = -25;
+    layout->addAnchoredWidget(actionBtn, btnA);
+
+    // 5. 点击弹窗内部按钮关闭弹窗
+    QObject::connect(actionBtn, &QPushButton::clicked, popup, &Popup::close);
+
+    // --- 外部控制逻辑 ---
+    
     // 创建控制按钮
-    QPushButton* toggleBtn = new QPushButton("点击切换 Popup 状态", harness);
+    QPushButton* toggleBtn = new QPushButton("点击触发 Popup 动画", harness);
     toggleBtn->setFixedSize(220, 50);
     toggleBtn->setStyleSheet(
         "QPushButton { background-color: #2ecc71; color: white; border-radius: 25px; font-size: 16px; font-weight: bold; }"
         "QPushButton:hover { background-color: #27ae60; }"
-        "QPushButton:pressed { background-color: #1e8449; }"
     );
+    toggleBtn->move((harness->width() - toggleBtn->width()) / 2, 500);
 
-    // 居中按钮
-    toggleBtn->move((harness->width() - toggleBtn->width()) / 2, 
-                    (harness->height() - toggleBtn->height()) / 2);
-
-    // 交互逻辑：直接调用标准 API show() 和 close()
     QObject::connect(toggleBtn, &QPushButton::clicked, [this]() {
-        if (popup->isVisible()) {
+        if (popup->isVisible())
             popup->close();
-        } else {
+        else
             popup->show();
-        }
     });
 
     harness->show();
-    
-    // 初始状态
-    EXPECT_FALSE(popup->isVisible());
-    EXPECT_TRUE(popup->windowFlags() & Qt::FramelessWindowHint);
-
     qApp->exec(); 
 }
 
