@@ -24,7 +24,7 @@ Popup::Popup(QWidget *parent) : ResponsiveDialog(parent) {
     m_closeAnimation->setEasingCurve(QEasingCurve::InBack);
 
     connect(m_closeAnimation, &QPropertyAnimation::finished, this, [this]() {
-        ResponsiveDialog::setVisible(false);
+        ResponsiveDialog::done(m_resultCode);
     });
 }
 
@@ -44,6 +44,11 @@ void Popup::setVisible(bool visible) {
         m_closeAnimation->setStartValue(m_animationScale); // 从当前缩放位置平滑收缩
         m_closeAnimation->start();
     }
+}
+
+void Popup::done(int r) {
+    m_resultCode = r;
+    setVisible(false);
 }
 
 void Popup::mousePressEvent(QMouseEvent *event) {

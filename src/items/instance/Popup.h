@@ -17,6 +17,8 @@ public:
 
     // 标准 API 重写
     void setVisible(bool visible) override;
+    void done(int r) override;
+
     // 动画属性访问器
     qreal animationScale() const { return m_animationScale; }
     void setAnimationScale(qreal s) { m_animationScale = s; update(); }
@@ -40,6 +42,7 @@ private:
     qreal m_animationScale = 0.0;
     QPropertyAnimation *m_showAnimation = nullptr;
     QPropertyAnimation *m_closeAnimation = nullptr;
+    int m_resultCode = 0; // 记录对话框结果码
 };
 
 #endif // POPUP_H
