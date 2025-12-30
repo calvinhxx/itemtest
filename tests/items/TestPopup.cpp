@@ -5,14 +5,13 @@
 #include <QWidget>
 #include <QVBoxLayout>
 
-#include "items/instance/Popup.h"
+#include "items/Popup.h"
 
 #include <QPushButton>
 
-#include "items/interface/ResponsiveLabel.h"
-#include "items/interface/ResponsivePushbutton.h"
-#include "viewmodel/VM_ResponsiveLabel.h"
-#include "viewmodel/VM_ResponsivePushbutton.h"
+#include "items/Label.h"
+#include "items/PushButton.h"
+#include "viewmodel/ViewModel.h"
 #include "layouts/AnchorLayout.h"
 #include "utils/PropertyBinder.h"
 
@@ -54,9 +53,9 @@ TEST_F(PopupTest, RichContentCheck) {
     AnchorLayout* layout = new AnchorLayout(popup);
     popup->setLayout(layout);
 
-    // 2. 添加标题 (ResponsiveLabel)
-    VM_ResponsiveLabel* vmTitle = new VM_ResponsiveLabel(popup);
-    ResponsiveLabel* titleLabel = new ResponsiveLabel(popup);
+    // 2. 添加标题 (Label)
+    ViewModel* vmTitle = new ViewModel(popup);
+    Label* titleLabel = new Label(popup);
     titleLabel->setStyleSheet("font-size: 22px; font-weight: bold; color: #2c3e50;");
     PropertyBinder::bind(vmTitle, "text", titleLabel, "text");
     vmTitle->setText("温馨提示");
@@ -67,7 +66,7 @@ TEST_F(PopupTest, RichContentCheck) {
     layout->addAnchoredWidget(titleLabel, titleA);
 
     // 3. 添加内容文字
-    ResponsiveLabel* contentLabel = new ResponsiveLabel("这是一个使用 AnchorLayout 布局的响应式弹窗。所有内部元素会随着弹窗动画同步缩放。", popup);
+    Label* contentLabel = new Label("这是一个使用 AnchorLayout 布局的响应式弹窗。所有内部元素会随着弹窗动画同步缩放。", popup);
     contentLabel->setWordWrap(true);
     contentLabel->setFixedWidth(350);
     contentLabel->setAlignment(Qt::AlignCenter);
@@ -78,9 +77,9 @@ TEST_F(PopupTest, RichContentCheck) {
     contentA.topTo = titleLabel; contentA.topOffset = 40;
     layout->addAnchoredWidget(contentLabel, contentA);
 
-    // 4. 添加操作按钮 (ResponsivePushbutton)
-    VM_ResponsivePushbutton* vmBtn = new VM_ResponsivePushbutton(popup);
-    ResponsivePushbutton* actionBtn = new ResponsivePushbutton(popup);
+    // 4. 添加操作按钮 (PushButton)
+    ViewModel* vmBtn = new ViewModel(popup);
+    PushButton* actionBtn = new PushButton(popup);
     actionBtn->setFixedSize(120, 40);
     actionBtn->setStyleSheet(
         "QPushButton { background-color: #3498db; color: white; border-radius: 20px; font-weight: bold; }"
@@ -116,6 +115,5 @@ TEST_F(PopupTest, RichContentCheck) {
     });
 
     harness->show();
-    qApp->exec(); 
+    qApp->exec();
 }
-

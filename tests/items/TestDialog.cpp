@@ -4,16 +4,14 @@
 #include <QVBoxLayout>
 #include <QLabel>
 
-#include "items/interface/ResponsiveDialog.h"
-#include "items/interface/ResponsiveLabel.h"
-#include "items/interface/ResponsivePushbutton.h"
-#include "viewmodel/VM_ResponsiveDialog.h"
-#include "viewmodel/VM_ResponsiveLabel.h"
-#include "viewmodel/VM_ResponsivePushbutton.h"
+#include "items/Dialog.h"
+#include "items/Label.h"
+#include "items/PushButton.h"
+#include "viewmodel/ViewModel.h"
 #include "layouts/AnchorLayout.h"
 #include "utils/PropertyBinder.h"
 
-class ResponsiveDialogTest : public ::testing::Test {
+class DialogTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         int argc = 0;
@@ -26,7 +24,7 @@ protected:
     void SetUp() override {
         window = new QWidget();
         window->setFixedSize(600, 600);
-        window->setWindowTitle("ResponsiveDialog Meta Binding Test");
+        window->setWindowTitle("Dialog Meta Binding Test");
         layout = new AnchorLayout(window);
         window->setLayout(layout);
     }
@@ -39,10 +37,10 @@ protected:
     AnchorLayout* layout;
 };
 
-TEST_F(ResponsiveDialogTest, DecoupledDialogVisualCheck) {
+TEST_F(DialogTest, DecoupledDialogVisualCheck) {
     // 1. 创建 Dialog 及其控制 VM
-    VM_ResponsiveDialog* vmDialog = new VM_ResponsiveDialog(window);
-    ResponsiveDialog* dialog = new ResponsiveDialog(window);
+    ViewModel* vmDialog = new ViewModel(window);
+    Dialog* dialog = new Dialog(window);
     dialog->setMinimumSize(300, 200);
     
     // 使用通用绑定器 (支持双向绑定以同步关闭状态)
@@ -52,8 +50,8 @@ TEST_F(ResponsiveDialogTest, DecoupledDialogVisualCheck) {
     // 2. 外部注入内容
     QVBoxLayout* dialogLayout = new QVBoxLayout(dialog);
     
-    VM_ResponsiveLabel* vmContent = new VM_ResponsiveLabel(dialog);
-    ResponsiveLabel* contentLabel = new ResponsiveLabel(dialog);
+    ViewModel* vmContent = new ViewModel(dialog);
+    Label* contentLabel = new Label(dialog);
     contentLabel->setAlignment(Qt::AlignCenter);
     contentLabel->setStyleSheet("font-size: 18px; color: #d35400;");
     
@@ -64,8 +62,8 @@ TEST_F(ResponsiveDialogTest, DecoupledDialogVisualCheck) {
     dialogLayout->addWidget(contentLabel);
 
     // 3. 主界面触发按钮
-    VM_ResponsivePushbutton* vmBtn = new VM_ResponsivePushbutton(window);
-    ResponsivePushbutton* btn = new ResponsivePushbutton(window);
+    ViewModel* vmBtn = new ViewModel(window);
+    PushButton* btn = new PushButton(window);
     btn->setFixedSize(200, 50);
     
     // 使用通用绑定器
@@ -89,5 +87,6 @@ TEST_F(ResponsiveDialogTest, DecoupledDialogVisualCheck) {
     window->show();
     EXPECT_FALSE(dialog->isVisible());
 
-    qApp->exec();
+    // qApp->exec(); 
 }
+

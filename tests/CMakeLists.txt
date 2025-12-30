@@ -14,11 +14,11 @@ macro(add_qt_test_module module_name source_file)
     gtest_discover_tests(${module_name})
 endmacro()
 
-# items
-add_qt_test_module(test_responsive_label items/interface/TestResponsiveLabel.cpp)
-add_qt_test_module(test_responsive_pushbutton items/interface/TestResponsivePushbutton.cpp)
-add_qt_test_module(test_responsive_dialog items/interface/TestResponsiveDialog.cpp)
-add_qt_test_module(test_popup items/instance/TestPopup.cpp)
+# items (flat)
+add_qt_test_module(test_label items/TestLabel.cpp)
+add_qt_test_module(test_pushbutton items/TestPushButton.cpp)
+add_qt_test_module(test_dialog items/TestDialog.cpp)
+add_qt_test_module(test_popup items/TestPopup.cpp)
+
 # layouts
 add_qt_test_module(test_anchor_layout layouts/TestAnchorLayout.cpp)
-

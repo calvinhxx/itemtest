@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <QApplication>
 #include <QWidget>
-#include "items/interface/ResponsivePushbutton.h"
-#include "viewmodel/VM_ResponsivePushbutton.h"
+#include "items/PushButton.h"
+#include "viewmodel/ViewModel.h"
 #include "utils/PropertyBinder.h"
 
-class ResponsivePushbuttonTest : public ::testing::Test {
+class PushButtonTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         int argc = 0;
@@ -17,8 +17,8 @@ protected:
 
     void SetUp() override {
         window = new QWidget();
-        btn = new ResponsivePushbutton(window);
-        vm = new VM_ResponsivePushbutton(window);
+        btn = new PushButton(window);
+        vm = new ViewModel(window);
     }
 
     void TearDown() override {
@@ -26,11 +26,11 @@ protected:
     }
 
     QWidget* window;
-    ResponsivePushbutton* btn;
-    VM_ResponsivePushbutton* vm;
+    PushButton* btn;
+    ViewModel* vm;
 };
 
-TEST_F(ResponsivePushbuttonTest, GenericBinding) {
+TEST_F(PushButtonTest, GenericBinding) {
     // 绑定文字和启用状态
     PropertyBinder::bind(vm, "text", btn, "text");
     PropertyBinder::bind(vm, "enabled", btn, "enabled");
@@ -41,3 +41,4 @@ TEST_F(ResponsivePushbuttonTest, GenericBinding) {
     vm->setEnabled(false);
     EXPECT_FALSE(btn->isEnabled());
 }
+

@@ -1,7 +1,7 @@
 #ifndef POPUP_H
 #define POPUP_H
 
-#include "items/interface/ResponsiveDialog.h"
+#include "Dialog.h"
 #include <QPropertyAnimation>
 #include <QColor>
 #include <QPixmap>
@@ -10,7 +10,7 @@
  * @brief Popup - 采用快照渲染方案的圆角弹窗
  * 特点：动画期间使用快照缩放，解决子控件不同步和布局混乱问题。
  */
-class Popup : public ResponsiveDialog {
+class Popup : public Dialog {
     Q_OBJECT
     Q_PROPERTY(qreal animationScale READ animationScale WRITE setAnimationScale)
 public:

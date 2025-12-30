@@ -5,7 +5,7 @@
 #include <QEasingCurve>
 #include <QLayout>
 
-Popup::Popup(QWidget *parent) : ResponsiveDialog(parent) {
+Popup::Popup(QWidget *parent) : Dialog(parent) {
     setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog | Qt::CustomizeWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setContentsMargins(m_shadowWidth, m_shadowWidth, m_shadowWidth, m_shadowWidth);
@@ -17,7 +17,7 @@ Popup::Popup(QWidget *parent) : ResponsiveDialog(parent) {
         m_isAnimating = false;
         if (m_animationScale < 0.01) {
             m_isFinalizing = true;
-            ResponsiveDialog::done(m_resultCode);
+            Dialog::done(m_resultCode);
             m_isFinalizing = false;
         } else {
             // 动画结束，显示真实子控件，恢复交互
@@ -49,7 +49,7 @@ void Popup::updateSnapshot() {
 
 void Popup::setVisible(bool visible) {
     if (m_isFinalizing) {
-        ResponsiveDialog::setVisible(visible);
+        Dialog::setVisible(visible);
         return;
     }
 
@@ -57,7 +57,7 @@ void Popup::setVisible(bool visible) {
         if (isVisible() && m_animation->state() == QPropertyAnimation::Running && m_animation->endValue().toReal() > 0.5) return;
 
         m_animation->stop();
-        ResponsiveDialog::setVisible(true); // 必须先 show 才能 grab
+        Dialog::setVisible(true); // 必须先 show 才能 grab
         updateSnapshot();
 
         m_animation->setStartValue(m_animationScale);
