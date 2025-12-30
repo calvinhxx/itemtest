@@ -1,6 +1,4 @@
 #include "ResponsivePushbutton.h"
-#include <QMetaProperty>
-#include <QDebug>
 
 ResponsivePushbutton::ResponsivePushbutton(QWidget *parent) : QPushButton(parent) {}
 
@@ -12,39 +10,8 @@ void ResponsivePushbutton::setText(const QString &text) {
     emit textChanged(text);
 }
 
-void ResponsivePushbutton::bindText(QObject *source, const char *propertyName) {
-    if (!source) return;
-    const QMetaObject *meta = source->metaObject();
-    int propIndex = meta->indexOfProperty(propertyName);
-    if (propIndex == -1) return;
-
-    QMetaProperty prop = meta->property(propIndex);
-    setText(prop.read(source).toString());
-
-    if (prop.hasNotifySignal()) {
-        QMetaMethod notifySignal = prop.notifySignal();
-        QMetaMethod updateSlot = this->metaObject()->method(
-            this->metaObject()->indexOfMethod("setText(QString)")
-        );
-        connect(source, notifySignal, this, updateSlot);
-    }
+void ResponsivePushbutton::setEnabled(bool enabled) {
+    if (this->isEnabled() == enabled) return;
+    QPushButton::setEnabled(enabled);
+    emit enabledChanged(enabled);
 }
-
-void ResponsivePushbutton::bindEnabled(QObject *source, const char *propertyName) {
-    if (!source) return;
-    const QMetaObject *meta = source->metaObject();
-    int propIndex = meta->indexOfProperty(propertyName);
-    if (propIndex == -1) return;
-
-    QMetaProperty prop = meta->property(propIndex);
-    setEnabled(prop.read(source).toBool());
-
-    if (prop.hasNotifySignal()) {
-        QMetaMethod notifySignal = prop.notifySignal();
-        QMetaMethod updateSlot = this->metaObject()->method(
-            this->metaObject()->indexOfMethod("setEnabled(bool)")
-        );
-        connect(source, notifySignal, this, updateSlot);
-    }
-}
-

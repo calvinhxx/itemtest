@@ -6,7 +6,6 @@
 #include <QVBoxLayout>
 
 #include "items/instance/Popup.h"
-#include "viewmodel/VM_ResponsiveDialog.h"
 
 #include <QPushButton>
 
@@ -15,6 +14,7 @@
 #include "viewmodel/VM_ResponsiveLabel.h"
 #include "viewmodel/VM_ResponsivePushbutton.h"
 #include "layouts/AnchorLayout.h"
+#include "utils/PropertyBinder.h"
 
 class PopupTest : public ::testing::Test {
 protected:
@@ -58,7 +58,7 @@ TEST_F(PopupTest, RichContentCheck) {
     VM_ResponsiveLabel* vmTitle = new VM_ResponsiveLabel(popup);
     ResponsiveLabel* titleLabel = new ResponsiveLabel(popup);
     titleLabel->setStyleSheet("font-size: 22px; font-weight: bold; color: #2c3e50;");
-    titleLabel->bind(vmTitle, "text");
+    PropertyBinder::bind(vmTitle, "text", titleLabel, "text");
     vmTitle->setText("温馨提示");
 
     AnchorLayout::Anchors titleA;
@@ -86,7 +86,7 @@ TEST_F(PopupTest, RichContentCheck) {
         "QPushButton { background-color: #3498db; color: white; border-radius: 20px; font-weight: bold; }"
         "QPushButton:hover { background-color: #2980b9; }"
     );
-    actionBtn->bindText(vmBtn, "text");
+    PropertyBinder::bind(vmBtn, "text", actionBtn, "text");
     vmBtn->setText("我知道了");
 
     AnchorLayout::Anchors btnA;

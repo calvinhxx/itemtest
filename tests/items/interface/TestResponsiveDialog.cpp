@@ -11,6 +11,7 @@
 #include "viewmodel/VM_ResponsiveLabel.h"
 #include "viewmodel/VM_ResponsivePushbutton.h"
 #include "layouts/AnchorLayout.h"
+#include "utils/PropertyBinder.h"
 
 class ResponsiveDialogTest : public ::testing::Test {
 protected:
@@ -25,7 +26,7 @@ protected:
     void SetUp() override {
         window = new QWidget();
         window->setFixedSize(600, 600);
-        window->setWindowTitle("ResponsiveDialog UT Visual Check");
+        window->setWindowTitle("ResponsiveDialog Meta Binding Test");
         layout = new AnchorLayout(window);
         window->setLayout(layout);
     }
@@ -44,19 +45,20 @@ TEST_F(ResponsiveDialogTest, DecoupledDialogVisualCheck) {
     ResponsiveDialog* dialog = new ResponsiveDialog(window);
     dialog->setMinimumSize(300, 200);
     
-    // 绑定基础行为
-    dialog->bindTitle(vmDialog, "title");
-    dialog->bindVisible(vmDialog, "visible");
+    // 使用通用绑定器 (支持双向绑定以同步关闭状态)
+    PropertyBinder::bind(vmDialog, "title", dialog, "windowTitle");
+    PropertyBinder::bind(vmDialog, "visible", dialog, "visible", PropertyBinder::TwoWay);
 
-    // 2. 外部注入内容 (解耦的关键：Dialog 内部不再感知 QLabel)
+    // 2. 外部注入内容
     QVBoxLayout* dialogLayout = new QVBoxLayout(dialog);
     
-    // 我们甚至可以在对话框内部也使用一个响应式的 Label
     VM_ResponsiveLabel* vmContent = new VM_ResponsiveLabel(dialog);
     ResponsiveLabel* contentLabel = new ResponsiveLabel(dialog);
     contentLabel->setAlignment(Qt::AlignCenter);
     contentLabel->setStyleSheet("font-size: 18px; color: #d35400;");
-    contentLabel->bind(vmContent, "text");
+    
+    // 使用通用绑定器
+    PropertyBinder::bind(vmContent, "text", contentLabel, "text");
     vmContent->setText("我是被注入的响应式内容");
 
     dialogLayout->addWidget(contentLabel);
@@ -65,7 +67,9 @@ TEST_F(ResponsiveDialogTest, DecoupledDialogVisualCheck) {
     VM_ResponsivePushbutton* vmBtn = new VM_ResponsivePushbutton(window);
     ResponsivePushbutton* btn = new ResponsivePushbutton(window);
     btn->setFixedSize(200, 50);
-    btn->bindText(vmBtn, "text");
+    
+    // 使用通用绑定器
+    PropertyBinder::bind(vmBtn, "text", btn, "text");
     vmBtn->setText("弹出自定义对话框");
 
     AnchorLayout::Anchors btnA;
@@ -73,22 +77,16 @@ TEST_F(ResponsiveDialogTest, DecoupledDialogVisualCheck) {
     btnA.verticalCenter = true;
     layout->addAnchoredWidget(btn, btnA);
 
-    // 4. 交互逻辑
+    // 4. 交互逻辑：仅修改 VM
     QObject::connect(btn, &QPushButton::clicked, [vmDialog, vmContent]() {
         static int count = 0;
         count++;
-        vmDialog->setTitle(QString("注入式演示 %1").arg(count));
-        vmContent->setText(QString("外部控制的内容更新: %1").arg(count));
+        vmDialog->setTitle(QString("Meta Binding 演示 %1").arg(count));
+        vmContent->setText(QString("通过通用 Binder 更新: %1").arg(count));
         vmDialog->setVisible(true);
     });
 
-    // 对话框关闭同步回 VM
-    QObject::connect(dialog, &ResponsiveDialog::visibleChanged, [vmDialog](bool visible) {
-        vmDialog->setVisible(visible);
-    });
-
     window->show();
-
     EXPECT_FALSE(dialog->isVisible());
 
     qApp->exec();

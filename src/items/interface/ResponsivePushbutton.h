@@ -11,25 +11,19 @@
  */
 class ResponsivePushbutton : public QPushButton {
     Q_OBJECT
+    Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
+    Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY enabledChanged)
 public:
     explicit ResponsivePushbutton(QWidget *parent = nullptr);
     explicit ResponsivePushbutton(const QString &text, QWidget *parent = nullptr);
 
-    /**
-     * @brief 绑定文本属性
-     */
-    void bindText(QObject *source, const char *propertyName);
-
-    /**
-     * @brief 绑定启用状态属性
-     */
-    void bindEnabled(QObject *source, const char *propertyName);
-
 public slots:
     void setText(const QString &text);
+    void setEnabled(bool enabled);
 
 signals:
     void textChanged(const QString &text);
+    void enabledChanged(bool enabled);
 };
 
 #endif // RESPONSIVEPUSHBUTTON_H
