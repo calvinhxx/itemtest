@@ -35,9 +35,6 @@ protected:
         // 创建被测弹窗
         popup = new Popup(harness);
         popup->setFixedSize(450, 350);
-        popup->setCornerRadius(15);
-        popup->setShadowWidth(20);
-        popup->setBorderColor(QColor(0, 0, 0, 30));
     }
 
     void TearDown() override {

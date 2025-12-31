@@ -34,10 +34,10 @@ protected:
 private:
     void updateSnapshot(); // 捕捉当前界面快照
 
-    int m_cornerRadius = 10;
-    int m_shadowWidth = 10;
+    int m_cornerRadius = 4;
+    int m_shadowWidth = 8;
     int m_borderWidth = 1;
-    QColor m_borderColor = QColor(200, 200, 200, 150);
+    QColor m_borderColor = QColor(0, 0, 0, 255*0.2);
     
     QPoint m_dragPosition;
     QPropertyAnimation *m_animation = nullptr;
