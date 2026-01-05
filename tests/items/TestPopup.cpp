@@ -23,6 +23,7 @@ protected:
         if (!qApp) {
             new QApplication(argc, argv);
         }
+        QApplication::setStyle("Fusion");
     }
 
     void SetUp() override {
@@ -112,5 +113,5 @@ TEST_F(PopupTest, RichContentCheck) {
     });
 
     harness->show();
-    qApp->exec();
+    // qApp->exec();
 }

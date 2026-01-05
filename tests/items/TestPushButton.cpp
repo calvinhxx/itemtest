@@ -13,6 +13,7 @@ protected:
         if (!qApp) {
             new QApplication(argc, argv);
         }
+        QApplication::setStyle("Fusion");
     }
 
     void SetUp() override {
