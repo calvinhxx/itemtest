@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QTimer>
+#include <QDebug>
 #include "layouts/AnchorLayout.h"
 #include "utils/DebugOverlay.h"
 
@@ -19,7 +20,7 @@ protected:
 
     void SetUp() override {
         window = new QWidget();
-        window->setFixedSize(800, 800);
+        window->setFixedSize(600, 600);
         window->setWindowTitle("AnchorLayout UT Visual Check");
         layout = new AnchorLayout(window);
         window->setLayout(layout);
@@ -52,7 +53,7 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     layout->addAnchoredWidget(btn2, a2);
     new DebugOverlay(btn2, Qt::blue, window);
 
-    // 4) 全居中 (250, 250)
+    // 3) 全居中 (250, 250)
     QPushButton* btn3 = new QPushButton("全居中", window);
     btn3->setFixedSize(100, 100);
     AnchorLayout::Anchors a3;
@@ -61,7 +62,7 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     layout->addAnchoredWidget(btn3, a3);
     new DebugOverlay(btn3, Qt::magenta, window);
 
-    // 5) 仅水平居中 (位于底部 -20)
+    // 4) 仅水平居中 (位于底部 -20)
     QPushButton* btn6 = new QPushButton("仅水平居中", window);
     btn6->setFixedSize(120, 40);
     AnchorLayout::Anchors a6;
@@ -70,7 +71,7 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     layout->addAnchoredWidget(btn6, a6);
     new DebugOverlay(btn6, Qt::cyan, window);
 
-    // 6) 填充区域 (Margins: 0, 200, 400, 200)
+    // 5) 填充区域 (Margins: 0, 200, 400, 200)
     QPushButton* btn4 = new QPushButton("填充区域", window);
     AnchorLayout::Anchors a4;
     a4.fill = true;
@@ -78,7 +79,7 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     layout->addAnchoredWidget(btn4, a4);
     new DebugOverlay(btn4, Qt::darkYellow, window);
 
-    // 7) 右下锚定 (-16, -16)
+    // 6) 右下锚定 (-16, -16)
     QPushButton* btn5 = new QPushButton("右下", window);
     btn5->setFixedSize(100, 100);
     AnchorLayout::Anchors a5;
@@ -87,7 +88,7 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     layout->addAnchoredWidget(btn5, a5);
     new DebugOverlay(btn5, Qt::black, window);
 
-    // 8) 动态 Resize 测试：QLabel 内容在 3 秒后改变
+    // 7) 动态 Resize 测试：QLabel 内容在 3 秒后改变
     QLabel* labelDynamic = new QLabel("等待 3 秒后文字会变长...", window);
     labelDynamic->setStyleSheet("background-color: #3498db; color: white; padding: 5px;");
     AnchorLayout::Anchors aDyn;
@@ -99,11 +100,11 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     QTimer::singleShot(3000, [labelDynamic, this]() {
         labelDynamic->setText("成功！文字变长了，布局和 DebugLine 应该自动跟随。");
     });
-
-    // 执行布局
+    // 1. 先调用 show()，触发初始渲染
     window->show();
 
-    // --- 断言验证 (根据 600x600 窗口计算) ---
+    int W = window->width();
+    int H = window->height();
     
     // btn1: (10, 10)
     EXPECT_EQ(btn1->pos(), QPoint(10, 10));
@@ -111,18 +112,18 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     // btn2: x = 10 + 100 + 20 = 130
     EXPECT_EQ(btn2->x(), 130);
     
-    // btn3: (600-100)/2 = 250
-    EXPECT_EQ(btn3->pos(), QPoint(250, 250));
+    // btn3: 全居中 (W-100)/2, (H-100)/2
+    EXPECT_EQ(btn3->pos(), QPoint((W - 100) / 2, (H - 100) / 2));
     
-    // btn6: x = (600-120)/2 = 240, y = 600-40-20 = 540
-    EXPECT_EQ(btn6->pos(), QPoint(240, 540));
+    // btn6: 仅水平居中，底部偏移 -20
+    EXPECT_EQ(btn6->pos(), QPoint((W - 120) / 2, H - 40 - 20));
     
-    // btn4: x=0, y=200, w=600-0-400=200, h=600-200-200=200
-    EXPECT_EQ(btn4->geometry(), QRect(0, 200, 200, 200));
+    // btn4: 填充区域 Margins(0, 200, 400, 200)
+    // x=0, y=200, w=W-0-400, h=H-200-200
+    EXPECT_EQ(btn4->geometry(), QRect(0, 200, W - 400, H - 400));
     
-    // btn5: x=600-100-16=484, y=600-100-16=484
-    EXPECT_EQ(btn5->pos(), QPoint(484, 484));
-
+    // btn5: 右下锚定 (-16, -16)
+    EXPECT_EQ(btn5->pos(), QPoint(W - 100 - 16, H - 100 - 16));
     // 如果需要运行 UT 时观察界面，请取消下面一行的注释:
-    qApp->exec(); 
+    qApp->exec();
 }
