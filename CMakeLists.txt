@@ -8,6 +8,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(BUILD_TESTING "Enable testing and build tests" ON)
+
 if(MSVC)
 	add_definitions(-DUNICODE -D_UNICODE)
 	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
@@ -46,6 +48,8 @@ target_link_libraries(itemstest_lib PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_include_directories(itemstest_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # ut
-enable_testing()
-add_subdirectory(third_party/googletest)
-add_subdirectory(tests)
+if(BUILD_TESTING)
+	enable_testing()
+	add_subdirectory(third_party/googletest)
+	add_subdirectory(tests)
+endif()
