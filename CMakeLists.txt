@@ -35,12 +35,13 @@ endmacro(source_group_by_dir)
 
 # find files recurse
 file(GLOB_RECURSE SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+set(RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resources.qrc)
 source_group_by_dir(SRC)
 foreach(v ${SRC})
 	message(STATUS ${v})
 endforeach()
 
-add_library(itemstest_lib STATIC ${SRC})
+add_library(itemstest_lib STATIC ${SRC} ${RESOURCES})
 target_link_libraries(itemstest_lib PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_include_directories(itemstest_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
