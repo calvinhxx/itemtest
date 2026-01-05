@@ -17,21 +17,6 @@ if(MSVC)
 	set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MT")
 endif()
 
-# Prefer a specific Qt installation when multiple versions exist.
-# Usage:
-#   cmake -B build-qt693 -DQT_ROOT="/Users/calvinhxx/Qt/6.9.3/macos && cmake --build build-qt693"
-set(QT_ROOT "" CACHE PATH "Qt installation prefix to prefer (e.g. /Users/you/Qt/6.x.x/macos or /opt/homebrew/opt/qt).")
-if(QT_ROOT)
-	list(PREPEND CMAKE_PREFIX_PATH "${QT_ROOT}")
-endif()
-# Debug: print where Qt was found from (helps diagnose Conda/Homebrew/SDK conflicts)
-message(STATUS "Using Qt major=${QT_VERSION_MAJOR}")
-if(QT_VERSION_MAJOR EQUAL 6)
-	message(STATUS "Qt6_DIR=${QT_ROOT}")
-else()
-	message(STATUS "Qt5_DIR=${QT_ROOT}")
-endif()
-
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
