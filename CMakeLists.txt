@@ -22,26 +22,13 @@ endif()
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
-# add source_files macro function
-macro(source_group_by_dir source_files)
-		set(sgbd_cur_dir ${CMAKE_CURRENT_SOURCE_DIR}/)
-		foreach(sgbd_file ${${source_files}})
-				string(REGEX REPLACE ${sgbd_cur_dir} "" sgbd_fpath ${sgbd_file})
-				string(REGEX REPLACE "[^/\\\\]+$" "" sgbd_group_name ${sgbd_fpath})
-				if(sgbd_group_name)
-						string(REPLACE "/"   "\\\\"  sgbd_group_name_normal ${sgbd_group_name})
-						source_group(${sgbd_group_name_normal} FILES ${sgbd_file})
-				endif(sgbd_group_name)
-		endforeach(sgbd_file)
-endmacro(source_group_by_dir)
-
 # find files recurse
 file(GLOB_RECURSE SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-set(RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resources.qrc)
-source_group_by_dir(SRC)
 foreach(v ${SRC})
 	message(STATUS ${v})
 endforeach()
+set(RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resources.qrc)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SRC})
 
 add_library(itemstest_lib STATIC ${SRC} ${RESOURCES})
 target_link_libraries(itemstest_lib PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
