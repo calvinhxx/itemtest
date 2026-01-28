@@ -127,5 +127,5 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     EXPECT_EQ(btn5->pos(), QPoint(W - 100 - 16, H - 100 - 16));
 
     // 如果需要运行 UT 时观察界面，请取消下面一行的注释:
-    // qApp->exec();
+    qApp->exec();
 }

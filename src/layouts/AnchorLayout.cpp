@@ -15,6 +15,12 @@ AnchorLayout::~AnchorLayout() {
 
 void AnchorLayout::addAnchoredWidget(QWidget* w, const Anchors& anchors) {
     if (!w) return;
+    
+    // 确保添加到布局的控件其父对象是布局所在的窗口
+    if (parentWidget() && w->parent() != parentWidget()) {
+        w->setParent(parentWidget());
+    }
+
     // 先检查是否已经存在，如果存在则更新 anchors
     for (Item& it : m_items) {
         if (it.item->widget() == w) {
