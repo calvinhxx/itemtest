@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <QApplication>
 #include <QVBoxLayout>
-#include "view/dialogs&flyouts/Dialog.h"
+#include "view/dialogs_flyouts/Dialog.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/Label.h"
 #include "view/FluentElement.h"

@@ -26,5 +26,5 @@ add_qt_test_module(test_button views/basicinput/TestButton.cpp)
 # textfields
 add_qt_test_module(test_label views/textfields/TestLabel.cpp)
 
-# dialogs&flyouts
-add_qt_test_module(test_dialog views/dialogs&flyouts/TestDialog.cpp)
+# dialogs_flyouts
+add_qt_test_module(test_dialog views/dialogs_flyouts/TestDialog.cpp)
