@@ -1,5 +1,6 @@
 #include "Dialog.h"
 #include <QPainter>
+#include <QMouseEvent>
 
 namespace view::dialogs_flyouts {
 
@@ -13,6 +14,30 @@ Dialog::Dialog(QWidget *parent) : QDialog(parent) {
     setContentsMargins(m_shadowSize, m_shadowSize, m_shadowSize, m_shadowSize);
     
     onThemeUpdated();
+}
+
+void Dialog::mousePressEvent(QMouseEvent *event) {
+    if (m_dragEnabled && event->button() == Qt::LeftButton) {
+        m_dragPosition = event->globalPos() - frameGeometry().topLeft();
+        setCursor(Qt::ClosedHandCursor);
+        event->accept();
+    }
+    QDialog::mousePressEvent(event);
+}
+
+void Dialog::mouseMoveEvent(QMouseEvent *event) {
+    if (cursor().shape() == Qt::ClosedHandCursor) {
+        move(event->globalPos() - m_dragPosition);
+        event->accept();
+    }
+    QDialog::mouseMoveEvent(event);
+}
+
+void Dialog::mouseReleaseEvent(QMouseEvent *event) {
+    if (cursor().shape() == Qt::ClosedHandCursor) {
+        unsetCursor();
+    }
+    QDialog::mouseReleaseEvent(event);
 }
 
 void Dialog::paintEvent(QPaintEvent*) {

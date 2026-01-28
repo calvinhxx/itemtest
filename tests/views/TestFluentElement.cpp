@@ -377,7 +377,6 @@ protected:
         FluentElement::setTheme(FluentElement::Light);
         
         window = new QWidget();
-        window->setFixedSize(800, 600);
         window->setWindowTitle("FluentElement Visual Preview");
         layout = new QVBoxLayout(window);
         window->setLayout(layout);
