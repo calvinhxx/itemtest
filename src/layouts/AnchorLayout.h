@@ -8,28 +8,40 @@
 #include <QRect>
 
 /**
- * @brief AnchorLayout - 一个简约的、仿 QML Anchors 的 QWidget 布局管理器。
- * 
- * 它允许通过设置锚点（anchors）来确定子控件的位置和大小。
+ * @brief AnchorLayout - 一个仿 QML Anchors 的 QWidget 布局管理器。
  */
 class AnchorLayout : public QLayout {
     Q_OBJECT
 public:
+    enum class Edge {
+        None,
+        Left,
+        Right,
+        Top,
+        Bottom,
+        HCenter,
+        VCenter
+    };
+
+    struct Anchor {
+        QWidget* target = nullptr;
+        Edge edge = Edge::None;
+        int offset = 0;
+
+        Anchor() = default;
+        Anchor(QWidget* t, Edge e, int o = 0) : target(t), edge(e), offset(o) {}
+    };
+
     struct Anchors {
-        // 锚定目标（nullptr 表示父控件）
-        QWidget* leftTo = nullptr;   int leftOffset = 0;
-        QWidget* rightTo = nullptr;  int rightOffset = 0;
-        QWidget* topTo = nullptr;    int topOffset = 0;
-        QWidget* bottomTo = nullptr; int bottomOffset = 0;
+        Anchor left;
+        Anchor right;
+        Anchor top;
+        Anchor bottom;
+        Anchor horizontalCenter;
+        Anchor verticalCenter;
 
-        bool fill = false;           // 是否填充父控件
-        QMargins fillMargins;        // fill 为 true 时的外边距
-
-        bool horizontalCenter = false; // 水平居中
-        int horizontalCenterOffset = 0; // 水平居中偏移
-
-        bool verticalCenter = false;   // 垂直居中
-        int verticalCenterOffset = 0;   // 垂直居中偏移
+        bool fill = false;
+        QMargins fillMargins;
 
         Anchors() : fillMargins(0, 0, 0, 0) {}
     };
@@ -37,10 +49,8 @@ public:
     explicit AnchorLayout(QWidget* parent = nullptr);
     ~AnchorLayout();
 
-    // 添加一个带锚点配置的 widget
     void addAnchoredWidget(QWidget* w, const Anchors& anchors);
 
-    // QLayout 接口实现
     void addItem(QLayoutItem* item) override;
     int count() const override;
     QLayoutItem* itemAt(int index) const override;
@@ -57,8 +67,8 @@ private:
     };
 
     QVector<Item> m_items;
-
     int getWidgetIndex(QWidget* w) const;
+    int getEdgeValue(QWidget* target, Edge edge, const QRect& parentRect) const;
 };
 
 #endif // ANCHORLAYOUT_H

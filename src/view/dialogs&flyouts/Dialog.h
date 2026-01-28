@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QVBoxLayout>
 #include "view/FluentElement.h"
+#include "common/Spacing.h"
 
 namespace view::dialogs_flyouts {
 
@@ -19,13 +20,18 @@ public:
     
     void onThemeUpdated() override { update(); }
 
+    /**
+     * @brief 获取阴影预留的大小
+     */
+    int shadowSize() const { return m_shadowSize; }
+
 protected:
     void paintEvent(QPaintEvent* event) override;
 
 private:
     void drawShadow(QPainter& painter, const QRect& contentRect);
     
-    const int m_shadowSize = 8; // 阴影占位
+    const int m_shadowSize = ::Spacing::Small; // 使用全局命名空间，避免与 FluentElement::Spacing 冲突
 };
 
 } // namespace view::dialogs_flyouts

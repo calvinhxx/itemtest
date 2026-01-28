@@ -1,9 +1,7 @@
 #include "AnchorLayout.h"
 #include <QWidgetItem>
-#include <QWidget>
 
 AnchorLayout::AnchorLayout(QWidget* parent) : QLayout(parent) {
-    // 设置默认边距为 0，因为 AnchorLayout 通常靠 offset 控制
     setContentsMargins(0, 0, 0, 0);
 }
 
@@ -15,13 +13,9 @@ AnchorLayout::~AnchorLayout() {
 
 void AnchorLayout::addAnchoredWidget(QWidget* w, const Anchors& anchors) {
     if (!w) return;
-    
-    // 确保添加到布局的控件其父对象是布局所在的窗口
     if (parentWidget() && w->parent() != parentWidget()) {
         w->setParent(parentWidget());
     }
-
-    // 先检查是否已经存在，如果存在则更新 anchors
     for (Item& it : m_items) {
         if (it.item->widget() == w) {
             it.anchors = anchors;
@@ -29,7 +23,6 @@ void AnchorLayout::addAnchoredWidget(QWidget* w, const Anchors& anchors) {
             return;
         }
     }
-    
     addItem(new QWidgetItem(w));
     m_items.last().anchors = anchors;
     invalidate();
@@ -42,9 +35,7 @@ void AnchorLayout::addItem(QLayoutItem* item) {
     invalidate();
 }
 
-int AnchorLayout::count() const {
-    return m_items.size();
-}
+int AnchorLayout::count() const { return m_items.size(); }
 
 QLayoutItem* AnchorLayout::itemAt(int index) const {
     if (index < 0 || index >= m_items.size()) return nullptr;
@@ -57,14 +48,8 @@ QLayoutItem* AnchorLayout::takeAt(int index) {
     return it.item;
 }
 
-QSize AnchorLayout::sizeHint() const {
-    if (m_items.isEmpty()) return QSize(400, 300);
-    return QSize(600, 600);
-}
-
-QSize AnchorLayout::minimumSize() const {
-    return QSize(0, 0);
-}
+QSize AnchorLayout::sizeHint() const { return QSize(400, 300); }
+QSize AnchorLayout::minimumSize() const { return QSize(0, 0); }
 
 int AnchorLayout::getWidgetIndex(QWidget* w) const {
     for (int i = 0; i < m_items.size(); ++i) {
@@ -73,142 +58,100 @@ int AnchorLayout::getWidgetIndex(QWidget* w) const {
     return -1;
 }
 
+int AnchorLayout::getEdgeValue(QWidget* target, Edge edge, const QRect& parentRect) const {
+    if (!target || target == parentWidget()) {
+        switch (edge) {
+            case Edge::Left:    return parentRect.left();
+            case Edge::Right:   return parentRect.right();
+            case Edge::Top:     return parentRect.top();
+            case Edge::Bottom:  return parentRect.bottom();
+            case Edge::HCenter: return parentRect.center().x();
+            case Edge::VCenter: return parentRect.center().y();
+            default: return 0;
+        }
+    }
+    int idx = getWidgetIndex(target);
+    if (idx == -1) return 0;
+    const QRect& r = m_items[idx].geometry;
+    switch (edge) {
+        case Edge::Left:    return r.left();
+        case Edge::Right:   return r.right();
+        case Edge::Top:     return r.top();
+        case Edge::Bottom:  return r.bottom();
+        case Edge::HCenter: return r.center().x();
+        case Edge::VCenter: return r.center().y();
+        default: return 0;
+    }
+}
+
 void AnchorLayout::setGeometry(const QRect& rect) {
     QLayout::setGeometry(rect);
     if (m_items.isEmpty()) return;
 
-    QRect parentRect = contentsRect(); // 获取布局可用区域
-
-    // 1. 初始化几何状态：始终优先使用 sizeHint()
-    // 对于 QLabel 等内容自适应控件，sizeHint() 会随内容变化；
-    // 对于显式 setFixedSize() 的控件，sizeHint() 就是那个固定值。
+    QRect parentRect = contentsRect();
     for (Item& it : m_items) {
-        QSize s = it.item->sizeHint();
-        it.geometry = QRect(QPoint(parentRect.left(), parentRect.top()), s);
+        it.geometry = QRect(parentRect.topLeft(), it.item->sizeHint());
     }
 
-    // 2. 多轮迭代解析锚点
-    const int maxPasses = 10;
-    for (int pass = 0; pass < maxPasses; ++pass) {
+    for (int pass = 0; pass < 5; ++pass) {
         bool changed = false;
-
-        for (int i = 0; i < m_items.size(); ++i) {
-            Item& it = m_items[i];
-            QRect oldGeom = it.geometry;
-            
-            // 获取当前项最可靠的建议尺寸
+        for (Item& it : m_items) {
+            QRect old = it.geometry;
             QSize s = it.item->sizeHint();
 
             if (it.anchors.fill) {
                 it.geometry = parentRect.marginsRemoved(it.anchors.fillMargins);
             } else {
-                int left = it.geometry.left();
-                int right = it.geometry.right();
-                int top = it.geometry.top();
-                int bottom = it.geometry.bottom();
-                bool leftFixed = false, rightFixed = false, topFixed = false, bottomFixed = false;
-
-                // 水平解析
-                if (it.anchors.horizontalCenter) {
-                    left = parentRect.left() + (parentRect.width() - s.width()) / 2 + it.anchors.horizontalCenterOffset;
-                    leftFixed = true;
+                // 水平
+                if (it.anchors.horizontalCenter.edge != Edge::None) {
+                    int targetVal = getEdgeValue(it.anchors.horizontalCenter.target, it.anchors.horizontalCenter.edge, parentRect);
+                    it.geometry.moveCenter(QPoint(targetVal + it.anchors.horizontalCenter.offset, it.geometry.center().y()));
                 } else {
-                    if (it.anchors.leftTo) {
-                        if (it.anchors.leftTo == parentWidget()) {
-                            left = parentRect.left() + it.anchors.leftOffset;
-                        } else {
-                            int idx = getWidgetIndex(it.anchors.leftTo);
-                            if (idx != -1) {
-                                left = m_items[idx].geometry.right() + 1 + it.anchors.leftOffset;
-                            }
-                        }
-                        leftFixed = true;
-                    }
+                    bool leftFixed = it.anchors.left.edge != Edge::None;
+                    bool rightFixed = it.anchors.right.edge != Edge::None;
+                    int leftVal = getEdgeValue(it.anchors.left.target, it.anchors.left.edge, parentRect) + it.anchors.left.offset;
+                    int rightVal = getEdgeValue(it.anchors.right.target, it.anchors.right.edge, parentRect) + it.anchors.right.offset;
 
-                    if (it.anchors.rightTo) {
-                        if (it.anchors.rightTo == parentWidget()) {
-                            right = parentRect.right() + it.anchors.rightOffset;
-                        } else {
-                            int idx = getWidgetIndex(it.anchors.rightTo);
-                            if (idx != -1) {
-                                right = m_items[idx].geometry.left() - 1 + it.anchors.rightOffset;
-                            }
-                        }
-                        rightFixed = true;
+                    if (leftFixed && rightFixed) {
+                        it.geometry.setLeft(leftVal);
+                        it.geometry.setRight(rightVal);
+                    } else if (leftFixed) {
+                        it.geometry.moveLeft(leftVal);
+                        it.geometry.setWidth(s.width());
+                    } else if (rightFixed) {
+                        it.geometry.moveRight(rightVal);
+                        it.geometry.setWidth(s.width());
                     }
                 }
 
-                // 应用水平位置和宽度
-                if (leftFixed && rightFixed) {
-                    it.geometry.setLeft(left);
-                    it.geometry.setRight(right);
-                } else if (leftFixed) {
-                    it.geometry.moveLeft(left);
-                    it.geometry.setWidth(s.width());
-                } else if (rightFixed) {
-                    it.geometry.moveRight(right);
-                    it.geometry.setWidth(s.width());
+                // 垂直
+                if (it.anchors.verticalCenter.edge != Edge::None) {
+                    int targetVal = getEdgeValue(it.anchors.verticalCenter.target, it.anchors.verticalCenter.edge, parentRect);
+                    it.geometry.moveCenter(QPoint(it.geometry.center().x(), targetVal + it.anchors.verticalCenter.offset));
                 } else {
-                    it.geometry.moveLeft(parentRect.left());
-                    it.geometry.setWidth(s.width());
-                }
+                    bool topFixed = it.anchors.top.edge != Edge::None;
+                    bool bottomFixed = it.anchors.bottom.edge != Edge::None;
+                    int topVal = getEdgeValue(it.anchors.top.target, it.anchors.top.edge, parentRect) + it.anchors.top.offset;
+                    int bottomVal = getEdgeValue(it.anchors.bottom.target, it.anchors.bottom.edge, parentRect) + it.anchors.bottom.offset;
 
-                // 垂直解析
-                if (it.anchors.verticalCenter) {
-                    top = parentRect.top() + (parentRect.height() - s.height()) / 2 + it.anchors.verticalCenterOffset;
-                    topFixed = true;
-                } else {
-                    if (it.anchors.topTo) {
-                        if (it.anchors.topTo == parentWidget()) {
-                            top = parentRect.top() + it.anchors.topOffset;
-                        } else {
-                            int idx = getWidgetIndex(it.anchors.topTo);
-                            if (idx != -1) {
-                                top = m_items[idx].geometry.bottom() + 1 + it.anchors.topOffset;
-                            }
-                        }
-                        topFixed = true;
+                    if (topFixed && bottomFixed) {
+                        it.geometry.setTop(topVal);
+                        it.geometry.setBottom(bottomVal);
+                    } else if (topFixed) {
+                        it.geometry.moveTop(topVal);
+                        it.geometry.setHeight(s.height());
+                    } else if (bottomFixed) {
+                        it.geometry.moveBottom(bottomVal);
+                        it.geometry.setHeight(s.height());
                     }
-
-                    if (it.anchors.bottomTo) {
-                        if (it.anchors.bottomTo == parentWidget()) {
-                            bottom = parentRect.bottom() + it.anchors.bottomOffset;
-                        } else {
-                            int idx = getWidgetIndex(it.anchors.bottomTo);
-                            if (idx != -1) {
-                                bottom = m_items[idx].geometry.top() - 1 + it.anchors.bottomOffset;
-                            }
-                        }
-                        bottomFixed = true;
-                    }
-                }
-
-                // 应用垂直位置和高度
-                if (topFixed && bottomFixed) {
-                    it.geometry.setTop(top);
-                    it.geometry.setBottom(bottom);
-                } else if (topFixed) {
-                    it.geometry.moveTop(top);
-                    it.geometry.setHeight(s.height());
-                } else if (bottomFixed) {
-                    it.geometry.moveBottom(bottom);
-                    it.geometry.setHeight(s.height());
-                } else {
-                    it.geometry.moveTop(parentRect.top());
-                    it.geometry.setHeight(s.height());
                 }
             }
-
-            if (it.geometry != oldGeom) changed = true;
+            if (it.geometry != old) changed = true;
         }
-
         if (!changed) break;
     }
 
-    // 3. 应用结果到真实的 Widget
     for (const Item& it : m_items) {
-        if (QWidget* w = it.item->widget()) {
-            w->setGeometry(it.geometry);
-        }
+        it.item->widget()->setGeometry(it.geometry);
     }
 }
