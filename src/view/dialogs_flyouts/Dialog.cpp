@@ -49,21 +49,30 @@ void Dialog::showEvent(QShowEvent *event) {
         return;
     }
 
-    // 捕获快照
-    if (layout()) layout()->activate();
-    m_isAnimating = true;
-    m_snapshot = this->grab(rect());
+    // 1. 强制刷新布局和渲染，确保快照内容完整
+    if (layout()) {
+        layout()->activate();
+    }
     
-    // 动画期间隐藏真实子控件，防止它们以 1:1 比例在缩放层之上重复绘制
+    m_isAnimating = true;
+    m_snapshot = QPixmap(size() * devicePixelRatio());
+    m_snapshot.setDevicePixelRatio(devicePixelRatio());
+    m_snapshot.fill(Qt::transparent);
+    render(&m_snapshot); // 比 grab 更可靠的捕获方式
+    
     for (auto* child : findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly)) {
         child->hide();
     }
     
+    // 2. 定制更专业的 Fluent 回弹曲线
+    QEasingCurve bounceCurve = themeAnimation().entrance;
+    bounceCurve.setOvershoot(1.5); // 1.5 的 overshoot 约产生 1.15x 的回弹，视觉更高级
+
     m_animation->stop();
     m_animation->setDuration(themeAnimation().normal);
     m_animation->setStartValue(0.0);
     m_animation->setEndValue(1.0);
-    m_animation->setEasingCurve(themeAnimation().entrance);
+    m_animation->setEasingCurve(bounceCurve);
     m_animation->start();
 }
 
@@ -121,18 +130,18 @@ void Dialog::mouseReleaseEvent(QMouseEvent *event) {
 void Dialog::paintEvent(QPaintEvent*) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform); 
+    
+    // 性能优化：只有在接近 1.0 或停止动画时才开启平滑缩放
+    bool smooth = !m_isAnimating || (m_animationProgress > 0.95 && m_animationProgress < 1.05);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, smooth);
 
-    // --- 应用增强版动画效果 ---
+    // --- 应用回弹缩放效果 ---
     if (m_animationEnabled) {
-        painter.setOpacity(m_animationProgress);
+        painter.setOpacity(qBound(0.0, m_animationProgress * 2.0, 1.0));
         
-        // 1. 空间位移：向上滑入效果（从下方 20px 位置滑入原位）
-        double translateY = 20.0 * (1.0 - m_animationProgress);
-        painter.translate(0, translateY);
+        // 映射进度到缩放范围：让动画从 0.8x 开始，回弹到 1.15x 左右，最后落回 1.0x
+        double scale = 0.8 + (0.2 * m_animationProgress);
         
-        // 2. 缩放增强：从 0.9 倍缩放到 1.0 倍
-        double scale = 0.90 + (0.10 * m_animationProgress);
         painter.translate(rect().center());
         painter.scale(scale, scale);
         painter.translate(-rect().center());
@@ -144,10 +153,10 @@ void Dialog::paintEvent(QPaintEvent*) {
     painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
     if (m_isAnimating && !m_snapshot.isNull()) {
-        // --- 动画模式：绘制整体快照（内容随背景同步缩放） ---
-        painter.drawPixmap(0, 0, m_snapshot);
+        // 使用目标矩形绘制，性能更好且适配 DPR
+        painter.drawPixmap(rect(), m_snapshot);
     } else {
-        // --- 正常模式：绘制自绘层（子控件由 Qt 自动渲染） ---
+        // --- 正常模式：绘制自绘层 ---
         QRect contentRect = rect().adjusted(m_shadowSize, m_shadowSize, -m_shadowSize, -m_shadowSize);
         
         painter.save();
