@@ -1,33 +1,32 @@
 #include "Dialog.h"
 #include <QPainter>
 #include <QMouseEvent>
+#include <QLayout>
 
 namespace view::dialogs_flyouts {
 
 Dialog::Dialog(QWidget *parent) : QDialog(parent) {
-    // 1. 配置顶层窗口属性
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::CustomizeWindowHint | Qt::NoDropShadowWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
     setAutoFillBackground(false);
     
-    // 2. 直接在窗口上预留阴影占位边距
+    // 固定边距，动画期间通过 Painter 变换实现位移，而不是修改 Margins
     setContentsMargins(m_shadowSize, m_shadowSize, m_shadowSize, m_shadowSize);
     
-    // 3. 初始化动画
     m_animation = new QPropertyAnimation(this, "animationProgress", this);
     
-    // 处理动画结束回调
     connect(m_animation, &QPropertyAnimation::finished, this, [this]() {
-        if (m_animationProgress > 0.5) { 
-            // 进场动画结束：恢复真实控件并隐藏快照
+        // 进场动画结束
+        if (m_animationProgress > 0.5) {
             m_isAnimating = false;
+            // 恢复真实控件显示
             for (auto* child : findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly)) {
                 child->show();
             }
-            m_snapshot = QPixmap();
+            m_snapshot = QPixmap(); // 释放内存
             update();
         } else {
-            // 出场动画结束：正式关闭窗口
+            // 出场动画结束
             QDialog::done(m_closingResult);
         }
     });
@@ -49,30 +48,26 @@ void Dialog::showEvent(QShowEvent *event) {
         return;
     }
 
-    // 1. 强制刷新布局和渲染，确保快照内容完整
-    if (layout()) {
-        layout()->activate();
-    }
+    // 1. 准备捕获快照：此时 m_isAnimating 为 false，paintEvent 会绘制真实阴影和背景
+    if (layout()) layout()->activate();
     
-    m_isAnimating = true;
     m_snapshot = QPixmap(size() * devicePixelRatio());
     m_snapshot.setDevicePixelRatio(devicePixelRatio());
     m_snapshot.fill(Qt::transparent);
-    render(&m_snapshot); // 比 grab 更可靠的捕获方式
+    render(&m_snapshot); // 捕获包含阴影和背景的完整样子
     
+    // 2. 进入动画模式
+    m_isAnimating = true;
     for (auto* child : findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly)) {
         child->hide();
     }
     
-    // 2. 定制更专业的 Fluent 回弹曲线
-    QEasingCurve bounceCurve = themeAnimation().entrance;
-    bounceCurve.setOvershoot(1.5); // 1.5 的 overshoot 约产生 1.15x 的回弹，视觉更高级
-
+    const auto& anim = themeAnimation();
     m_animation->stop();
-    m_animation->setDuration(themeAnimation().normal);
+    m_animation->setDuration(anim.normal); 
     m_animation->setStartValue(0.0);
     m_animation->setEndValue(1.0);
-    m_animation->setEasingCurve(bounceCurve);
+    m_animation->setEasingCurve(anim.entrance);
     m_animation->start();
 }
 
@@ -82,24 +77,33 @@ void Dialog::done(int r) {
         return;
     }
 
-    if (m_animation->state() == QAbstractAnimation::Running && m_animation->endValue().toDouble() == 0.0) {
-        return;
-    }
+    if (m_animation->state() == QAbstractAnimation::Running && m_animation->endValue().toDouble() == 0.0) return;
 
     m_closingResult = r;
     
-    // 捕获关闭时的快照
+    // 1. 准备出场快照
+    m_isAnimating = false;
+    for (auto* child : findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly)) {
+        child->show();
+    }
+    
+    m_snapshot = QPixmap(size() * devicePixelRatio());
+    m_snapshot.setDevicePixelRatio(devicePixelRatio());
+    m_snapshot.fill(Qt::transparent);
+    render(&m_snapshot);
+    
+    // 2. 进入动画模式
     m_isAnimating = true;
-    m_snapshot = this->grab(rect());
     for (auto* child : findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly)) {
         child->hide();
     }
-    
+
+    const auto& anim = themeAnimation();
     m_animation->stop();
-    m_animation->setDuration(themeAnimation().fast);
+    m_animation->setDuration(anim.fast); 
     m_animation->setStartValue(m_animationProgress);
     m_animation->setEndValue(0.0);
-    m_animation->setEasingCurve(themeAnimation().exit);
+    m_animation->setEasingCurve(anim.exit);
     m_animation->start();
 }
 
@@ -121,31 +125,13 @@ void Dialog::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void Dialog::mouseReleaseEvent(QMouseEvent *event) {
-    if (cursor().shape() == Qt::ClosedHandCursor) {
-        unsetCursor();
-    }
+    if (cursor().shape() == Qt::ClosedHandCursor) unsetCursor();
     QDialog::mouseReleaseEvent(event);
 }
 
 void Dialog::paintEvent(QPaintEvent*) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    
-    // 性能优化：只有在接近 1.0 或停止动画时才开启平滑缩放
-    bool smooth = !m_isAnimating || (m_animationProgress > 0.95 && m_animationProgress < 1.05);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, smooth);
-
-    // --- 应用回弹缩放效果 ---
-    if (m_animationEnabled) {
-        painter.setOpacity(qBound(0.0, m_animationProgress * 2.0, 1.0));
-        
-        // 映射进度到缩放范围：让动画从 0.8x 开始，回弹到 1.15x 左右，最后落回 1.0x
-        double scale = 0.8 + (0.2 * m_animationProgress);
-        
-        painter.translate(rect().center());
-        painter.scale(scale, scale);
-        painter.translate(-rect().center());
-    }
 
     // 1. 显式清除背景
     painter.setCompositionMode(QPainter::CompositionMode_Source);
@@ -153,41 +139,51 @@ void Dialog::paintEvent(QPaintEvent*) {
     painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 
     if (m_isAnimating && !m_snapshot.isNull()) {
-        // 使用目标矩形绘制，性能更好且适配 DPR
-        painter.drawPixmap(rect(), m_snapshot);
-    } else {
-        // --- 正常模式：绘制自绘层 ---
-        QRect contentRect = rect().adjusted(m_shadowSize, m_shadowSize, -m_shadowSize, -m_shadowSize);
+        // --- 动画模式：对称变换 (Slide + Scale + Fade) ---
+        // 透明度跟随进度
+        painter.setOpacity(m_animationProgress);
         
-        painter.save();
+        // 位移：从下方 30px 滑入
+        double translateY = 30.0 * (1.0 - m_animationProgress);
+        // 缩放：从 0.9 倍缩放到 1.0 倍 (这样阴影也会跟着缩放)
+        double scale = 0.9 + (0.1 * m_animationProgress);
+        
+        painter.translate(rect().center().x(), rect().center().y() + translateY);
+        painter.scale(scale, scale);
+        painter.translate(-rect().center().x(), -rect().center().y());
+        
+        // 性能优化：移动中关闭平滑缩放以保证帧率
+        painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+        painter.drawPixmap(0, 0, m_snapshot);
+    } else {
+        // --- 正常模式：绘制真实背景与阴影 ---
+        QRect contentRect = rect().adjusted(m_shadowSize, m_shadowSize, -m_shadowSize, -m_shadowSize);
         drawShadow(painter, contentRect);
-        painter.restore();
 
         const auto& colors = themeColors();
         int r = themeRadius().topLevel;
-        
         painter.setBrush(colors.bgLayer);
         painter.setPen(colors.strokeDefault);
-        painter.drawRoundedRect(contentRect.adjusted(1, 1, -1, -1), r, r);
+        painter.drawRoundedRect(contentRect, r, r);
     }
 }
 
 void Dialog::drawShadow(QPainter& painter, const QRect& contentRect) {
     const auto& s = themeShadow(Elevation::High);
-    int blur = m_shadowSize;
+    const int layers = 12; // 增加层数使阴影更柔和
     int r = themeRadius().topLevel;
     
-    for (int i = 0; i < blur; ++i) {
-        double ratio = (1.0 - (double)i / blur);
-        QColor shadowColor = s.color;
-        shadowColor.setAlphaF(s.opacity * ratio);
+    for (int i = 0; i < layers; ++i) {
+        double ratio = (1.0 - (double)i / layers);
+        QColor sc = s.color;
+        sc.setAlphaF(s.opacity * ratio * 0.4);
         
         painter.setPen(Qt::NoPen);
-        painter.setBrush(shadowColor);
+        painter.setBrush(sc);
         
-        QRect shadowRect = contentRect.adjusted(-i, -i, i, i);
-        shadowRect.translate(s.offsetX, s.offsetY);
-        painter.drawRoundedRect(shadowRect, r + i, r + i);
+        int spread = i * 2;
+        // 阴影向下偏移 4px 增加立体感
+        painter.drawRoundedRect(contentRect.adjusted(-spread, -spread, spread, spread).translated(0, 4), r + spread, r + spread);
     }
 }
 
