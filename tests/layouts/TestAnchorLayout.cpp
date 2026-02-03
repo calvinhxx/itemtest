@@ -5,8 +5,10 @@
 #include <QLabel>
 #include <QTimer>
 #include <QDebug>
-#include "layouts/AnchorLayout.h"
+#include "view/QMLPlus.h"
 #include "utils/DebugOverlay.h"
+
+using namespace view;
 
 class AnchorLayoutTest : public ::testing::Test {
 protected:
@@ -100,32 +102,66 @@ TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
     layout->addAnchoredWidget(labelDynamic, aDyn);
     new DebugOverlay(labelDynamic, Qt::red, window);
 
-    QTimer::singleShot(3000, [labelDynamic, this]() {
+    QTimer::singleShot(3000, [labelDynamic]() {
         labelDynamic->setText("成功！文字变长了，布局和 DebugLine 应该自动跟随。");
+    });
+
+    // 8) 兄弟控件可见性变化测试
+    QPushButton* btnA = new QPushButton("控件 A (点我隐藏)", window);
+    btnA->setFixedSize(100, 40);
+    AnchorLayout::Anchors aA;
+    aA.left = {window, Edge::Left, 20};
+    aA.top  = {labelDynamic, Edge::Bottom, 40};
+    layout->addAnchoredWidget(btnA, aA);
+
+    QPushButton* btnB = new QPushButton("控件 B (锚定 A 右侧)", window);
+    btnB->setFixedSize(150, 40);
+    AnchorLayout::Anchors aB;
+    aB.left = {btnA, Edge::Right, 10}; // 锚定到 A 的右侧 10px
+    aB.top  = {btnA, Edge::Top, 0};
+    layout->addAnchoredWidget(btnB, aB);
+
+    QLabel* statusLabel = new QLabel("A 可见, B 锚定 A 右侧", window);
+    AnchorLayout::Anchors aStatus;
+    aStatus.left = {btnB, Edge::Left, 0};
+    aStatus.top = {btnB, Edge::Bottom, 5};
+    layout->addAnchoredWidget(statusLabel, aStatus);
+
+    new DebugOverlay(btnA, Qt::green, window);
+    new DebugOverlay(btnB, Qt::yellow, window);
+
+    // 点击 A 隐藏 A
+    QObject::connect(btnA, &QPushButton::clicked, [btnA, statusLabel]() {
+        btnA->hide();
+        statusLabel->setText("A 已隐藏, B 位置应保持不变 (符合 Anchor 规范)");
+    });
+
+    // 增加一个重置按钮
+    QPushButton* resetBtn = new QPushButton("显示 A", window);
+    resetBtn->setFixedSize(80, 30);
+    AnchorLayout::Anchors aReset;
+    aReset.right = {window, Edge::Right, -10};
+    aReset.top = {window, Edge::Top, 10};
+    layout->addAnchoredWidget(resetBtn, aReset);
+    QObject::connect(resetBtn, &QPushButton::clicked, [btnA, statusLabel]() {
+        btnA->show();
+        statusLabel->setText("A 已恢复, B 锚定 A 右侧");
     });
 
     window->show();
 
-    int W = window->width();
-    int H = window->height();
-    
-    // btn1: (10, 10)
+    // 验证初始位置
     EXPECT_EQ(btn1->pos(), QPoint(10, 10));
-    
-    // btn2: x = 10 + 100 + 20 = 130
     EXPECT_EQ(btn2->x(), 130);
     
-    // btn3: 全居中 (W-100)/2, (H-100)/2
+    int W = window->width();
+    int H = window->height();
     EXPECT_EQ(btn3->pos(), QPoint((W - 100) / 2, (H - 100) / 2));
-    
-    // btn6: 仅水平居中，底部偏移 -20
     EXPECT_EQ(btn6->pos(), QPoint((W - 120) / 2, H - 40 - 20));
-    
-    // btn4: 填充区域 Margins(0, 200, 400, 200)
     EXPECT_EQ(btn4->geometry(), QRect(0, 200, W - 400, H - 400));
-    
-    // btn5: 右下锚定 (-16, -16)
     EXPECT_EQ(btn5->pos(), QPoint(W - 100 - 16, H - 100 - 16));
 
-    qApp->exec();
+    if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM") || qEnvironmentVariable("QT_QPA_PLATFORM") != "offscreen") {
+        qApp->exec();
+    }
 }

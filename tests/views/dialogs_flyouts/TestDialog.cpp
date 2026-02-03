@@ -4,12 +4,12 @@
 #include "view/dialogs_flyouts/Dialog.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/Label.h"
-#include "view/FluentElement.h"
-#include "layouts/AnchorLayout.h"
+#include "view/QMLPlus.h"
 
 using namespace view::dialogs_flyouts;
 using namespace view::basicinput;
 using namespace view::textfields;
+using namespace view;
 
 class DialogTest : public ::testing::Test {
 protected:
@@ -25,7 +25,7 @@ protected:
     void SetUp() override {
         window = new QWidget();
         window->setFixedSize(500, 400);
-        window->setWindowTitle("Dialog + AnchorLayout Explorer");
+        window->setWindowTitle("Dialog Visual Test");
         layout = new QVBoxLayout(window);
         window->setLayout(layout);
     }
@@ -43,72 +43,47 @@ TEST_F(DialogTest, VisualCheck) {
         GTEST_SKIP() << "Skipping visual test in offscreen mode";
     }
 
-    auto* showBtn = new Button("Open Center-Out Scale Dialog");
+    Button* showBtn = new Button("Show Fluent Dialog", window);
     layout->addWidget(showBtn);
-    window->show();
 
     QObject::connect(showBtn, &Button::clicked, [this]() {
-        Dialog dialog(window); // 栈分配：自动管理生命周期
-        dialog.setWindowTitle("AnchorLayout in Dialog");
-        dialog.setFixedSize(450, 300);
+        Dialog dialog(window);
+        dialog.setFixedSize(360, 240);
         
-        auto* anchorLayout = new AnchorLayout(&dialog);
-        using Edge = AnchorLayout::Edge;
-
-        auto* bgwidget = new QWidget;
-        bgwidget->setFixedHeight(32);
-        bgwidget->setStyleSheet("background-color: rgba(128, 128, 128, 0.1); border-top-left-radius: 4px; border-top-right-radius: 4px;");
-        AnchorLayout::Anchors aBg;
-        aBg.left  = {&dialog, Edge::Left, 0};
-        aBg.right = {&dialog, Edge::Right, 0};
-        aBg.top   = {&dialog, Edge::Top, 0};
-        anchorLayout->addAnchoredWidget(bgwidget, aBg);
-
-        // 1. 标题 (放在 bgwidget 内)
-        auto* titleLabel = new Label("Settings");
-        titleLabel->setFont(dialog.themeFont("Caption").toQFont());
-        AnchorLayout::Anchors a1;
-        a1.left           = {bgwidget, Edge::Left, 10};
-        a1.verticalCenter = {bgwidget, Edge::VCenter, 0}; 
-        anchorLayout->addAnchoredWidget(titleLabel, a1);
-
-        // 5. 顶层关闭按钮 (放在 bgwidget 最右边)
-        auto* miniCloseBtn = new Button("✕");
-        miniCloseBtn->setFixedSize(32, 32);
-        miniCloseBtn->setStyleSheet("background: transparent; border: none; font-size: 14px; color: gray;");
-        AnchorLayout::Anchors aClose;
-        aClose.right          = {bgwidget, Edge::Right, 0};
-        aClose.verticalCenter = {bgwidget, Edge::VCenter, 0};
-        anchorLayout->addAnchoredWidget(miniCloseBtn, aClose);
-        QObject::connect(miniCloseBtn, &Button::clicked, &dialog, &QDialog::reject);
-
-        // 2. 内容 (居中)
-        auto* descLabel = new Label("This dialog demonstrates Center-Out Scaling Animation.\nAll sub-widgets are captured in the snapshot.");
-        descLabel->setAlignment(Qt::AlignCenter);
-        AnchorLayout::Anchors a2;
-        a2.horizontalCenter = {&dialog, Edge::HCenter, 0};
-        a2.verticalCenter   = {&dialog, Edge::VCenter, 0};
-        anchorLayout->addAnchoredWidget(descLabel, a2);
-
-        // 3. 取消按钮 (右下)
-        auto* cancelBtn = new Button("Cancel");
-        AnchorLayout::Anchors a3;
-        a3.right  = {&dialog, Edge::Right, -20};
-        a3.bottom = {&dialog, Edge::Bottom, -20};
-        anchorLayout->addAnchoredWidget(cancelBtn, a3);
-
-        // 4. 确定按钮 (取消按钮左侧)
-        auto* okBtn = new Button("Confirm");
-        AnchorLayout::Anchors a4;
-        a4.right  = {cancelBtn, Edge::Left, -12};
-        a4.bottom = {&dialog, Edge::Bottom, -20};
-        anchorLayout->addAnchoredWidget(okBtn, a4);
+        // Dialog 内部使用 AnchorLayout
+        auto* dialogLayout = new AnchorLayout(&dialog);
         
+        Label* title = new Label("Confirm Action", &dialog);
+        title->setFont(title->themeFont("Subtitle").toQFont());
+        title->anchors()->top = {&dialog, AnchorLayout::Edge::Top, 20};
+        title->anchors()->left = {&dialog, AnchorLayout::Edge::Left, 20};
+        dialogLayout->addWidget(title);
+
+        Label* content = new Label("Are you sure you want to proceed with this operation?", &dialog);
+        content->setWordWrap(true);
+        content->anchors()->top = {title, AnchorLayout::Edge::Bottom, 12};
+        content->anchors()->left = {&dialog, AnchorLayout::Edge::Left, 20};
+        content->anchors()->right = {&dialog, AnchorLayout::Edge::Right, -20};
+        dialogLayout->addWidget(content);
+
+        Button* confirmBtn = new Button("Confirm", &dialog);
+        confirmBtn->setFixedSize(100, 32);
+        confirmBtn->anchors()->bottom = {&dialog, AnchorLayout::Edge::Bottom, -20};
+        confirmBtn->anchors()->right = {&dialog, AnchorLayout::Edge::Right, -20};
+        dialogLayout->addWidget(confirmBtn);
+
+        Button* cancelBtn = new Button("Cancel", &dialog);
+        cancelBtn->setFixedSize(100, 32);
+        cancelBtn->anchors()->bottom = {&dialog, AnchorLayout::Edge::Bottom, -20};
+        cancelBtn->anchors()->right = {confirmBtn, AnchorLayout::Edge::Left, -10};
+        dialogLayout->addWidget(cancelBtn);
+
+        QObject::connect(confirmBtn, &Button::clicked, &dialog, &QDialog::accept);
         QObject::connect(cancelBtn, &Button::clicked, &dialog, &QDialog::reject);
-        QObject::connect(okBtn, &Button::clicked, &dialog, &QDialog::accept);
-        
+
         dialog.exec();
     });
-    
+
+    window->show();
     qApp->exec();
 }

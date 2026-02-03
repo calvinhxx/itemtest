@@ -3,10 +3,11 @@
 
 #include <QPushButton>
 #include "view/FluentElement.h"
+#include "view/QMLPlus.h"
 
 namespace view::basicinput {
 
-class Button : public QPushButton, public FluentElement {
+class Button : public QPushButton, public FluentElement, public QMLPlus {
     Q_OBJECT
 public:
     explicit Button(const QString& text, QWidget* parent = nullptr);

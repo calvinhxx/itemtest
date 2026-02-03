@@ -35,6 +35,10 @@ app window 的基本样式
   - Specific Properties
 - 📚 [WinUI-Gallery](https://github.com/microsoft/WinUI-Gallery)
 
+
+# 参考figma和具体的win galerry app实现具体的组件和组件的属性.
+
+
 # todo
 1️⃣ lisence问题
 2️⃣ Segoe 版权问题

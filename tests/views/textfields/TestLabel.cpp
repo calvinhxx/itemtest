@@ -1,10 +1,13 @@
 #include <gtest/gtest.h>
 #include <QApplication>
 #include <QVBoxLayout>
-#include <QPushButton>
 #include "view/textfields/Label.h"
+#include "view/basicinput/Button.h"
+#include "view/QMLPlus.h"
 
 using namespace view::textfields;
+using namespace view::basicinput;
+using namespace view;
 
 class LabelTest : public ::testing::Test {
 protected:
@@ -19,9 +22,9 @@ protected:
 
     void SetUp() override {
         window = new QWidget();
-        window->setFixedSize(300, 200);
+        window->setFixedSize(400, 300);
         window->setWindowTitle("Label Visual Test");
-        layout = new QVBoxLayout(window);
+        layout = new AnchorLayout(window);
         window->setLayout(layout);
     }
 
@@ -30,7 +33,7 @@ protected:
     }
 
     QWidget* window;
-    QVBoxLayout* layout;
+    AnchorLayout* layout;
 };
 
 TEST_F(LabelTest, VisualCheck) {
@@ -38,13 +41,32 @@ TEST_F(LabelTest, VisualCheck) {
         GTEST_SKIP() << "Skipping visual test in offscreen mode";
     }
 
-    Label* label = new Label("Fluent Design Label");
-    layout->addWidget(label);
-    
-    QPushButton* toggleThemeBtn = new QPushButton("Toggle Theme");
-    layout->addWidget(toggleThemeBtn);
-    
-    QObject::connect(toggleThemeBtn, &QPushButton::clicked, []() {
+    // 1. 不同层级的字体展示
+    Label* title = new Label("Fluent Typography", window);
+    title->setFont(title->themeFont("Title").toQFont());
+    title->anchors()->top = {window, AnchorLayout::Edge::Top, 20};
+    title->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
+    layout->addWidget(title);
+
+    Label* body = new Label("This is a standard body text using Fluent tokens.", window);
+    body->anchors()->top = {title, AnchorLayout::Edge::Bottom, 10};
+    body->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
+    layout->addWidget(body);
+
+    Label* caption = new Label("Caption text", window);
+    caption->setFont(caption->themeFont("Caption").toQFont());
+    caption->anchors()->top = {body, AnchorLayout::Edge::Bottom, 10};
+    caption->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
+    layout->addWidget(caption);
+
+    // 2. 主题切换
+    Button* themeBtn = new Button("Toggle Theme", window);
+    themeBtn->setFixedSize(120, 32);
+    themeBtn->anchors()->bottom = {window, AnchorLayout::Edge::Bottom, -20};
+    themeBtn->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
+    layout->addWidget(themeBtn);
+
+    QObject::connect(themeBtn, &Button::clicked, []() {
         FluentElement::setTheme(FluentElement::currentTheme() == FluentElement::Light ? FluentElement::Dark : FluentElement::Light);
     });
 

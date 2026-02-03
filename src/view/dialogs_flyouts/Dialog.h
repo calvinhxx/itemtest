@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QPropertyAnimation>
 #include "view/FluentElement.h"
+#include "view/QMLPlus.h"
 #include "common/Spacing.h"
 
 namespace view::dialogs_flyouts {
@@ -13,7 +14,7 @@ namespace view::dialogs_flyouts {
  * 
  * 采用高性能的位移+淡入动画，放弃昂贵的位图快照，确保在低配电脑上也能达到 60fps。
  */
-class Dialog : public QDialog, public FluentElement {
+class Dialog : public QDialog, public FluentElement, public view::QMLPlus {
     Q_OBJECT
     Q_PROPERTY(double animationProgress READ animationProgress WRITE setAnimationProgress)
 public:

@@ -3,10 +3,11 @@
 
 #include <QLabel>
 #include "view/FluentElement.h"
+#include "view/QMLPlus.h"
 
 namespace view::textfields {
 
-class Label : public QLabel, public FluentElement {
+class Label : public QLabel, public FluentElement, public view::QMLPlus {
     Q_OBJECT
 public:
     explicit Label(const QString& text, QWidget* parent = nullptr);

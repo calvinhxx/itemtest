@@ -1,10 +1,13 @@
 #include <gtest/gtest.h>
 #include <QApplication>
-#include <QVBoxLayout>
 #include <QPushButton>
+#include <QVBoxLayout>
+#include <QTimer>
 #include "view/basicinput/Button.h"
+#include "view/QMLPlus.h"
 
 using namespace view::basicinput;
+using namespace view;
 
 class ButtonTest : public ::testing::Test {
 protected:
@@ -19,9 +22,9 @@ protected:
 
     void SetUp() override {
         window = new QWidget();
-        window->setFixedSize(300, 200);
+        window->setFixedSize(400, 300);
         window->setWindowTitle("Button Visual Test");
-        layout = new QVBoxLayout(window);
+        layout = new AnchorLayout(window);
         window->setLayout(layout);
     }
 
@@ -30,7 +33,7 @@ protected:
     }
 
     QWidget* window;
-    QVBoxLayout* layout;
+    AnchorLayout* layout;
 };
 
 TEST_F(ButtonTest, VisualCheck) {
@@ -38,13 +41,43 @@ TEST_F(ButtonTest, VisualCheck) {
         GTEST_SKIP() << "Skipping visual test in offscreen mode";
     }
 
-    Button* accentBtn = new Button("Accent Button");
-    layout->addWidget(accentBtn);
-    
-    QPushButton* toggleThemeBtn = new QPushButton("Toggle Theme");
-    layout->addWidget(toggleThemeBtn);
-    
-    QObject::connect(toggleThemeBtn, &QPushButton::clicked, []() {
+    // 1. 基础按钮 + 锚点布局
+    Button* btn = new Button("Fluent Button", window);
+    btn->setFixedSize(160, 40);
+    btn->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
+    btn->anchors()->verticalCenter   = {window, AnchorLayout::Edge::VCenter, -20};
+    layout->addWidget(btn);
+
+    // 2. 状态切换测试
+    Button* stateBtn = new Button("Toggle State", window);
+    stateBtn->setFixedSize(120, 32);
+    stateBtn->anchors()->top = {btn, AnchorLayout::Edge::Bottom, 20};
+    stateBtn->anchors()->horizontalCenter = {btn, AnchorLayout::Edge::HCenter, 0};
+    layout->addWidget(stateBtn);
+
+    QMLState busyState;
+    busyState.name = "busy";
+    busyState.changes = {
+        { stateBtn, "text", "Please wait..." },
+        { stateBtn, "enabled", false }
+    };
+    stateBtn->addState(busyState);
+
+    QObject::connect(btn, &QPushButton::clicked, [stateBtn]() {
+        if (stateBtn->state() == "") {
+            stateBtn->setState("busy");
+            QTimer::singleShot(2000, [stateBtn]() { stateBtn->setState(""); });
+        }
+    });
+
+    // 3. 主题切换
+    Button* themeBtn = new Button("Switch Theme", window);
+    themeBtn->setFixedSize(120, 32);
+    themeBtn->anchors()->bottom = {window, AnchorLayout::Edge::Bottom, -20};
+    themeBtn->anchors()->right = {window, AnchorLayout::Edge::Right, -20};
+    layout->addWidget(themeBtn);
+
+    QObject::connect(themeBtn, &QPushButton::clicked, []() {
         FluentElement::setTheme(FluentElement::currentTheme() == FluentElement::Light ? FluentElement::Dark : FluentElement::Light);
     });
 

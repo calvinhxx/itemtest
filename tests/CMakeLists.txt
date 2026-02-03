@@ -19,6 +19,7 @@ add_qt_test_module(test_anchor_layout layouts/TestAnchorLayout.cpp)
 
 # views
 add_qt_test_module(test_fluent_element views/TestFluentElement.cpp)
+add_qt_test_module(test_qml_plus views/TestQMLPlus.cpp)
 
 # basicinput
 add_qt_test_module(test_button views/basicinput/TestButton.cpp)
