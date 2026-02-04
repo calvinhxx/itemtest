@@ -14,12 +14,11 @@ macro(add_qt_test_module module_name source_file)
     gtest_discover_tests(${module_name})
 endmacro()
 
-# layouts
-add_qt_test_module(test_anchor_layout layouts/TestAnchorLayout.cpp)
-
 # views
+add_qt_test_module(test_anchor_layout views/TestAnchorLayout.cpp)
 add_qt_test_module(test_fluent_element views/TestFluentElement.cpp)
 add_qt_test_module(test_qml_plus views/TestQMLPlus.cpp)
+add_qt_test_module(test_icon_font views/TestIconFont.cpp)
 
 # basicinput
 add_qt_test_module(test_button views/basicinput/TestButton.cpp)

@@ -128,20 +128,15 @@ void PropertyBinder::bind(QObject* s, const char* sp, QObject* t, const char* tp
     if (!sProp.isValid() || !tProp.isValid()) return;
     
     auto* link1 = new PropertyLink(s, sProp, t, tProp, t);
-    // 使用 QMetaMethod 连接信号，目标槽函数也通过 QMetaMethod 获取
-    auto slot1 = link1->metaObject()->property(link1->metaObject()->indexOfProperty("syncToTarget")).notifySignal(); // 这不对，syncToTarget 是槽
-    // 应该使用 indexOfMethod 获取槽的 QMetaMethod
-    auto slotIdx1 = link1->metaObject()->indexOfMethod("syncToTarget()");
-    auto slotMethod1 = link1->metaObject()->method(slotIdx1);
     
-    QObject::connect(s, sProp.notifySignal(), link1, slotMethod1);
+    // 使用新的信号槽连接语法，更安全且跨版本兼容
+    QObject::connect(s, sProp.notifySignal(), link1, link1->metaObject()->method(link1->metaObject()->indexOfMethod("syncToTarget()")));
+    
     link1->syncToTarget();
     
     if (dir == TwoWay) {
         auto* link2 = new PropertyLink(t, tProp, s, sProp, s);
-        auto slotIdx2 = link2->metaObject()->indexOfMethod("syncToTarget()");
-        auto slotMethod2 = link2->metaObject()->method(slotIdx2);
-        QObject::connect(t, tProp.notifySignal(), link2, slotMethod2);
+        QObject::connect(t, tProp.notifySignal(), link2, link2->metaObject()->method(link2->metaObject()->indexOfMethod("syncToTarget()")));
     }
 }
 

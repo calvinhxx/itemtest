@@ -55,7 +55,7 @@ public:
     };
 
     struct Radius {
-        int none, small, medium, inPage, topLevel, large;
+        int none, overlay, control, small, medium, inPage, topLevel, large;
     };
 
     struct Spacing {

@@ -157,7 +157,8 @@ FluentElement::FontStyle FluentElement::themeFont(const QString& styleName) cons
 
 FluentElement::Radius FluentElement::themeRadius() const {
     return {
-        ::CornerRadius::None, ::CornerRadius::Small, ::CornerRadius::Medium,
+        ::CornerRadius::None, ::CornerRadius::Overlay, ::CornerRadius::Control,
+        ::CornerRadius::Small, ::CornerRadius::Medium,
         ::CornerRadius::InPage, ::CornerRadius::TopLevel, ::CornerRadius::Large
     };
 }

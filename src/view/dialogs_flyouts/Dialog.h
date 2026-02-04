@@ -16,7 +16,12 @@ namespace view::dialogs_flyouts {
  */
 class Dialog : public QDialog, public FluentElement, public view::QMLPlus {
     Q_OBJECT
+    /** @brief 内部动画进度 (0.0 -> 1.0) */
     Q_PROPERTY(double animationProgress READ animationProgress WRITE setAnimationProgress)
+    /** @brief 是否允许鼠标拖拽移动窗口 */
+    Q_PROPERTY(bool dragEnabled READ isDragEnabled WRITE setDragEnabled)
+    /** @brief 是否启用进出场动画效果 */
+    Q_PROPERTY(bool animationEnabled READ isAnimationEnabled WRITE setAnimationEnabled)
 public:
     explicit Dialog(QWidget *parent = nullptr);
     
