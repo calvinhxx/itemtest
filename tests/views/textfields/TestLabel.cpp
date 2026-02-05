@@ -22,8 +22,8 @@ protected:
 
     void SetUp() override {
         window = new QWidget();
-        window->setFixedSize(400, 300);
-        window->setWindowTitle("Label Visual Test");
+        window->setFixedSize(500, 600);
+        window->setWindowTitle("Fluent Typography Persistence Test");
         layout = new AnchorLayout(window);
         window->setLayout(layout);
     }
@@ -41,29 +41,45 @@ TEST_F(LabelTest, VisualCheck) {
         GTEST_SKIP() << "Skipping visual test in offscreen mode";
     }
 
-    // 1. 不同层级的字体展示
-    Label* title = new Label("Fluent Typography", window);
-    title->setFont(title->themeFont("Title").toQFont());
-    title->anchors()->top = {window, AnchorLayout::Edge::Top, 20};
-    title->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
-    layout->addWidget(title);
+    using Edge = AnchorLayout::Edge;
 
-    Label* body = new Label("This is a standard body text using Fluent tokens.", window);
-    body->anchors()->top = {title, AnchorLayout::Edge::Bottom, 10};
-    body->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
+    auto createTypographyLabel = [&](const QString& text, const QString& styleName, QWidget* anchor, int margin = 20) {
+        Label* l = new Label(text + " (" + styleName + ")", window);
+        // --- 核心修复：使用属性接口，内部会自动记忆并在切换主题时持久化 ---
+        l->setFluentTypography(styleName);
+        
+        l->anchors()->top = {anchor, Edge::Bottom, margin};
+        l->anchors()->left = {window, Edge::Left, 40};
+        layout->addWidget(l);
+        return l;
+    };
+
+    // 1. Display (最顶层锚定)
+    Label* display = new Label("Fluent UI (Display)", window);
+    display->setFluentTypography("Display");
+    display->anchors()->top = {window, Edge::Top, 30};
+    display->anchors()->left = {window, Edge::Left, 40};
+    layout->addWidget(display);
+    
+    // 2. 其余阶梯
+    Label* titleLarge = createTypographyLabel("Large Title", "TitleLarge", display);
+    Label* title = createTypographyLabel("Standard Title", "Title", titleLarge);
+    Label* subtitle = createTypographyLabel("Subtitle Text", "Subtitle", title);
+    Label* bodyStrong = createTypographyLabel("Strong Body Text", "BodyStrong", subtitle);
+    
+    Label* body = new Label("Standard Body Text (Default)", window);
+    body->anchors()->top = {bodyStrong, Edge::Bottom, 20};
+    body->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(body);
+    
+    Label* caption = createTypographyLabel("Small Caption Text", "Caption", body);
 
-    Label* caption = new Label("Caption text", window);
-    caption->setFont(caption->themeFont("Caption").toQFont());
-    caption->anchors()->top = {body, AnchorLayout::Edge::Bottom, 10};
-    caption->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
-    layout->addWidget(caption);
-
-    // 2. 主题切换
-    Button* themeBtn = new Button("Toggle Theme", window);
+    // --- 主题切换 ---
+    Button* themeBtn = new Button("Switch Theme", window);
+    themeBtn->setFluentStyle(Button::Accent);
     themeBtn->setFixedSize(120, 32);
-    themeBtn->anchors()->bottom = {window, AnchorLayout::Edge::Bottom, -20};
-    themeBtn->anchors()->horizontalCenter = {window, AnchorLayout::Edge::HCenter, 0};
+    themeBtn->anchors()->bottom = {window, Edge::Bottom, -30};
+    themeBtn->anchors()->right = {window, Edge::Right, -30};
     layout->addWidget(themeBtn);
 
     QObject::connect(themeBtn, &Button::clicked, []() {

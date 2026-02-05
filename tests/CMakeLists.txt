@@ -18,10 +18,12 @@ endmacro()
 add_qt_test_module(test_anchor_layout views/TestAnchorLayout.cpp)
 add_qt_test_module(test_fluent_element views/TestFluentElement.cpp)
 add_qt_test_module(test_qml_plus views/TestQMLPlus.cpp)
-add_qt_test_module(test_icon_font views/TestIconFont.cpp)
+add_qt_test_module(test_segoe views/TestSegoe.cpp)
+add_qt_test_module(test_menu_bar views/menus&toolbars/TestMenuBar.cpp)
 
 # basicinput
 add_qt_test_module(test_button views/basicinput/TestButton.cpp)
+add_qt_test_module(test_dropdown_button views/basicinput/TestDropDownButton.cpp)
 
 # textfields
 add_qt_test_module(test_label views/textfields/TestLabel.cpp)
