@@ -4,7 +4,7 @@
 #include <QLabel>
 #include <QMenu>
 
-#include "view/menus&toolbars/MenuBar.h"
+#include "view/menus_toolbars/MenuBar.h"
 #include "view/FluentElement.h"
 #include "view/basicinput/Button.h"
 
