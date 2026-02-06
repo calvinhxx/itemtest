@@ -7,6 +7,7 @@
 #include "view/QMLPlus.h"
 #include "view/FluentElement.h"
 #include "view/textfields/Label.h"
+#include "common/Typography.h"
 
 using namespace view::basicinput;
 using namespace view::textfields;
@@ -158,6 +159,43 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     customMore->anchors()->top = {customRight, Edge::Bottom, 8};
     customMore->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(customMore);
+
+    // 3.5 Icon-only DropDownButton（按钮本体为 IconButton，左侧 IconFont，右侧下拉箭头）
+    Label* lbl4 = new Label("Icon-only DropDownButton (IconFont):", window);
+    lbl4->anchors()->top = {customMore, Edge::Bottom, 24};
+    lbl4->anchors()->left = {window, Edge::Left, 40};
+    layout->addWidget(lbl4);
+
+    DropDownButton* iconOnly = new DropDownButton("", window);
+    iconOnly->setFluentLayout(Button::IconOnly);  // 使用 IconOnly 布局
+    iconOnly->setIconGlyph(Typography::Icons::Send,  // 左侧 iconfont（Button 的 icon）
+                          Typography::FontSize::Caption,
+                          Typography::FontFamily::SegoeFluentIcons);
+    iconOnly->setChevronSize(Typography::FontSize::Caption);  // 右侧 chevron
+    iconOnly->setChevronPadding(10);
+    iconOnly->setIconOffset(QPoint(-8, 0));
+    iconOnly->setFixedSize(56, 32);
+    iconOnly->anchors()->top = {lbl4, Edge::Bottom, 8};
+    iconOnly->anchors()->left = {window, Edge::Left, 40};
+    layout->addWidget(iconOnly);
+
+    // 3.6 Icon + Text DropDownButton（左侧 IconFont，中间文本，右侧下拉箭头）
+    Label* lbl5 = new Label("Icon + Text DropDownButton (IconFont):", window);
+    lbl5->anchors()->top = {iconOnly, Edge::Bottom, 16};
+    lbl5->anchors()->left = {window, Edge::Left, 40};
+    layout->addWidget(lbl5);
+
+    DropDownButton* iconWithText = new DropDownButton("More Actions", window);
+    iconWithText->setFluentLayout(Button::IconBefore);
+    iconWithText->setFixedSize(170, 32);
+    iconWithText->setChevronSize(Typography::FontSize::Caption);
+    iconWithText->setChevronPadding(16);
+    iconWithText->setIconGlyph(Typography::Icons::More,
+                               Typography::FontSize::Caption,
+                               Typography::FontFamily::SegoeFluentIcons);
+    iconWithText->anchors()->top = {lbl5, Edge::Bottom, 8};
+    iconWithText->anchors()->left = {window, Edge::Left, 40};
+    layout->addWidget(iconWithText);
 
     // 4. Theme Switcher
     Button* themeBtn = new Button("Switch Theme", window);

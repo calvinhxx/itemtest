@@ -40,6 +40,37 @@ void Button::setInteractionState(InteractionState state) {
     if (m_interactionState != state) { m_interactionState = state; update(); emit interactionStateChanged(); }
 }
 
+void Button::setIconOffset(const QPoint& offset) {
+    if (m_iconOffset == offset) return;
+    m_iconOffset = offset;
+    update();
+}
+
+void Button::setIconGlyph(const QString& glyph,
+                          int pixelSize,
+                          const QString& family) {
+    if (glyph.isEmpty()) {
+        m_iconGlyph.clear();
+        m_iconFontFamily.clear();
+        m_iconPixelSize = 0;
+        setIcon(QIcon()); // 清除普通图标
+        update();
+        return;
+    }
+
+    // 保存 iconfont 信息，在 paintEvent 中直接绘制（参考 DropDownButton 方案）
+    m_iconGlyph = glyph;
+    m_iconFontFamily = family;
+    m_iconPixelSize = pixelSize;
+    
+    // 清除普通图标，使用 iconfont 绘制
+    setIcon(QIcon());
+    
+    // 更新尺寸提示
+    updateGeometry();
+    update();
+}
+
 QSize Button::sizeHint() const {
     const auto& spacing = themeSpacing();
     const auto& typo = themeFont(m_size == Large ? "BodyStrong" : "Body");
@@ -58,10 +89,12 @@ QSize Button::sizeHint() const {
 
     // 3. 计算内容所需的总宽度
     QString txt = text();
-    QSize icSize = iconSize();
+    // 优先使用 iconfont，否则使用普通图标
+    bool hasIconFont = !m_iconGlyph.isEmpty();
+    QSize icSize = hasIconFont ? QSize(m_iconPixelSize, m_iconPixelSize) : iconSize();
     int contentWidth = fm.horizontalAdvance(txt);
-    if (!txt.isEmpty() && !icon().isNull()) contentWidth += iconGap;
-    if (!icon().isNull()) contentWidth += icSize.width();
+    if (!txt.isEmpty() && (hasIconFont || !icon().isNull())) contentWidth += iconGap;
+    if (hasIconFont || !icon().isNull()) contentWidth += icSize.width();
 
     return QSize(contentWidth + hPadding * 2, dynamicHeight);
 }
@@ -78,7 +111,7 @@ void Button::paintEvent(QPaintEvent*) {
     const auto& colors = themeColors();
     const auto& radius = themeRadius();
     const auto& spacing = themeSpacing();
-    
+
     // 1. 确定交互状态
     InteractionState state = m_interactionState;
     if (!isEnabled()) {
@@ -140,30 +173,72 @@ void Button::paintEvent(QPaintEvent*) {
 
     // 4. 计算并绘制图标和文字 (使用 Token 间距)
     QString txt = (m_layout == IconOnly) ? "" : text();
-    QPixmap pix = (m_layout == TextOnly || icon().isNull()) ? QPixmap() : icon().pixmap(iconSize());
+    bool hasIconFont = !m_iconGlyph.isEmpty();
+    QPixmap pix = (m_layout == TextOnly || hasIconFont || icon().isNull()) ? QPixmap() : icon().pixmap(iconSize());
     int gap = (m_size == Small) ? spacing.gap.tight : spacing.gap.normal;
 
     QFontMetrics fm = painter.fontMetrics();
     int txtWidth = txt.isEmpty() ? 0 : fm.horizontalAdvance(txt);
-    int pixWidth = pix.isNull() ? 0 : pix.width() / (double)pix.devicePixelRatio();
-    int totalContentWidth = txtWidth + pixWidth + ((!txt.isEmpty() && !pix.isNull()) ? gap : 0);
+    
+    // 计算图标宽度：优先使用 iconfont，否则使用普通图标
+    int iconWidth = 0;
+    int iconHeight = 0;
+    if (hasIconFont) {
+        iconWidth = m_iconPixelSize;
+        iconHeight = m_iconPixelSize;
+    } else if (!pix.isNull()) {
+        double dpr = pix.devicePixelRatio();
+        iconWidth = pix.width() / dpr;
+        iconHeight = pix.height() / dpr;
+    }
+    
+    int totalContentWidth = txtWidth + iconWidth + ((!txt.isEmpty() && (hasIconFont || !pix.isNull())) ? gap : 0);
     
     double startX = contentRect.left() + (contentRect.width() - totalContentWidth) / 2.0;
     double centerY = contentRect.center().y();
 
     painter.setPen(textColor);
+    painter.setRenderHint(QPainter::TextAntialiasing); // 确保 iconfont 文字抗锯齿
+    
     if (m_layout == IconAfter) {
+        // 文本在前，图标在后
         if (!txt.isEmpty()) {
             painter.drawText(QRectF(startX, 0, txtWidth, height()), Qt::AlignCenter, txt);
             startX += txtWidth + gap;
         }
-        if (!pix.isNull()) {
-            painter.drawPixmap(startX, centerY - pix.height() / (2.0 * pix.devicePixelRatio()), pix);
+        if (hasIconFont) {
+            // 直接绘制 iconfont（参考 DropDownButton 方案）
+            QFont iconFont(m_iconFontFamily);
+            iconFont.setPixelSize(m_iconPixelSize);
+            painter.setFont(iconFont);
+            QRectF iconRect(startX + m_iconOffset.x(), 0, iconWidth, height());
+            painter.drawText(iconRect, Qt::AlignCenter | Qt::AlignVCenter, m_iconGlyph);
+            painter.setFont(typo.toQFont()); // 恢复文本字体
+        } else if (!pix.isNull()) {
+            double dpr = pix.devicePixelRatio();
+            double pixH = pix.height() / dpr;
+            painter.drawPixmap(startX + m_iconOffset.x(),
+                               centerY - pixH / 2.0 + m_iconOffset.y(),
+                               pix);
         }
     } else {
-        if (!pix.isNull()) {
-            painter.drawPixmap(startX, centerY - pix.height() / (2.0 * pix.devicePixelRatio()), pix);
-            startX += pixWidth + gap;
+        // 图标在前，文本在后（或仅图标）
+        if (hasIconFont) {
+            // 直接绘制 iconfont（参考 DropDownButton 方案）
+            QFont iconFont(m_iconFontFamily);
+            iconFont.setPixelSize(m_iconPixelSize);
+            painter.setFont(iconFont);
+            QRectF iconRect(startX + m_iconOffset.x(), 0, iconWidth, height());
+            painter.drawText(iconRect, Qt::AlignCenter | Qt::AlignVCenter, m_iconGlyph);
+            painter.setFont(typo.toQFont()); // 恢复文本字体
+            startX += iconWidth + gap;
+        } else if (!pix.isNull()) {
+            double dpr = pix.devicePixelRatio();
+            double pixH = pix.height() / dpr;
+            painter.drawPixmap(startX + m_iconOffset.x(),
+                               centerY - pixH / 2.0 + m_iconOffset.y(),
+                               pix);
+            startX += iconWidth + gap;
         }
         if (!txt.isEmpty()) {
             painter.drawText(QRectF(startX, 0, txtWidth, height()), Qt::AlignCenter, txt);

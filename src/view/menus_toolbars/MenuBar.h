@@ -7,6 +7,9 @@
 
 namespace view::menus_toolbars {
 
+// 前向声明：MenuBar 只需要知道有 FluentMenu 这个类型
+class FluentMenu;
+
 /**
  * @brief FluentMenuBar - Fluent UI 风格的菜单栏
  *

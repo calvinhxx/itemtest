@@ -8,6 +8,7 @@
 #include <QFocusEvent>
 #include <QPainter>
 #include <QStyleOptionButton>
+#include <QPoint>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QEnterEvent>
@@ -15,6 +16,7 @@
 
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
+#include "common/Typography.h"
 
 namespace view::basicinput {
 
@@ -34,6 +36,8 @@ class Button : public QPushButton, public FluentElement, public view::QMLPlus {
     Q_PROPERTY(bool focusVisual READ hasFocusVisual WRITE setFocusVisual NOTIFY focusVisualChanged)
     /** @brief 强制交互状态控制（用于引导或演示） */
     Q_PROPERTY(InteractionState interactionState READ interactionState WRITE setInteractionState NOTIFY interactionStateChanged)
+    /** @brief Icon 布局中的偏移量（像素，向右/向下为正），用于精细对齐 iconfont */
+    Q_PROPERTY(QPoint iconOffset READ iconOffset WRITE setIconOffset)
 
 public:
     enum ButtonStyle { Standard, Accent, Subtle };
@@ -77,11 +81,30 @@ public:
     InteractionState interactionState() const { return m_interactionState; }
     void setInteractionState(InteractionState state);
 
+    QPoint iconOffset() const { return m_iconOffset; }
+    void setIconOffset(const QPoint& offset);
+
     void onThemeUpdated() override { update(); }
 
     // 提供给布局系统的尺寸提示
     QSize sizeHint() const override;
     QSize minimumSizeHint() const override;
+
+    /**
+     * @brief 从 Segoe Fluent Icons 等 iconfont 生成图标并设置到按钮上
+     * @param glyph      图标字符（通常来自 Typography::Icons）
+     * @param pixelSize  字体像素大小（默认使用 Body 字号）
+     * @param family     字体家族（默认 Segoe Fluent Icons）
+     */
+    void setIconGlyph(const QString& glyph,
+                      int pixelSize = ::Typography::FontSize::Body,
+                      const QString& family = ::Typography::FontFamily::SegoeFluentIcons);
+
+    void setIconGlyph(QChar glyph,
+                      int pixelSize = ::Typography::FontSize::Body,
+                      const QString& family = ::Typography::FontFamily::SegoeFluentIcons) {
+        setIconGlyph(QString(glyph), pixelSize, family);
+    }
 
 signals:
     void fluentStyleChanged();
@@ -113,6 +136,12 @@ private:
     ButtonLayout m_layout = TextOnly;
     InteractionState m_interactionState = Rest;
     bool m_focusVisual = false;
+    QPoint m_iconOffset {0, 0}; // 图标偏移，解决个别 iconfont 视觉不居中的问题
+    
+    // IconFont 信息（用于直接绘制，避免 pixmap 模糊）
+    QString m_iconGlyph;        // iconfont 字符
+    QString m_iconFontFamily;   // iconfont 字体家族
+    int m_iconPixelSize = 0;    // iconfont 像素大小
 };
 
 } // namespace view::basicinput

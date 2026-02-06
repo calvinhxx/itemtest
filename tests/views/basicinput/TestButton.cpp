@@ -4,10 +4,15 @@
 #include <QTimer>
 #include <QStyle>
 #include <QGroupBox>
+#include <QFontDatabase>
+#include <QPixmap>
+#include <QPainter>
+#include <QPolygonF>
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
 #include "view/FluentElement.h"
 #include "view/textfields/Label.h"
+#include "common/Typography.h"
 
 using namespace view::basicinput;
 using namespace view::textfields;
@@ -29,11 +34,27 @@ protected:
         char **argv = nullptr;
         if (!qApp) new QApplication(argc, argv);
         QApplication::setStyle("Fusion");
+
+        // 确保资源与字体加载（用于 iconfont 示例）
+        Q_INIT_RESOURCE(resources);
+
+        int iconFontId = QFontDatabase::addApplicationFont(":/res/Segoe Fluent Icons.ttf");
+        if (iconFontId != -1) {
+            QStringList families = QFontDatabase::applicationFontFamilies(iconFontId);
+            if (!families.isEmpty()) {
+                qDebug() << "[ButtonTest] Loaded Segoe Fluent Icons:" << families;
+            }
+        } else {
+            qWarning() << "[ButtonTest] Failed to load Segoe Fluent Icons from resources!";
+        }
+
+        // UI 字体加载（与其它测试保持一致）
+        QFontDatabase::addApplicationFont(":/res/SegoeUI-VF.ttf");
     }
 
     void SetUp() override {
         window = new FluentTestWindow();
-        window->setFixedSize(600, 750);
+        window->setFixedSize(600, 850); // 增加高度以容纳新内容
         window->setWindowTitle("Button Properties Comprehensive Test");
         layout = new AnchorLayout(window);
         window->setLayout(layout);
@@ -112,8 +133,7 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     layout->addWidget(btnLarge);
 
     // --- 3. Layout Test (TextOnly, IconBefore, IconOnly, IconAfter) ---
-    Label* lblLayout = createLabel("3. Content Layouts:", btnLarge);
-    QIcon icon = window->style()->standardIcon(QStyle::SP_ComputerIcon);
+    Label* lblLayout = createLabel("3. Content Layouts (with IconFont):", btnLarge);
 
     Button* l1 = new Button("Text Only", window);
     l1->setFluentLayout(Button::TextOnly);
@@ -121,30 +141,150 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     l1->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(l1);
 
+    // IconBefore + IconFont（略微向下 1px，让 glyph 视觉更居中）
     Button* l2 = new Button("Icon Before", window);
-    l2->setIcon(icon);
     l2->setFluentLayout(Button::IconBefore);
+    l2->setIconGlyph(Typography::Icons::GlobalNav,
+                     Typography::FontSize::Caption,
+                     Typography::FontFamily::SegoeFluentIcons);
+    l2->setIconOffset(QPoint(0, 1));
     l2->anchors()->verticalCenter = {l1, Edge::VCenter, 0};
     l2->anchors()->left = {l1, Edge::Right, 20};
     layout->addWidget(l2);
 
+    // IconOnly + IconFont
     Button* l3 = new Button("", window);
-    l3->setIcon(icon);
     l3->setFluentLayout(Button::IconOnly);
     l3->setFixedSize(40, 40);
+    l3->setIconGlyph(Typography::Icons::More,
+                     Typography::FontSize::Caption,
+                     Typography::FontFamily::SegoeFluentIcons);
+    l3->setIconOffset(QPoint(0, 1));
     l3->anchors()->verticalCenter = {l1, Edge::VCenter, 0};
     l3->anchors()->left = {l2, Edge::Right, 20};
     layout->addWidget(l3);
 
+    // IconAfter + IconFont
     Button* l4 = new Button("Icon After", window);
-    l4->setIcon(icon);
     l4->setFluentLayout(Button::IconAfter);
+    l4->setIconGlyph(Typography::Icons::ChevronRight,
+                     Typography::FontSize::Caption,
+                     Typography::FontFamily::SegoeFluentIcons);
+    l4->setIconOffset(QPoint(0, 1));
     l4->anchors()->verticalCenter = {l1, Edge::VCenter, 0};
     l4->anchors()->left = {l3, Edge::Right, 20};
     layout->addWidget(l4);
 
+    // 额外的 IconOnly 示例：再展示一个不同 glyph
+    Button* l5 = new Button("", window);
+    l5->setFluentLayout(Button::IconOnly);
+    l5->setFixedSize(40, 40);
+    l5->setIconGlyph(Typography::Icons::More,
+                     Typography::FontSize::Caption,
+                     Typography::FontFamily::SegoeFluentIcons);
+    l5->setIconOffset(QPoint(0, 1));
+    l5->anchors()->verticalCenter = {l1, Edge::VCenter, 0};
+    l5->anchors()->left = {l4, Edge::Right, 20};
+    layout->addWidget(l5);
+
+    // --- 3.5. Layout Test with Regular Icons (对比 iconfont) ---
+    Label* lblRegularIcons = createLabel("3.5. Content Layouts (with Regular Icons - for comparison):", l5, 40);
+
+    // 创建一些简单的图标用于对比
+    auto createSimpleIcon = [](const QColor& color, int size = 16) -> QIcon {
+        QPixmap pm(size, size);
+        pm.fill(Qt::transparent);
+        QPainter p(&pm);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setBrush(color);
+        p.setPen(Qt::NoPen);
+        p.drawEllipse(2, 2, size - 4, size - 4);
+        return QIcon(pm);
+    };
+
+    auto createMenuIcon = [](const QColor& color, int size = 16) -> QIcon {
+        QPixmap pm(size, size);
+        pm.fill(Qt::transparent);
+        QPainter p(&pm);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(color, 2));
+        int lineY = size / 4;
+        int spacing = size / 4;
+        for (int i = 0; i < 3; ++i) {
+            p.drawLine(3, lineY + i * spacing, size - 3, lineY + i * spacing);
+        }
+        return QIcon(pm);
+    };
+
+    auto createChevronIcon = [](const QColor& color, int size = 16) -> QIcon {
+        QPixmap pm(size, size);
+        pm.fill(Qt::transparent);
+        QPainter p(&pm);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(color, 2));
+        p.setBrush(Qt::NoBrush);
+        QPolygonF arrow;
+        arrow << QPointF(size * 0.3, size * 0.3)
+              << QPointF(size * 0.7, size * 0.5)
+              << QPointF(size * 0.3, size * 0.7);
+        p.drawPolyline(arrow);
+        return QIcon(pm);
+    };
+
+    // 获取当前主题颜色（通过 window 实例）
+    const auto& colors = window->themeColors();
+    QColor iconColor = colors.textPrimary;
+
+    Button* r1 = new Button("Text Only", window);
+    r1->setFluentLayout(Button::TextOnly);
+    r1->anchors()->top = {lblRegularIcons, Edge::Bottom, 10};
+    r1->anchors()->left = {window, Edge::Left, 40};
+    layout->addWidget(r1);
+
+    // IconBefore + Regular Icon
+    Button* r2 = new Button("Icon Before", window);
+    r2->setFluentLayout(Button::IconBefore);
+    r2->setIcon(createMenuIcon(iconColor, 16));
+    r2->setIconSize(QSize(16, 16));
+    r2->anchors()->verticalCenter = {r1, Edge::VCenter, 0};
+    r2->anchors()->left = {r1, Edge::Right, 20};
+    layout->addWidget(r2);
+
+    // IconOnly + Regular Icon
+    Button* r3 = new Button("", window);
+    r3->setFluentLayout(Button::IconOnly);
+    r3->setFixedSize(40, 40);
+    r3->setIcon(createSimpleIcon(iconColor, 16));
+    r3->setIconSize(QSize(16, 16));
+    r3->anchors()->verticalCenter = {r1, Edge::VCenter, 0};
+    r3->anchors()->left = {r2, Edge::Right, 20};
+    layout->addWidget(r3);
+
+    // IconAfter + Regular Icon
+    Button* r4 = new Button("Icon After", window);
+    r4->setFluentLayout(Button::IconAfter);
+    r4->setIcon(createChevronIcon(iconColor, 16));
+    r4->setIconSize(QSize(16, 16));
+    r4->anchors()->verticalCenter = {r1, Edge::VCenter, 0};
+    r4->anchors()->left = {r3, Edge::Right, 20};
+    layout->addWidget(r4);
+
+    // 额外的 IconOnly 示例：使用系统标准图标
+    Button* r5 = new Button("", window);
+    r5->setFluentLayout(Button::IconOnly);
+    r5->setFixedSize(40, 40);
+    QStyle* style = qApp->style();
+    QIcon standardIcon = style->standardIcon(QStyle::SP_FileDialogNewFolder);
+    if (!standardIcon.isNull()) {
+        r5->setIcon(standardIcon);
+        r5->setIconSize(QSize(16, 16));
+    }
+    r5->anchors()->verticalCenter = {r1, Edge::VCenter, 0};
+    r5->anchors()->left = {r4, Edge::Right, 20};
+    layout->addWidget(r5);
+
     // --- 4. Interaction States (Forced) ---
-    Label* lblStates = createLabel("4. Forced Interaction States:", l3, 40);
+    Label* lblStates = createLabel("4. Forced Interaction States:", r3, 40);
 
     Button* sRest = new Button("Rest", window);
     sRest->setInteractionState(Button::Rest);

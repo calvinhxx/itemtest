@@ -2,9 +2,8 @@
 #include <QApplication>
 #include <QVBoxLayout>
 #include <QLabel>
-#include <QMenu>
-
 #include "view/menus_toolbars/MenuBar.h"
+#include "view/menus_toolbars/Menu.h"
 #include "view/FluentElement.h"
 #include "view/basicinput/Button.h"
 
@@ -47,26 +46,35 @@ protected:
         auto* statusLabel = new QLabel("You clicked: (none)", window);
         statusLabel->setContentsMargins(24, 16, 24, 16);
 
-        // File 菜单
-        QMenu* fileMenu = new QMenu("File", menuBar);
-        QAction* actionNew = fileMenu->addAction("New");
-        QAction* actionOpen = fileMenu->addAction("Open");
-        QAction* actionExit = fileMenu->addAction("Exit");
+        // File 菜单（使用 FluentMenu + FluentMenuItem）
+        auto* fileMenu = new FluentMenu("File", menuBar);
+        auto* actionNew = new FluentMenuItem("New", fileMenu);
+        auto* actionOpen = new FluentMenuItem("Open", fileMenu);
+        auto* actionExit = new FluentMenuItem("Exit", fileMenu);
+        fileMenu->addAction(actionNew);
+        fileMenu->addAction(actionOpen);
+        fileMenu->addAction(actionExit);
         menuBar->addMenu(fileMenu);
 
         // Edit 菜单
-        QMenu* editMenu = new QMenu("Edit", menuBar);
-        QAction* actionUndo = editMenu->addAction("Undo");
-        QAction* actionRedo = editMenu->addAction("Redo");
+        auto* editMenu = new FluentMenu("Edit", menuBar);
+        auto* actionUndo = new FluentMenuItem("Undo", editMenu);
+        auto* actionRedo = new FluentMenuItem("Redo", editMenu);
         editMenu->addSeparator();
-        QAction* actionCut = editMenu->addAction("Cut");
-        QAction* actionCopy = editMenu->addAction("Copy");
-        QAction* actionPaste = editMenu->addAction("Paste");
+        auto* actionCut = new FluentMenuItem("Cut", editMenu);
+        auto* actionCopy = new FluentMenuItem("Copy", editMenu);
+        auto* actionPaste = new FluentMenuItem("Paste", editMenu);
+        editMenu->addAction(actionUndo);
+        editMenu->addAction(actionRedo);
+        editMenu->addAction(actionCut);
+        editMenu->addAction(actionCopy);
+        editMenu->addAction(actionPaste);
         menuBar->addMenu(editMenu);
 
         // Help 菜单
-        QMenu* helpMenu = new QMenu("Help", menuBar);
-        QAction* actionAbout = helpMenu->addAction("About");
+        auto* helpMenu = new FluentMenu("Help", menuBar);
+        auto* actionAbout = new FluentMenuItem("About", helpMenu);
+        helpMenu->addAction(actionAbout);
         menuBar->addMenu(helpMenu);
 
         auto updateStatus = [statusLabel](const QString& text) {
