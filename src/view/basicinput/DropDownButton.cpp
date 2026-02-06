@@ -65,14 +65,7 @@ void DropDownButton::setChevronSize(int size) {
     emit chevronChanged();
 }
 
-void DropDownButton::setChevronPadding(int padding) {
-    if (m_chevronPadding == padding) return;
-    m_chevronPadding = padding;
-    update();
-    emit chevronChanged();
-}
-
-void DropDownButton::setChevronOffset(int offset) {
+void DropDownButton::setChevronOffset(const QPoint& offset) {
     if (m_chevronOffset == offset) return;
     m_chevronOffset = offset;
     update();
@@ -149,11 +142,13 @@ void DropDownButton::paintEvent(QPaintEvent* event) {
     
     painter.setPen(textColor);
 
-    // 绘制图标：根据动画进度沿 Y 轴下移后弹回 + 开发者自定义的垂直偏移
-    QRect chevronRect = rect().adjusted(0, 0, -m_chevronPadding, 0);
+    // 绘制图标：根据动画进度沿 Y 轴下移后弹回 + 开发者自定义的偏移
+    // chevronOffset.x() 作为与右侧边缘的间距（padding），chevronOffset.y() 为垂直微调
+    QRect chevronRect = rect().adjusted(0, 0, -m_chevronOffset.x(), 0);
     const qreal maxOffset = 3.0; // 最大下移 3 像素（点击动画）
     qreal pressOffset = maxOffset * qSin(m_pressProgress * M_PI); // 0→max→0
-    chevronRect.translate(0, static_cast<int>(pressOffset) + m_chevronOffset);
+    chevronRect.translate(0,
+                          static_cast<int>(pressOffset) + m_chevronOffset.y());
     painter.drawText(chevronRect, Qt::AlignRight | Qt::AlignVCenter, m_chevronGlyph);
 }
 

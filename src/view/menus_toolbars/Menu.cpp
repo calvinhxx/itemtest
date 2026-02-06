@@ -123,23 +123,23 @@ void FluentMenu::paintEvent(QPaintEvent* event) {
 
 void FluentMenu::drawShadow(QPainter& painter, const QRect& contentRect) {
     const auto& s = themeShadow(Elevation::High);
-    const int layers = 12; // 增加层数使阴影更柔和
+    const int layers = 10;
+    const int spreadStep = 1;
     int r = themeRadius().topLevel;
 
     for (int i = 0; i < layers; ++i) {
-        double ratio = (1.0 - static_cast<double>(i) / layers);
+        double ratio = 1.0 - static_cast<double>(i) / layers;
         QColor sc = s.color;
-        sc.setAlphaF(s.opacity * ratio * 0.4);
+        sc.setAlphaF(s.opacity * ratio * 0.35);
 
         painter.setPen(Qt::NoPen);
         painter.setBrush(sc);
 
-        int spread = i * 2;
-        // 阴影向下偏移 4px 增加立体感（与 Dialog 一致）
+        int spread = i * spreadStep;
+        int offsetY = 2;
         painter.drawRoundedRect(
-            contentRect.adjusted(-spread, -spread, spread, spread).translated(0, 4),
-            r + spread,
-            r + spread);
+            contentRect.adjusted(-spread, -spread, spread, spread).translated(0, offsetY),
+            r + spread, r + spread);
     }
 }
 

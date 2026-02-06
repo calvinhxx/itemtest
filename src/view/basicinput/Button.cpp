@@ -4,10 +4,12 @@ namespace view::basicinput {
 
 Button::Button(const QString& text, QWidget* parent) : QPushButton(text, parent) {
     setAttribute(Qt::WA_Hover);
+    setFont(themeFont("Body").toQFont()); // 默认 Body，后续可用 setFont() 覆盖
 }
 
 Button::Button(QWidget* parent) : QPushButton(parent) {
     setAttribute(Qt::WA_Hover);
+    setFont(themeFont("Body").toQFont());
 }
 
 void Button::setFluentStyle(ButtonStyle style) {
@@ -73,8 +75,7 @@ void Button::setIconGlyph(const QString& glyph,
 
 QSize Button::sizeHint() const {
     const auto& spacing = themeSpacing();
-    const auto& typo = themeFont(m_size == Large ? "BodyStrong" : "Body");
-    QFontMetrics fm(typo.toQFont());
+    QFontMetrics fm(font());
 
     // 1. 基于 Token 计算内边距 (Padding)
     // 水平内边距：Small(8px), Standard(12px), Large(16px)
@@ -121,9 +122,8 @@ void Button::paintEvent(QPaintEvent*) {
         else if (underMouse()) state = Hover;
     }
 
-    // 2. 获取色值和字体
-    const auto& typo = themeFont(m_size == Large ? "BodyStrong" : "Body");
-    painter.setFont(typo.toQFont());
+    // 2. 获取色值，字体使用 QPushButton 的 font()
+    painter.setFont(font());
 
     QColor bgColor, textColor, borderColor;
     if (m_style == Accent) {
@@ -213,7 +213,7 @@ void Button::paintEvent(QPaintEvent*) {
             painter.setFont(iconFont);
             QRectF iconRect(startX + m_iconOffset.x(), 0, iconWidth, height());
             painter.drawText(iconRect, Qt::AlignCenter | Qt::AlignVCenter, m_iconGlyph);
-            painter.setFont(typo.toQFont()); // 恢复文本字体
+            painter.setFont(font());
         } else if (!pix.isNull()) {
             double dpr = pix.devicePixelRatio();
             double pixH = pix.height() / dpr;
@@ -230,7 +230,7 @@ void Button::paintEvent(QPaintEvent*) {
             painter.setFont(iconFont);
             QRectF iconRect(startX + m_iconOffset.x(), 0, iconWidth, height());
             painter.drawText(iconRect, Qt::AlignCenter | Qt::AlignVCenter, m_iconGlyph);
-            painter.setFont(typo.toQFont()); // 恢复文本字体
+            painter.setFont(font());
             startX += iconWidth + gap;
         } else if (!pix.isNull()) {
             double dpr = pix.devicePixelRatio();

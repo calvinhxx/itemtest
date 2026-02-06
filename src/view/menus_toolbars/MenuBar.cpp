@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QStyleOptionMenuItem>
+#include "common/CornerRadius.h"
 
 namespace view::menus_toolbars {
 
@@ -67,7 +68,8 @@ void FluentMenuBar::paintEvent(QPaintEvent* event) {
             QRectF bgRect = itemRect.adjusted(0, 0, 0, 0);
             p.setPen(Qt::NoPen);
             p.setBrush(bg);
-            p.drawRoundedRect(bgRect, 4, 4);
+            // 使用设计 Token，而不是 magic number
+            p.drawRoundedRect(bgRect, CornerRadius::Control, CornerRadius::Control);
         }
 
         // 2. 文本
@@ -75,7 +77,8 @@ void FluentMenuBar::paintEvent(QPaintEvent* event) {
         QColor textColor = isEnabled ? colors.textPrimary : colors.textDisabled;
         p.setPen(textColor);
 
-        QRect textRect = itemRect.adjusted(hPadding, 0, -hPadding, 0);
+        // 只在左侧留内边距，避免有效宽度过小导致文本被裁剪
+        QRect textRect = itemRect.adjusted(hPadding, 0, 0, 0);
         p.drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, text);
     }
 }

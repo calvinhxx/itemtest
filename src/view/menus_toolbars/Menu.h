@@ -37,8 +37,8 @@ protected:
 private:
     void drawShadow(QPainter& painter, const QRect& contentRect);
 
-    // 顶层菜单同 Dialog，预留阴影空间（24px）
-    const int m_shadowSize = ::Spacing::Large;
+    // 与 drawShadow 扩散范围一致，略留余量自然淡出
+    const int m_shadowSize = ::Spacing::Standard;
 };
 
 } // namespace view::menus_toolbars

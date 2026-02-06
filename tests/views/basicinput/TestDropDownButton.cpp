@@ -123,7 +123,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     DropDownButton* customUp = new DropDownButton("Chevron Up", window);
     customUp->setChevronGlyph(Typography::Icons::ChevronUp); 
     customUp->setChevronSize(16);
-    customUp->setChevronPadding(20);
+    customUp->setChevronOffset(QPoint(20, 0)); // x: 右侧间距, y: 垂直偏移
     customUp->setFixedSize(150, 32);
     customUp->anchors()->top = {lbl3, Edge::Bottom, 10};
     customUp->anchors()->left = {window, Edge::Left, 40};
@@ -133,7 +133,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     DropDownButton* customDownMed = new DropDownButton("Chevron Down Med", window);
     customDownMed->setChevronGlyph(Typography::Icons::ChevronDownMed);
     customDownMed->setChevronSize(14);
-    customDownMed->setChevronPadding(5);
+    customDownMed->setChevronOffset(QPoint(5, 0));
     customDownMed->setFixedSize(170, 32);
     customDownMed->anchors()->top = {customUp, Edge::Bottom, 8};
     customDownMed->anchors()->left = {window, Edge::Left, 40};
@@ -143,7 +143,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     DropDownButton* customRight = new DropDownButton("Next Step", window);
     customRight->setChevronGlyph(Typography::Icons::ChevronRight);
     customRight->setChevronSize(14);
-    customRight->setChevronPadding(16);
+    customRight->setChevronOffset(QPoint(16, 0));
     customRight->setFixedSize(150, 32);
     customRight->anchors()->top = {customDownMed, Edge::Bottom, 8};
     customRight->anchors()->left = {window, Edge::Left, 40};
@@ -153,8 +153,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     DropDownButton* customMore = new DropDownButton("More Actions", window);
     customMore->setChevronGlyph(Typography::Icons::More);
     customMore->setChevronSize(14);
-    customMore->setChevronPadding(16);
-    customMore->setChevronOffset(3);
+    customMore->setChevronOffset(QPoint(16, 3));
     customMore->setFixedSize(160, 32);
     customMore->anchors()->top = {customRight, Edge::Bottom, 8};
     customMore->anchors()->left = {window, Edge::Left, 40};
@@ -169,10 +168,10 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     DropDownButton* iconOnly = new DropDownButton("", window);
     iconOnly->setFluentLayout(Button::IconOnly);  // 使用 IconOnly 布局
     iconOnly->setIconGlyph(Typography::Icons::Send,  // 左侧 iconfont（Button 的 icon）
-                          Typography::FontSize::Caption,
-                          Typography::FontFamily::SegoeFluentIcons);
+                           Typography::FontSize::Caption,
+                           Typography::FontFamily::SegoeFluentIcons);
     iconOnly->setChevronSize(Typography::FontSize::Caption);  // 右侧 chevron
-    iconOnly->setChevronPadding(10);
+    iconOnly->setChevronOffset(QPoint(10, 0));
     iconOnly->setIconOffset(QPoint(-8, 0));
     iconOnly->setFixedSize(56, 32);
     iconOnly->anchors()->top = {lbl4, Edge::Bottom, 8};
@@ -189,7 +188,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     iconWithText->setFluentLayout(Button::IconBefore);
     iconWithText->setFixedSize(170, 32);
     iconWithText->setChevronSize(Typography::FontSize::Caption);
-    iconWithText->setChevronPadding(16);
+    iconWithText->setChevronOffset(QPoint(16, 0));
     iconWithText->setIconGlyph(Typography::Icons::More,
                                Typography::FontSize::Caption,
                                Typography::FontFamily::SegoeFluentIcons);

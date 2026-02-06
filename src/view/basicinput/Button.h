@@ -28,7 +28,7 @@ class Button : public QPushButton, public FluentElement, public view::QMLPlus {
     
     /** @brief 按钮风格：Standard(标准), Accent(强调色), Subtle(透明幽灵) */
     Q_PROPERTY(ButtonStyle fluentStyle READ fluentStyle WRITE setFluentStyle NOTIFY fluentStyleChanged)
-    /** @brief 按钮密度：Small(24px), StandardSize(32px), Large(40px) 影响高度和内边距 */
+    /** @brief 按钮密度：Small(24px), StandardSize(32px), Large(40px)，仅影响高度与内边距；字体用 setFont() / font() 配置 */
     Q_PROPERTY(ButtonSize fluentSize READ fluentSize WRITE setFluentSize NOTIFY fluentSizeChanged)
     /** @brief 内容排列：TextOnly, IconBefore, IconOnly, IconAfter */
     Q_PROPERTY(ButtonLayout fluentLayout READ fluentLayout WRITE setFluentLayout NOTIFY fluentLayoutChanged)

@@ -178,20 +178,23 @@ void Dialog::paintEvent(QPaintEvent*) {
 
 void Dialog::drawShadow(QPainter& painter, const QRect& contentRect) {
     const auto& s = themeShadow(Elevation::High);
-    const int layers = 12; // 增加层数使阴影更柔和
+    const int layers = 10;   // 层数足够平滑淡出
+    const int spreadStep = 1; // 每层扩散 1px，总范围约 10px，配合 16px 边距自然淡出
     int r = themeRadius().topLevel;
-    
+
     for (int i = 0; i < layers; ++i) {
-        double ratio = (1.0 - (double)i / layers);
+        double ratio = 1.0 - static_cast<double>(i) / layers;
         QColor sc = s.color;
-        sc.setAlphaF(s.opacity * ratio * 0.4);
-        
+        sc.setAlphaF(s.opacity * ratio * 0.35);
+
         painter.setPen(Qt::NoPen);
         painter.setBrush(sc);
-        
-        int spread = i * 2;
-        // 阴影向下偏移 4px 增加立体感
-        painter.drawRoundedRect(contentRect.adjusted(-spread, -spread, spread, spread).translated(0, 4), r + spread, r + spread);
+
+        int spread = i * spreadStep;
+        int offsetY = 2; // 轻微下偏，立体感又不显重
+        painter.drawRoundedRect(
+            contentRect.adjusted(-spread, -spread, spread, spread).translated(0, offsetY),
+            r + spread, r + spread);
     }
 }
 

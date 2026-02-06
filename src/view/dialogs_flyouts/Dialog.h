@@ -54,8 +54,8 @@ protected:
 private:
     void drawShadow(QPainter& painter, const QRect& contentRect);
     
-    // 现代审美：使用更宽阔的阴影预留空间 (24px)
-    const int m_shadowSize = ::Spacing::Large; 
+    // 与 drawShadow 的扩散范围匹配，略留余量让阴影自然淡出
+    const int m_shadowSize = ::Spacing::Standard; 
 
     bool m_dragEnabled = true;
     QPoint m_dragPosition;

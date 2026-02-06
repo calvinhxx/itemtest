@@ -25,10 +25,13 @@ class DropDownButton : public Button {
     Q_PROPERTY(QString iconFontFamily READ iconFontFamily WRITE setIconFontFamily NOTIFY chevronChanged)
     /** @brief 下拉图标的大小 (默认 12) */
     Q_PROPERTY(int chevronSize READ chevronSize WRITE setChevronSize NOTIFY chevronChanged)
-    /** @brief 下拉图标距离右侧的边距 (默认 themeSpacing().padding.controlH) */
-    Q_PROPERTY(int chevronPadding READ chevronPadding WRITE setChevronPadding NOTIFY chevronChanged)
-    /** @brief 下拉图标在垂直方向上的微调偏移量（像素，向下为正） */
-    Q_PROPERTY(int chevronOffset READ chevronOffset WRITE setChevronOffset NOTIFY chevronChanged)
+    /**
+     * @brief 下拉图标偏移量（像素，向右/向下为正）
+     *
+     * chevronOffset.x() 用于控制与右侧边缘的间距（默认等于 themeSpacing().padding.controlH），
+     * chevronOffset.y() 用于垂直方向的微调偏移。
+     */
+    Q_PROPERTY(QPoint chevronOffset READ chevronOffset WRITE setChevronOffset NOTIFY chevronChanged)
     /** @brief 点击/展开动画进度 [0,1]，用于驱动 icon 大小与颜色的细微过渡 */
     Q_PROPERTY(qreal pressProgress READ pressProgress WRITE setPressProgress)
 
@@ -51,11 +54,8 @@ public:
     int chevronSize() const { return m_chevronSize; }
     void setChevronSize(int size);
 
-    int chevronPadding() const { return m_chevronPadding; }
-    void setChevronPadding(int padding);
-
-    int chevronOffset() const { return m_chevronOffset; }
-    void setChevronOffset(int offset);
+    QPoint chevronOffset() const { return m_chevronOffset; }
+    void setChevronOffset(const QPoint& offset);
 
     qreal pressProgress() const { return m_pressProgress; }
     void setPressProgress(qreal value);
@@ -76,8 +76,7 @@ private:
     QString m_chevronGlyph = ::Typography::Icons::ChevronDown;
     QString m_iconFontFamily = ::Typography::FontFamily::SegoeFluentIcons;
     int m_chevronSize = ::Typography::FontSize::Caption;
-    int m_chevronPadding = ::Spacing::Padding::ControlHorizontal;
-    int m_chevronOffset = 0;                     // 垂直方向像素偏移，解决某些 icon 与文本不完全对齐的问题
+    QPoint m_chevronOffset {::Spacing::Padding::ControlHorizontal, 0}; // x: 右侧间距, y: 垂直偏移
     qreal m_pressProgress = 0.0;              // 0 = 静止, 1 = 点击/展开高亮
     QPropertyAnimation* m_pressAnimation = nullptr;
 };
