@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QPainterPath>
+#include "common/CornerRadius.h"
 
 namespace view::menus_toolbars {
 
@@ -10,6 +11,16 @@ namespace view::menus_toolbars {
 FluentMenuItem::FluentMenuItem(const QString& text, QObject* parent)
     : QWidgetAction(parent) {
     setText(text);
+
+    // 默认使用 Fluent Body 字体，保证在未自绘菜单中也具备 Fluent 文本风格
+    auto fs = themeFont("Body");
+    setFont(fs.toQFont());
+}
+
+void FluentMenuItem::onThemeUpdated() {
+    // 当主题切换时，同步更新 Action 的字体（例如 Light/Dark 可能切换字体族）
+    auto fs = themeFont("Body");
+    setFont(fs.toQFont());
 }
 
 // ================================ FluentMenu =================================
@@ -105,10 +116,11 @@ void FluentMenu::paintEvent(QPaintEvent* event) {
         }
 
         if (bg != Qt::transparent) {
-            QRectF bgRect = itemRect.adjusted(2, 1, -2, -1);
+            // 与 MenuBar 一致：直接使用 CornerRadius 控件圆角规范
+            QRectF bgRect = itemRect.adjusted(0, 0, 0, 0);
             p.setPen(Qt::NoPen);
             p.setBrush(bg);
-            p.drawRoundedRect(bgRect, 4, 4);
+            p.drawRoundedRect(bgRect, CornerRadius::Control, CornerRadius::Control);
         }
 
         // 文本颜色

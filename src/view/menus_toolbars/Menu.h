@@ -10,13 +10,20 @@
 namespace view::menus_toolbars {
 
 /**
- * @brief FluentMenuItem - Fluent UI 风格的菜单项（继承 QWidgetAction）
+ * @brief FluentMenuItem - Fluent UI 风格的菜单项
  *
- * 当前主要作为语义占位，样式由 FluentMenu 统一绘制。
+ * - 继承 QWidgetAction + FluentElement + QMLPlus：
+ *   - 可以访问 Fluent Design Token（字体、颜色等）
+ *   - 支持通过 QMLPlus 参与 Anchors/States 语义绑定
+ * - 当前视觉仍主要由 FluentMenu/FluentMenuBar 统一绘制，但 Action 自身的字体会使用 Fluent 字体，
+ *   这样在未自绘菜单或其他容器中使用时，文本也能保持 Fluent 风格。
  */
-class FluentMenuItem : public QWidgetAction {
+class FluentMenuItem : public QWidgetAction, public FluentElement, public view::QMLPlus {
+    Q_OBJECT
 public:
     explicit FluentMenuItem(const QString& text, QObject* parent = nullptr);
+
+    void onThemeUpdated() override;
 };
 
 /**
