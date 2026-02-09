@@ -125,8 +125,11 @@ void Button::paintEvent(QPaintEvent*) {
     // 2. 获取色值，字体使用 QPushButton 的 font()
     painter.setFont(font());
 
+    bool checked = isChecked();
     QColor bgColor, textColor, borderColor;
-    if (m_style == Accent) {
+    
+    // 如果是 Accent 风格，或者按钮处于 Checked 状态且是 Standard 风格
+    if (m_style == Accent || (checked && m_style == Standard)) {
         bgColor = colors.accentDefault;
         textColor = colors.textOnAccent;
         borderColor = colors.strokeStrong;
@@ -137,10 +140,11 @@ void Button::paintEvent(QPaintEvent*) {
         }
     } else if (m_style == Subtle) {
         bgColor = Qt::transparent;
-        textColor = colors.textPrimary;
+        textColor = (checked) ? colors.accentDefault : colors.textPrimary;
         borderColor = Qt::transparent;
         if (state == Hover) bgColor = colors.subtleSecondary;
         if (state == Pressed) bgColor = colors.subtleTertiary;
+        if (checked && state == Rest) bgColor = colors.subtleSecondary; // 选中态默认带一点背景
     } else {
         bgColor = colors.controlDefault;
         textColor = colors.textPrimary;

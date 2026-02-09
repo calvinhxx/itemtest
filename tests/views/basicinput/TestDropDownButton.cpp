@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <QApplication>
-#include <QMenu>
 #include <QTimer>
 #include <QFontDatabase>
+#include "view/menus_toolbars/Menu.h"
 #include "view/basicinput/DropDownButton.h"
 #include "view/QMLPlus.h"
 #include "view/FluentElement.h"
@@ -11,6 +11,7 @@
 
 using namespace view::basicinput;
 using namespace view::textfields;
+using namespace view::menus_toolbars;
 using namespace view;
 
 class FluentTestWindow : public QWidget, public FluentElement {
@@ -88,11 +89,11 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     dropBtn->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(dropBtn);
 
-    QMenu* menu1 = new QMenu(dropBtn);
-    menu1->addAction("Edit Profile");
-    menu1->addAction("Account Settings");
+    FluentMenu* menu1 = new FluentMenu("Options", dropBtn);
+    menu1->addAction(new FluentMenuItem("Edit Profile", menu1));
+    menu1->addAction(new FluentMenuItem("Account Settings", menu1));
     menu1->addSeparator();
-    menu1->addAction("Logout");
+    menu1->addAction(new FluentMenuItem("Logout", menu1));
     dropBtn->setMenu(menu1);
 
     // 2. Accent Style DropDownButton
@@ -108,9 +109,9 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     dropAccent->anchors()->left = {dropBtn, Edge::Right, 60};
     layout->addWidget(dropAccent);
 
-    QMenu* menu2 = new QMenu(dropAccent);
-    menu2->addAction("Confirm Selection");
-    menu2->addAction("Review Changes");
+    FluentMenu* menu2 = new FluentMenu("Primary Action", dropAccent);
+    menu2->addAction(new FluentMenuItem("Confirm Selection", menu2));
+    menu2->addAction(new FluentMenuItem("Review Changes", menu2));
     dropAccent->setMenu(menu2);
 
     // 3. 自定义图标属性测试（多种 Icon 对比）

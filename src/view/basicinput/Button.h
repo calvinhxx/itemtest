@@ -117,6 +117,11 @@ protected:
     // 核心绘制逻辑
     void paintEvent(QPaintEvent* event) override;
 
+    // 允许子类访问 iconfont 信息以自定义绘制
+    QString iconGlyph() const { return m_iconGlyph; }
+    QString iconFontFamily() const { return m_iconFontFamily; }
+    int iconPixelSize() const { return m_iconPixelSize; }
+
     // 状态触发重绘
     void focusInEvent(QFocusEvent* event) override { QPushButton::focusInEvent(event); update(); }
     void focusOutEvent(QFocusEvent* event) override { QPushButton::focusOutEvent(event); update(); }
