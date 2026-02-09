@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <QApplication>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include "view/menus_toolbars/MenuBar.h"
 #include "view/menus_toolbars/Menu.h"
@@ -42,10 +43,6 @@ protected:
         // 顶部 MenuBar
         auto* menuBar = new FluentMenuBar(window);
 
-        // 状态标签
-        auto* statusLabel = new QLabel("You clicked: (none)", window);
-        statusLabel->setContentsMargins(24, 16, 24, 16);
-
         // File 菜单（使用 FluentMenu + FluentMenuItem）
         auto* fileMenu = new FluentMenu("File", menuBar);
         auto* actionNew = new FluentMenuItem("New", fileMenu);
@@ -76,6 +73,10 @@ protected:
         auto* actionAbout = new FluentMenuItem("About", helpMenu);
         helpMenu->addAction(actionAbout);
         menuBar->addMenu(helpMenu);
+
+        // 状态标签
+        auto* statusLabel = new QLabel("You clicked: (none)", window);
+        statusLabel->setContentsMargins(24, 16, 24, 16);
 
         auto updateStatus = [statusLabel](const QString& text) {
             statusLabel->setText("You clicked: " + text);

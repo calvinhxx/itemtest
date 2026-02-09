@@ -2,7 +2,11 @@
 
 #include <QPainter>
 #include <QPainterPath>
+#include <QShowEvent>
+#include <QPropertyAnimation>
+#include <QEasingCurve>
 #include "common/CornerRadius.h"
+#include "common/Animation.h"
 
 namespace view::menus_toolbars {
 
@@ -131,6 +135,43 @@ void FluentMenu::paintEvent(QPaintEvent* event) {
         QRect textRect = itemRect.adjusted(hPadding, vPadding, -hPadding, -vPadding);
         p.drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, action->text());
     }
+}
+
+void FluentMenu::showEvent(QShowEvent* event) {
+    QMenu::showEvent(event);
+    
+    // 1. 计算目标位置
+    // 因为菜单有 m_shadowSize 的 margin，需要向左和向上偏移阴影大小，
+    // 让内容区域（不包括阴影）紧贴触发控件
+    const auto& spacing = themeSpacing();
+    QPoint targetPos = pos();
+    
+    // 如果是第一次显示（或位置未校准），进行偏移校准
+    // 注意：QMenu::showEvent 调用后 pos() 已经是 Qt 计算好的弹出位置
+    targetPos.rx() -= m_shadowSize;
+    targetPos.ry() -= m_shadowSize;
+    
+    // 2. 设置动画初始状态：向上偏移 20px，透明度 0
+    int slideOffset = 20;
+    QPoint startPos = targetPos - QPoint(0, slideOffset);
+    move(startPos);
+    setWindowOpacity(0.0);
+    
+    // 3. 启动平移动画
+    QPropertyAnimation* posAnim = new QPropertyAnimation(this, "pos");
+    posAnim->setDuration(::Animation::Duration::Normal);
+    posAnim->setStartValue(startPos);
+    posAnim->setEndValue(targetPos);
+    posAnim->setEasingCurve(QEasingCurve::OutCubic);
+    posAnim->start(QAbstractAnimation::DeleteWhenStopped);
+    
+    // 4. 启动透明度动画
+    QPropertyAnimation* opacityAnim = new QPropertyAnimation(this, "windowOpacity");
+    opacityAnim->setDuration(::Animation::Duration::Normal);
+    opacityAnim->setStartValue(0.0);
+    opacityAnim->setEndValue(1.0);
+    opacityAnim->setEasingCurve(QEasingCurve::OutCubic);
+    opacityAnim->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void FluentMenu::drawShadow(QPainter& painter, const QRect& contentRect) {

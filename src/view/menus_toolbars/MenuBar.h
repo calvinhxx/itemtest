@@ -7,16 +7,10 @@
 
 namespace view::menus_toolbars {
 
-// 前向声明：MenuBar 只需要知道有 FluentMenu 这个类型
 class FluentMenu;
 
 /**
  * @brief FluentMenuBar - Fluent UI 风格的菜单栏
- *
- * 参考 WinUI 3 Gallery 中 MenuBar 的设计：
- * - 顶部为一条浅色背景条
- * - 顶层菜单项为纯文本按钮，Hover/Pressed 有 Subtle 背景
- * - 与 FluentElement / QMLPlus 的主题与布局系统联动
  */
 class FluentMenuBar : public QMenuBar, public FluentElement, public view::QMLPlus {
     Q_OBJECT
@@ -27,9 +21,9 @@ public:
 
 protected:
     void paintEvent(QPaintEvent* event) override;
+    QSize sizeHint() const override;
 };
 
 } // namespace view::menus_toolbars
 
 #endif // FLUENT_MENUBAR_H
-
