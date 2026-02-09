@@ -24,6 +24,8 @@ add_qt_test_module(test_menu_bar views/menus_toolbars/TestMenuBar.cpp)
 # basicinput
 add_qt_test_module(test_button views/basicinput/TestButton.cpp)
 add_qt_test_module(test_dropdown_button views/basicinput/TestDropDownButton.cpp)
+add_qt_test_module(test_hyperlink_button views/basicinput/TestHyperlinkButton.cpp)
+add_qt_test_module(test_repeat_button views/basicinput/TestRepeatButton.cpp)
 
 # textfields
 add_qt_test_module(test_label views/textfields/TestLabel.cpp)

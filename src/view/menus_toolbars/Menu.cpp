@@ -146,10 +146,10 @@ void FluentMenu::showEvent(QShowEvent* event) {
     const auto& spacing = themeSpacing();
     QPoint targetPos = pos();
     
-    // 如果是第一次显示（或位置未校准），进行偏移校准
-    // 注意：QMenu::showEvent 调用后 pos() 已经是 Qt 计算好的弹出位置
+    // 调整位置：抵消阴影带来的 margin
+    // Y 轴多保留 spacing.gap.tight 的距离，避免阴影紧贴按钮边缘
     targetPos.rx() -= m_shadowSize;
-    targetPos.ry() -= m_shadowSize;
+    targetPos.ry() -= (m_shadowSize - spacing.gap.tight);
     
     // 2. 设置动画初始状态：向上偏移 20px，透明度 0
     int slideOffset = 20;
@@ -162,7 +162,8 @@ void FluentMenu::showEvent(QShowEvent* event) {
     posAnim->setDuration(::Animation::Duration::Normal);
     posAnim->setStartValue(startPos);
     posAnim->setEndValue(targetPos);
-    posAnim->setEasingCurve(QEasingCurve::OutCubic);
+    // 使用 Entrance 类型 (OutBack)，提供轻微的回弹弹性感
+    posAnim->setEasingCurve(::Animation::getEasing(::Animation::EasingType::Entrance));
     posAnim->start(QAbstractAnimation::DeleteWhenStopped);
     
     // 4. 启动透明度动画
@@ -170,7 +171,8 @@ void FluentMenu::showEvent(QShowEvent* event) {
     opacityAnim->setDuration(::Animation::Duration::Normal);
     opacityAnim->setStartValue(0.0);
     opacityAnim->setEndValue(1.0);
-    opacityAnim->setEasingCurve(QEasingCurve::OutCubic);
+    // 透明度建议使用标准的减速曲线，不建议带回弹（避免闪烁感）
+    opacityAnim->setEasingCurve(::Animation::getEasing(::Animation::EasingType::Decelerate));
     opacityAnim->start(QAbstractAnimation::DeleteWhenStopped);
 }
 

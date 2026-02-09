@@ -131,7 +131,10 @@ void Button::paintEvent(QPaintEvent*) {
         textColor = colors.textOnAccent;
         borderColor = colors.strokeStrong;
         if (state == Hover) bgColor = colors.accentSecondary;
-        if (state == Pressed) bgColor = colors.accentTertiary;
+        if (state == Pressed) {
+            bgColor = colors.accentTertiary;
+            borderColor = Qt::transparent; // 按下时边框扁平化
+        }
     } else if (m_style == Subtle) {
         bgColor = Qt::transparent;
         textColor = colors.textPrimary;
@@ -143,7 +146,11 @@ void Button::paintEvent(QPaintEvent*) {
         textColor = colors.textPrimary;
         borderColor = colors.strokeDefault;
         if (state == Hover) bgColor = colors.controlSecondary;
-        if (state == Pressed) bgColor = colors.controlTertiary;
+        if (state == Pressed) {
+            bgColor = colors.controlTertiary;
+            borderColor = colors.strokeDivider; // 按下时边框颜色变淡且扁平
+            textColor = colors.textSecondary;    // 文字稍微变淡
+        }
     }
 
     if (state == Disabled) {
@@ -154,6 +161,11 @@ void Button::paintEvent(QPaintEvent*) {
 
     // 3. 绘制背景和边框
     QRectF contentRect = rect();
+    
+    // 如果是按下状态，内容稍微向下偏移 0.5 像素（模拟点击感）
+    if (state == Pressed && m_style != Subtle) {
+        contentRect.translate(0, 0.5);
+    }
     
     painter.setPen(Qt::NoPen);
     painter.setBrush(bgColor);
@@ -166,8 +178,14 @@ void Button::paintEvent(QPaintEvent*) {
     }
 
     if (state != Disabled && (hasFocus() || m_focusVisual)) {
-        painter.setPen(QPen(colors.textPrimary, 1));
+        // 使用更柔和的文本次要色，并设置一定的透明度，使其不那么“黑”
+        QColor focusColor = colors.textSecondary;
+        focusColor.setAlpha(120); // 约 47% 不透明度
+        
+        painter.setPen(QPen(focusColor, 1.0));
         painter.setBrush(Qt::NoBrush);
+        
+        // 恢复为 1.5 像素内缩
         painter.drawRoundedRect(contentRect.adjusted(1.5, 1.5, -1.5, -1.5), radius.control - 1, radius.control - 1);
     }
 
