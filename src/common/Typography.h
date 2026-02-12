@@ -169,6 +169,7 @@ namespace Typography {
         const QString Info = QString::fromUtf16(u"\uE946");
         const QString Success = QString::fromUtf16(u"\uE73E");
         const QString CheckMark = QString::fromUtf16(u"\uE73E");
+        const QString Hyphen = QString::fromUtf16(u"\uE738");
         const QString Shield = QString::fromUtf16(u"\uEA18");
         const QString Lock = QString::fromUtf16(u"\uE72E");
         const QString Unlock = QString::fromUtf16(u"\uE785");

@@ -71,9 +71,9 @@ void FluentMenuBar::paintEvent(QPaintEvent* event) {
         QColor bg = Qt::transparent;
         if (isEnabled) {
             if (isMenuOpen) {
-                bg = colors.subtleTertiary; // 按下 / 打开
-            } else if (isActive) {
-                bg = colors.subtleSecondary; // Hover
+            bg = colors.subtleTertiary; // 按下 / 打开
+        } else if (isActive) {
+            bg = colors.subtleSecondary; // Hover
             }
         }
 

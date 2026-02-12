@@ -29,6 +29,8 @@ add_qt_test_module(test_repeat_button views/basicinput/TestRepeatButton.cpp)
 add_qt_test_module(test_toggle_button views/basicinput/TestToggleButton.cpp)
 add_qt_test_module(test_split_button views/basicinput/TestSplitButton.cpp)
 add_qt_test_module(test_toggle_split_button views/basicinput/TestToggleSplitButton.cpp)
+add_qt_test_module(test_checkbox views/basicinput/TestCheckBox.cpp)
+add_qt_test_module(test_color_picker views/basicinput/TestColorPicker.cpp)
 
 # textfields
 add_qt_test_module(test_label views/textfields/TestLabel.cpp)
