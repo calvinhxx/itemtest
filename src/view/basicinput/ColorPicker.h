@@ -6,11 +6,13 @@
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 
-class QSlider;
+namespace view::textfields { class TextBlock; }
+
 class QLineEdit;
-class QLabel;
 
 namespace view::basicinput {
+
+class Slider;
 
 /**
  * @brief ColorPicker - WinUI 3 风格的基础颜色选择器（简化版）
@@ -20,6 +22,8 @@ namespace view::basicinput {
  */
 class ColorPicker : public QWidget, public FluentElement, public view::QMLPlus {
     Q_OBJECT
+
+    using TextBlock = view::textfields::TextBlock;
 
     /** @brief 当前颜色 */
     Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
@@ -47,19 +51,18 @@ signals:
     void alphaEnabledChanged(bool enabled);
 
 private slots:
-    void handleSliderChanged();
+    void handleChannelEdited();
     void handleHexEdited();
 
 public: // 供内部子控件调用
-    void initUi();
-    void initSpectrumUi(QVBoxLayout* parentLayout);
-
     // 从色相条/色谱更新 HSV
     void setHueFromBar(qreal h);          // 0.0 - 1.0
     void setSVFromSpectrum(qreal s, qreal v); // 0.0 - 1.0
 
 private:
-    void updateFromColor(bool fromSlider = false);
+    void initUi();
+    void initSpectrumUi(QVBoxLayout* parentLayout);
+    void updateFromColor();
     QString colorToHex(const QColor& c, bool withAlpha) const;
     QColor hexToColor(const QString& text, bool* ok) const;
 
@@ -74,13 +77,15 @@ private:
     QWidget* m_spectrum = nullptr;
     QWidget* m_hueBar = nullptr;
 
-    QWidget* m_preview = nullptr;
-    QSlider* m_rSlider = nullptr;
-    QSlider* m_gSlider = nullptr;
-    QSlider* m_bSlider = nullptr;
-    QSlider* m_aSlider = nullptr;
+    QLineEdit* m_rEdit = nullptr;
+    QLineEdit* m_gEdit = nullptr;
+    QLineEdit* m_bEdit = nullptr;
+    QLineEdit* m_aEdit = nullptr;
+
     QLineEdit* m_hexEdit = nullptr;
-    QLabel* m_hexLabel = nullptr;
+    TextBlock* m_hexLabel = nullptr;
+
+    bool m_isInternalUpdate = false;
 };
 
 } // namespace view::basicinput

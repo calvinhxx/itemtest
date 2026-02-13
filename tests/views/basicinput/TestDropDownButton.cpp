@@ -6,7 +6,7 @@
 #include "view/basicinput/DropDownButton.h"
 #include "view/QMLPlus.h"
 #include "view/FluentElement.h"
-#include "view/textfields/Label.h"
+#include "view/textfields/TextBlock.h"
 #include "common/Typography.h"
 
 using namespace view::basicinput;
@@ -71,14 +71,14 @@ TEST_F(DropDownButtonTest, VisualCheck) {
 
     using Edge = AnchorLayout::Edge;
 
-    Label* title = new Label("DropDownButton Visual Test", window);
+    TextBlock* title = new TextBlock("DropDownButton Visual Test", window);
     title->setFont(title->themeFont("Title").toQFont());
     title->anchors()->top = {window, Edge::Top, 30};
     title->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(title);
 
     // 1. Standard DropDownButton
-    Label* lbl1 = new Label("Standard Style (with Menu):", window);
+    TextBlock* lbl1 = new TextBlock("Standard Style (with Menu):", window);
     lbl1->anchors()->top = {title, Edge::Bottom, 40};
     lbl1->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(lbl1);
@@ -97,7 +97,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     dropBtn->setMenu(menu1);
 
     // 2. Accent Style DropDownButton
-    Label* lbl2 = new Label("Accent Style:", window);
+    TextBlock* lbl2 = new TextBlock("Accent Style:", window);
     lbl2->anchors()->verticalCenter = {lbl1, Edge::VCenter, 0};
     lbl2->anchors()->left = {dropBtn, Edge::Right, 60};
     layout->addWidget(lbl2);
@@ -115,7 +115,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     dropAccent->setMenu(menu2);
 
     // 3. 自定义图标属性测试（多种 Icon 对比）
-    Label* lbl3 = new Label("Custom Glyph Variants:", window);
+    TextBlock* lbl3 = new TextBlock("Custom Glyph Variants:", window);
     lbl3->anchors()->top = {dropBtn, Edge::Bottom, 40};
     lbl3->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(lbl3);
@@ -161,7 +161,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     layout->addWidget(customMore);
 
     // 3.5 Icon-only DropDownButton（按钮本体为 IconButton，左侧 IconFont，右侧下拉箭头）
-    Label* lbl4 = new Label("Icon-only DropDownButton (IconFont):", window);
+    TextBlock* lbl4 = new TextBlock("Icon-only DropDownButton (IconFont):", window);
     lbl4->anchors()->top = {customMore, Edge::Bottom, 24};
     lbl4->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(lbl4);
@@ -180,7 +180,7 @@ TEST_F(DropDownButtonTest, VisualCheck) {
     layout->addWidget(iconOnly);
 
     // 3.6 Icon + Text DropDownButton（左侧 IconFont，中间文本，右侧下拉箭头）
-    Label* lbl5 = new Label("Icon + Text DropDownButton (IconFont):", window);
+    TextBlock* lbl5 = new TextBlock("Icon + Text DropDownButton (IconFont):", window);
     lbl5->anchors()->top = {iconOnly, Edge::Bottom, 16};
     lbl5->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(lbl5);

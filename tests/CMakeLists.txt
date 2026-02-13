@@ -31,9 +31,14 @@ add_qt_test_module(test_split_button views/basicinput/TestSplitButton.cpp)
 add_qt_test_module(test_toggle_split_button views/basicinput/TestToggleSplitButton.cpp)
 add_qt_test_module(test_checkbox views/basicinput/TestCheckBox.cpp)
 add_qt_test_module(test_color_picker views/basicinput/TestColorPicker.cpp)
+add_qt_test_module(test_slider views/basicinput/TestSlider.cpp)
 
 # textfields
-add_qt_test_module(test_label views/textfields/TestLabel.cpp)
+add_qt_test_module(test_text_block views/textfields/TestTextBlock.cpp)
+add_qt_test_module(test_text_box views/textfields/TestTextBox.cpp)
 
 # dialogs_flyouts
 add_qt_test_module(test_dialog views/dialogs_flyouts/TestDialog.cpp)
+
+# status_info
+add_qt_test_module(test_tooltip views/status_info/TestToolTip.cpp)

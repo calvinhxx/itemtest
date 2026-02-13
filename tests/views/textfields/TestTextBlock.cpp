@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <QApplication>
 #include <QVBoxLayout>
-#include "view/textfields/Label.h"
+#include "view/textfields/TextBlock.h"
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
 
@@ -9,7 +9,7 @@ using namespace view::textfields;
 using namespace view::basicinput;
 using namespace view;
 
-class LabelTest : public ::testing::Test {
+class TextBlockTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         int argc = 0;
@@ -36,15 +36,15 @@ protected:
     AnchorLayout* layout;
 };
 
-TEST_F(LabelTest, VisualCheck) {
+TEST_F(TextBlockTest, VisualCheck) {
     if (qEnvironmentVariableIsSet("QT_QPA_PLATFORM") && qEnvironmentVariable("QT_QPA_PLATFORM") == "offscreen") {
         GTEST_SKIP() << "Skipping visual test in offscreen mode";
     }
 
     using Edge = AnchorLayout::Edge;
 
-    auto createTypographyLabel = [&](const QString& text, const QString& styleName, QWidget* anchor, int margin = 20) {
-        Label* l = new Label(text + " (" + styleName + ")", window);
+    auto createTypographyTextBlock = [&](const QString& text, const QString& styleName, QWidget* anchor, int margin = 20) {
+        TextBlock* l = new TextBlock(text + " (" + styleName + ")", window);
         // --- 核心修复：使用属性接口，内部会自动记忆并在切换主题时持久化 ---
         l->setFluentTypography(styleName);
         
@@ -55,24 +55,24 @@ TEST_F(LabelTest, VisualCheck) {
     };
 
     // 1. Display (最顶层锚定)
-    Label* display = new Label("Fluent UI (Display)", window);
+    TextBlock* display = new TextBlock("Fluent UI (Display)", window);
     display->setFluentTypography("Display");
     display->anchors()->top = {window, Edge::Top, 30};
     display->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(display);
     
     // 2. 其余阶梯
-    Label* titleLarge = createTypographyLabel("Large Title", "TitleLarge", display);
-    Label* title = createTypographyLabel("Standard Title", "Title", titleLarge);
-    Label* subtitle = createTypographyLabel("Subtitle Text", "Subtitle", title);
-    Label* bodyStrong = createTypographyLabel("Strong Body Text", "BodyStrong", subtitle);
+    TextBlock* titleLarge = createTypographyTextBlock("Large Title", "TitleLarge", display);
+    TextBlock* title = createTypographyTextBlock("Standard Title", "Title", titleLarge);
+    TextBlock* subtitle = createTypographyTextBlock("Subtitle Text", "Subtitle", title);
+    TextBlock* bodyStrong = createTypographyTextBlock("Strong Body Text", "BodyStrong", subtitle);
     
-    Label* body = new Label("Standard Body Text (Default)", window);
+    TextBlock* body = new TextBlock("Standard Body Text (Default)", window);
     body->anchors()->top = {bodyStrong, Edge::Bottom, 20};
     body->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(body);
     
-    Label* caption = createTypographyLabel("Small Caption Text", "Caption", body);
+    TextBlock* caption = createTypographyTextBlock("Small Caption Text", "Caption", body);
 
     // --- 主题切换 ---
     Button* themeBtn = new Button("Switch Theme", window);

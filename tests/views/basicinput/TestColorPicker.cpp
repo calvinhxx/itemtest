@@ -8,6 +8,7 @@
 #include "view/basicinput/Button.h"
 #include "view/basicinput/CheckBox.h"
 #include "view/FluentElement.h"
+#include "utils/DebugOverlay.h"
 
 using namespace view;
 using namespace view::basicinput;
@@ -62,6 +63,7 @@ protected:
         leftLayout->addWidget(new QLabel("1. Basic ColorPicker:", window));
 
         auto* picker = new ColorPicker(window);
+        new DebugOverlay(picker); // 辅助调试布局
         leftLayout->addWidget(picker, 1);
 
         auto* status = new QLabel("Color: #FFFFFFFF", window);

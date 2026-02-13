@@ -3,7 +3,7 @@
 #include <QVBoxLayout>
 #include "view/dialogs_flyouts/Dialog.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/Label.h"
+#include "view/textfields/TextBlock.h"
 #include "view/QMLPlus.h"
 
 using namespace view::dialogs_flyouts;
@@ -53,13 +53,13 @@ TEST_F(DialogTest, VisualCheck) {
         // Dialog 内部使用 AnchorLayout
         auto* dialogLayout = new AnchorLayout(&dialog);
         
-        Label* title = new Label("Confirm Action", &dialog);
+        TextBlock* title = new TextBlock("Confirm Action", &dialog);
         title->setFont(title->themeFont("Subtitle").toQFont());
         title->anchors()->top = {&dialog, AnchorLayout::Edge::Top, 20};
         title->anchors()->left = {&dialog, AnchorLayout::Edge::Left, 20};
         dialogLayout->addWidget(title);
 
-        Label* content = new Label("Are you sure you want to proceed with this operation?", &dialog);
+        TextBlock* content = new TextBlock("Are you sure you want to proceed with this operation?", &dialog);
         content->setWordWrap(true);
         content->anchors()->top = {title, AnchorLayout::Edge::Bottom, 12};
         content->anchors()->left = {&dialog, AnchorLayout::Edge::Left, 20};

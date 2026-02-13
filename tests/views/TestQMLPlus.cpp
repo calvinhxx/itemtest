@@ -6,7 +6,7 @@
 #include <QTimer>
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/Label.h"
+#include "view/textfields/TextBlock.h"
 
 using namespace view;
 using namespace view::basicinput;
@@ -106,7 +106,7 @@ TEST_F(QMLPlusTest, CoreCapabilitiesVisualCheck) {
     box1->anchors()->top = {window, Edge::Top, 50};
     layout->addWidget(box1);
 
-    Label* labelAnchors = new Label("Capability 1: Anchors (Centered)", window);
+    TextBlock* labelAnchors = new TextBlock("Capability 1: Anchors (Centered)", window);
     labelAnchors->anchors()->top = {box1, Edge::Bottom, 10};
     labelAnchors->anchors()->horizontalCenter = {box1, Edge::HCenter, 0};
     layout->addWidget(labelAnchors);
@@ -130,19 +130,19 @@ TEST_F(QMLPlusTest, CoreCapabilitiesVisualCheck) {
         box1->setState(box1->state() == "" ? "highlight" : "");
     });
 
-    Label* labelStates = new Label("Capability 2: States (Size & Color Change)", window);
+    TextBlock* labelStates = new TextBlock("Capability 2: States (Size & Color Change)", window);
     labelStates->anchors()->top = {btnToggleState, Edge::Bottom, 10};
     labelStates->anchors()->horizontalCenter = {btnToggleState, Edge::HCenter, 0};
     layout->addWidget(labelStates);
 
     // --- C. 测试 Property Binding (属性绑定) ---
-    Label* bindLabel = new Label("Waiting for Binding...", window);
+    TextBlock* bindLabel = new TextBlock("Waiting for Binding...", window);
     bindLabel->setStyleSheet("font-weight: bold; color: #2ecc71;");
     bindLabel->anchors()->bottom = {window, Edge::Bottom, -100};
     bindLabel->anchors()->horizontalCenter = {window, Edge::HCenter, 0};
     layout->addWidget(bindLabel);
 
-    // 绑定 Label 的 text 属性到 ViewModel 的 statusText
+    // 绑定 TextBlock 的 text 属性到 ViewModel 的 statusText
     bindLabel->bind("text", vm, "statusText");
 
     Button* btnUpdateVM = new Button("Update ViewModel", window);
@@ -156,7 +156,7 @@ TEST_F(QMLPlusTest, CoreCapabilitiesVisualCheck) {
         vm->setStatusText(QString("Update Count: %1").arg(++count));
     });
 
-    Label* labelBinding = new Label("Capability 3: Property Binding (One-Way)", window);
+    TextBlock* labelBinding = new TextBlock("Capability 3: Property Binding (One-Way)", window);
     labelBinding->anchors()->top = {btnUpdateVM, Edge::Bottom, 10};
     labelBinding->anchors()->horizontalCenter = {btnUpdateVM, Edge::HCenter, 0};
     layout->addWidget(labelBinding);
