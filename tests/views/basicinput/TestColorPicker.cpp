@@ -63,7 +63,6 @@ protected:
         leftLayout->addWidget(new QLabel("1. Basic ColorPicker:", window));
 
         auto* picker = new ColorPicker(window);
-        new DebugOverlay(picker); // 辅助调试布局
         leftLayout->addWidget(picker, 1);
 
         auto* status = new QLabel("Color: #FFFFFFFF", window);

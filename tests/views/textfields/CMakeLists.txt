@@ -1,0 +1,1 @@
+add_qt_test_module(test_text_block TestTextBlock.cpp)
