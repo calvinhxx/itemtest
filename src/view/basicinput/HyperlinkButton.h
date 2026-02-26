@@ -17,7 +17,9 @@ namespace view::basicinput {
  */
 class HyperlinkButton : public Button {
     Q_OBJECT
+    /** @brief 链接的目标 URL */
     Q_PROPERTY(QUrl url READ url WRITE setUrl NOTIFY urlChanged)
+    /** @brief 悬停时是否显示下划线 */
     Q_PROPERTY(bool showUnderline READ showUnderline WRITE setShowUnderline NOTIFY showUnderlineChanged)
 
 public:

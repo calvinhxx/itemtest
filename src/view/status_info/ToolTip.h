@@ -10,13 +10,13 @@ namespace view::textfields { class TextBlock; }
 namespace view::status_info {
 
 /**
- * @brief ToolTip - Fluent Design ToolTip
- * Reference: WinUI 3 Gallery
+ * @brief ToolTip - Fluent 设计风格的工具提示
  * 
- * Shows information about an element.
+ * 参考 WinUI 3 规范，显示有关元素的简短说明。
  */
 class ToolTip : public QWidget, public FluentElement, public view::QMLPlus {
     Q_OBJECT
+    /** @brief ToolTip 的内边距 */
     Q_PROPERTY(QMargins margins READ margins WRITE setMargins NOTIFY marginsChanged)
 public:
     explicit ToolTip(QWidget* parent = nullptr);
@@ -27,7 +27,8 @@ public:
     QMargins margins() const { return m_margins; }
     void setMargins(const QMargins& margins);
 
-    void setFont(const QFont& font); // Shadow QWidget::setFont to apply to label
+    // 影子 QWidget::setFont 以应用到内部的标签
+    void setFont(const QFont& font);
 
     void onThemeUpdated() override;
 

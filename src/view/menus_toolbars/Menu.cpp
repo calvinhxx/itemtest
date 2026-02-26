@@ -5,8 +5,6 @@
 #include <QShowEvent>
 #include <QPropertyAnimation>
 #include <QEasingCurve>
-#include "common/CornerRadius.h"
-#include "common/Animation.h"
 
 namespace view::menus_toolbars {
 
@@ -133,7 +131,7 @@ void FluentMenu::paintEvent(QPaintEvent* event) {
             QRectF bgRect = itemRect.adjusted(itemMargin, 0, -itemMargin, 0);
             p.setPen(Qt::NoPen);
             p.setBrush(bg);
-            p.drawRoundedRect(bgRect, CornerRadius::Control, CornerRadius::Control);
+            p.drawRoundedRect(bgRect, themeRadius().control, themeRadius().control);
         }
 
         p.setPen(isEnabled ? colors.textPrimary : colors.textDisabled);
@@ -165,20 +163,20 @@ void FluentMenu::showEvent(QShowEvent* event) {
     
     // 3. 启动平移动画
     QPropertyAnimation* posAnim = new QPropertyAnimation(this, "pos");
-    posAnim->setDuration(::Animation::Duration::Normal);
+    posAnim->setDuration(themeAnimation().normal);
     posAnim->setStartValue(startPos);
     posAnim->setEndValue(targetPos);
     // 使用 Entrance 类型 (OutBack)，提供轻微的回弹弹性感
-    posAnim->setEasingCurve(::Animation::getEasing(::Animation::EasingType::Entrance));
+    posAnim->setEasingCurve(themeAnimation().entrance);
     posAnim->start(QAbstractAnimation::DeleteWhenStopped);
     
     // 4. 启动透明度动画
     QPropertyAnimation* opacityAnim = new QPropertyAnimation(this, "windowOpacity");
-    opacityAnim->setDuration(::Animation::Duration::Normal);
+    opacityAnim->setDuration(themeAnimation().normal);
     opacityAnim->setStartValue(0.0);
     opacityAnim->setEndValue(1.0);
     // 透明度建议使用标准的减速曲线，不建议带回弹（避免闪烁感）
-    opacityAnim->setEasingCurve(::Animation::getEasing(::Animation::EasingType::Decelerate));
+    opacityAnim->setEasingCurve(themeAnimation().decelerate);
     opacityAnim->start(QAbstractAnimation::DeleteWhenStopped);
 }
 

@@ -5,7 +5,6 @@
 #include <QPropertyAnimation>
 #include <QEasingCurve>
 #include <QtMath>
-#include "common/Animation.h"
 
 namespace view::basicinput {
 
@@ -23,8 +22,8 @@ void DropDownButton::initAnimation() {
     if (m_pressAnimation) return;
     m_pressAnimation = new QPropertyAnimation(this, "pressProgress");
     // 使用全局动画规范：慢速对比效果 + 减速曲线
-    m_pressAnimation->setDuration(::Animation::Duration::Slow);
-    m_pressAnimation->setEasingCurve(::Animation::getEasing(::Animation::EasingType::Decelerate));
+    m_pressAnimation->setDuration(themeAnimation().slow);
+    m_pressAnimation->setEasingCurve(themeAnimation().decelerate);
 }
 
 void DropDownButton::setMenu(QMenu* menu) {

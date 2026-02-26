@@ -13,6 +13,7 @@ namespace view::basicinput {
  */
 class SplitButton : public Button {
     Q_OBJECT
+    /** @brief 绑定的下拉菜单 */
     Q_PROPERTY(QMenu* menu READ menu WRITE setMenu NOTIFY menuChanged)
     /** @brief 右侧下拉区域的宽度，默认 32px */
     Q_PROPERTY(int secondaryWidth READ secondaryWidth WRITE setSecondaryWidth NOTIFY secondaryWidthChanged)

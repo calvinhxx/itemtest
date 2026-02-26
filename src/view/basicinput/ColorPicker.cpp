@@ -217,7 +217,7 @@ void ColorPicker::onThemeUpdated() {
     const auto& fs = themeFont("Body");
     QFont f = fs.toQFont();
 
-    // Update internal theme-aware children that might not process parent font changes automatically
+    // 1. 更新可能无法自动处理父级字体更改的内部主题感知子控件
     const auto labels = findChildren<view::textfields::TextBlock*>();
     for (auto* label : labels) {
         label->onThemeUpdated();
@@ -225,8 +225,8 @@ void ColorPicker::onThemeUpdated() {
 
     setFont(f);
     
-    // Explicitly update LineEdits to ensure they pickup the new font/size immediately
-    // This fixes layout issues on startup where LineEdits might retain default font size-hint
+    // 2. 显式更新 LineEdits 确保它们立即应用新的字体/大小
+    // 这修复了启动时的布局问题（LineEdits 可能保留默认的字体大小提示）
     if (m_hexEdit) m_hexEdit->setFont(f);
     if (m_rEdit) m_rEdit->setFont(f);
     if (m_gEdit) m_gEdit->setFont(f);
@@ -304,8 +304,7 @@ void ColorPicker::handleChannelEdited() {
     int b = m_bEdit->text().toInt();
     int a = m_alphaEnabled ? m_aEdit->text().toInt() : 255;
 
-    // Validators ensure range 0-255 generally, but text().toInt() handles bounds?
-    // QIntValidator allows intermediate inputs, so let's clamp just in case.
+    // 验证器通常会限制 0-255 的范围，但 QIntValidator 允许中间输入，因此为了安全再次约束
     r = std::clamp(r, 0, 255);
     g = std::clamp(g, 0, 255);
     b = std::clamp(b, 0, 255);
@@ -316,7 +315,7 @@ void ColorPicker::handleChannelEdited() {
 }
 
 void ColorPicker::handleHexEdited() {
-    if (m_isInternalUpdate) return; // Should not happen for edit, but safe to keep consistent
+    if (m_isInternalUpdate) return; // 内部更新时忽略，保持状态一致
 
     bool ok = false;
     QColor c = hexToColor(m_hexEdit->text().trimmed(), &ok);

@@ -70,7 +70,7 @@ void ToggleButton::paintEvent(QPaintEvent* event) {
         p.setBrush(colors.accentDefault);
         p.drawRoundedRect(barRect, 1, 1);
     } else {
-    Button::paintEvent(event);
+        Button::paintEvent(event);
     }
 }
 

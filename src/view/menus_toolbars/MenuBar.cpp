@@ -2,7 +2,6 @@
 
 #include <QPainter>
 #include <QStyleOptionMenuItem>
-#include "common/CornerRadius.h"
 
 namespace view::menus_toolbars {
 
@@ -38,7 +37,7 @@ void FluentMenuBar::onThemeUpdated() {
      .arg(s.padding.controlV)    // 上下 padding
      .arg(s.padding.controlH)    // 左右 padding
      .arg(s.gap.tight / 2)       // 菜单项之间的间距 (控制整体间距的一半)
-     .arg(CornerRadius::Control));
+     .arg(themeRadius().control));
 
     updateGeometry(); 
     update();
@@ -80,7 +79,7 @@ void FluentMenuBar::paintEvent(QPaintEvent* event) {
         if (bg != Qt::transparent) {
             p.setPen(Qt::NoPen);
             p.setBrush(bg);
-            p.drawRoundedRect(itemRect, CornerRadius::Control, CornerRadius::Control);
+            p.drawRoundedRect(itemRect, themeRadius().control, themeRadius().control);
         }
 
         // 3. 绘制文本

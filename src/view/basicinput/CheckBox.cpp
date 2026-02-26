@@ -4,7 +4,6 @@
 #include <QPropertyAnimation>
 #include "common/Typography.h"
 #include "common/CornerRadius.h"
-#include "common/Animation.h"
 
 namespace view::basicinput {
 
@@ -24,8 +23,8 @@ CheckBox::CheckBox(QWidget* parent)
 
 void CheckBox::initAnimation() {
     m_checkAnimation = new QPropertyAnimation(this, "checkProgress");
-    m_checkAnimation->setDuration(::Animation::Duration::Fast);
-    m_checkAnimation->setEasingCurve(::Animation::getEasing(::Animation::EasingType::Decelerate));
+    m_checkAnimation->setDuration(themeAnimation().fast);
+    m_checkAnimation->setEasingCurve(themeAnimation().decelerate);
 }
 
 void CheckBox::setCheckProgress(qreal progress) {

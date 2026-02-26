@@ -16,6 +16,7 @@ namespace view::basicinput {
  */
 class CheckBox : public QCheckBox, public FluentElement, public view::QMLPlus {
     Q_OBJECT
+    /** @brief 复选框状态动画进度 [0,1] */
     Q_PROPERTY(qreal checkProgress READ checkProgress WRITE setCheckProgress)
     /** @brief 复选框方框的大小，默认 20px */
     Q_PROPERTY(int boxSize READ boxSize WRITE setBoxSize NOTIFY boxSizeChanged)

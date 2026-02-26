@@ -176,6 +176,8 @@ namespace Typography {
         const QString Heart = QString::fromUtf16(u"\uEB51");
         const QString HeartFill = QString::fromUtf16(u"\uEB52");
         const QString Star = QString::fromUtf16(u"\uE74C");
+        const QString Dismiss = QString::fromUtf16(u"\uE894");
+        const QString Clear = QString::fromUtf16(u"\uE894");
 
         // --- Design & Layout (E800 - EFFF) ---
         const QString Brush = QString::fromUtf16(u"\uE790");

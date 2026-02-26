@@ -11,7 +11,6 @@
 #include <algorithm>
 
 #include "common/Typography.h"
-#include "common/Spacing.h"
 
 namespace view::basicinput {
 
@@ -260,7 +259,7 @@ void Slider::drawHorizontal(QPainter& p, const QStyleOptionSlider& opt) {
     const int cy = height() / 2;
     const int padding = m_handleSize / 2 + m_visualMargin;
     
-    // Track Geometry
+    // 1. 计算轨道几何区域
     QRect trackRect(padding, cy - m_trackHeight / 2, width() - 2 * padding, m_trackHeight);
     
     int handleX = valueToPixelPos(opt.sliderPosition);
@@ -269,37 +268,36 @@ void Slider::drawHorizontal(QPainter& p, const QStyleOptionSlider& opt) {
     qreal filledWidth = handleX - padding;
     QRectF filledRect(padding, cy - m_trackHeight / 2, filledWidth, m_trackHeight);
 
-    // Colors
+    // 2. 确定状态颜色
     QColor trackBg = isEnabled() ? colors.controlAltSecondary : colors.controlDisabled;
     QColor trackFg = isEnabled() ? colors.accentDefault : colors.accentDisabled;
     
-    // Draw Track Background
+    // 3. 绘制轨道背景
     p.setPen(Qt::NoPen);
     p.setBrush(trackBg);
     p.drawRoundedRect(trackRect, m_trackHeight/2.0, m_trackHeight/2.0);
 
-    // Draw Filled Track
+    // 4. 绘制已填充轨道
     if (filledWidth > 0.0) {
         p.setBrush(trackFg);
         p.drawRoundedRect(filledRect, m_trackHeight/2.0, m_trackHeight/2.0);
     }
 
-    // Thumb Animation Geometry
+    // 5. 拇指动画几何计算
     qreal baseRadius = m_handleSize / 2.0; 
     
-    // Consistent with drawHorizontal: White outer, expanding blue inner
-    // Reduced size: 0.45 (rest) -> 0.7 (hover)
+    // 与水平绘制保持一致: 白色外圈，蓝色内圈扩展
+    // 缩小尺寸: 0.45 (静止) -> 0.7 (悬停)
     qreal innerScale = 0.45 + (0.25 * m_hoverRatio); 
     qreal innerRadius = baseRadius * innerScale; 
 
-    // Visuals
-    // Outer Border Color: White (or bgSolid to clear track). 
-    // Actually, to make it look like a "border", we draw a filled circle of Background color, then drawing the inner blue circle.
-    // Plus a thin stroke around the outer circle to define it against other white backgrounds?
+    // 6. 确定拇指视觉颜色
+    // 外层边框颜色: 白色（或者 bgSolid 用于清除轨道痕迹）
+    // 实际上，为了看起来像 "边框"，我们先画一个填充背景色的外圆，再在内部画蓝色实心圆
     
-    QColor outerFillColor = colors.bgSolid; // White on light theme
-    QColor outerBorderColor = colors.strokeStrong; // Thin grey ring
-    QColor innerColor = trackFg; // Accent default
+    QColor outerFillColor = colors.bgSolid; // 亮色主题下为白色
+    QColor outerBorderColor = colors.strokeStrong; // 浅灰色细环
+    QColor innerColor = trackFg; // Accent 颜色
 
     if (!isEnabled()) {
         innerColor = colors.textDisabled;
@@ -307,24 +305,24 @@ void Slider::drawHorizontal(QPainter& p, const QStyleOptionSlider& opt) {
     } else {
         if (m_pressRatio > 0.5) {
             innerColor = colors.accentTertiary;
-            outerBorderColor = colors.strokeStrong; // Keep border
+            outerBorderColor = colors.strokeStrong; // 保持边框
         } else if (m_hoverRatio > 0.5) {
             innerColor = colors.accentSecondary;
         }
     }
     
-    // 1. Draw Outer Circle (The "Container" - White filled with thin border)
-    // This creates the "White Outer Border" effect masking the track behind it
+    // 7. 绘制外层圆形 (容器 - 白色填充带细边框)
+    // 这样产生 "白色外边框" 遮罩效果，挡住背后的轨道
     p.setBrush(outerFillColor);
     p.setPen(QPen(outerBorderColor, 1));
     p.drawEllipse(center, baseRadius, baseRadius);
 
-    // 2. Draw Inner Circle (The "Blue Center")
+    // 8. 绘制内层圆形 (蓝色中心)
     p.setBrush(innerColor);
     p.setPen(Qt::NoPen);
     p.drawEllipse(center, innerRadius, innerRadius);
     
-    // Ticks
+    // 9. 绘制刻度线 (Ticks)
     if (opt.tickPosition != QSlider::NoTicks && m_hoverRatio > 0.1) {
        int steps = (opt.maximum - opt.minimum) / opt.tickInterval;
         if (steps > 0 && steps < 100) {
@@ -347,7 +345,7 @@ void Slider::drawVertical(QPainter& p, const QStyleOptionSlider& opt) {
     const int cx = width() / 2;
     const int padding = m_handleSize / 2 + m_visualMargin;
     
-    // Track
+    // 1. 计算轨道几何区域
     QRect trackRect(cx - m_trackHeight / 2, padding, m_trackHeight, height() - 2 * padding);
     
     int handleY = valueToPixelPos(opt.sliderPosition);
@@ -356,28 +354,30 @@ void Slider::drawVertical(QPainter& p, const QStyleOptionSlider& opt) {
     qreal filledHeight = trackRect.bottom() - handleY; 
     QRectF filledRect(cx - m_trackHeight / 2, handleY, m_trackHeight, filledHeight);
 
-    // Colors
+    // 2. 确定状态颜色
     QColor trackBg = isEnabled() ? colors.controlAltSecondary : colors.controlDisabled;
     QColor trackFg = isEnabled() ? colors.accentDefault : colors.accentDisabled;
 
+    // 3. 绘制轨道背景
     p.setPen(Qt::NoPen);
     p.setBrush(trackBg);
     p.drawRoundedRect(trackRect, m_trackHeight/2.0, m_trackHeight/2.0);
 
+    // 4. 绘制已填充轨道
     if (filledHeight > 0.0) {
         p.setBrush(trackFg);
         p.drawRoundedRect(filledRect, m_trackHeight/2.0, m_trackHeight/2.0);
     }
     
-    // Thumb Animation Geometry
+    // 5. 拇指动画几何计算
     qreal baseRadius = m_handleSize / 2.0; 
     
-    // Consistent with drawHorizontal: White outer, expanding blue inner
-    // Reduced size: 0.45 (rest) -> 0.7 (hover)
+    // 与水平绘制保持一致: 白色外圈，蓝色内圈扩展
+    // 缩小尺寸: 0.45 (静止) -> 0.7 (悬停)
     qreal innerScale = 0.45 + (0.25 * m_hoverRatio); 
     qreal innerRadius = baseRadius * innerScale; 
 
-    // Visuals
+    // 6. 确定拇指视觉颜色
     QColor outerFillColor = colors.bgSolid; 
     QColor outerBorderColor = colors.strokeStrong;
     QColor innerColor = trackFg;
@@ -393,12 +393,12 @@ void Slider::drawVertical(QPainter& p, const QStyleOptionSlider& opt) {
         }
     }
     
-    // 1. Draw Outer Circle 
+    // 7. 绘制外层圆形
     p.setBrush(outerFillColor);
     p.setPen(QPen(outerBorderColor, 1));
     p.drawEllipse(center, baseRadius, baseRadius);
 
-    // 2. Draw Inner Circle
+    // 8. 绘制内层圆形
     p.setBrush(innerColor);
     p.setPen(Qt::NoPen);
     p.drawEllipse(center, innerRadius, innerRadius);

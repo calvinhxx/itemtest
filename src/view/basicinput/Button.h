@@ -97,12 +97,12 @@ public:
      * @param family     字体家族（默认 Segoe Fluent Icons）
      */
     void setIconGlyph(const QString& glyph,
-                      int pixelSize = ::Typography::FontSize::Body,
-                      const QString& family = ::Typography::FontFamily::SegoeFluentIcons);
+                      int pixelSize = Typography::FontSize::Body,
+                      const QString& family = Typography::FontFamily::SegoeFluentIcons);
 
     void setIconGlyph(QChar glyph,
-                      int pixelSize = ::Typography::FontSize::Body,
-                      const QString& family = ::Typography::FontFamily::SegoeFluentIcons) {
+                      int pixelSize = Typography::FontSize::Body,
+                      const QString& family = Typography::FontFamily::SegoeFluentIcons) {
         setIconGlyph(QString(glyph), pixelSize, family);
     }
 

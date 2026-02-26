@@ -2,7 +2,6 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QStyleOptionButton>
-#include "common/CornerRadius.h"
 
 namespace view::basicinput {
 
@@ -94,6 +93,7 @@ void SplitButton::paintEvent(QPaintEvent*) {
 
     const auto& colors = themeColors();
     const auto& spacing = themeSpacing();
+    const auto& radius = themeRadius();
 
     // 1. 获取尺寸参数
     int sWidth = m_secondaryWidth;
@@ -126,7 +126,7 @@ void SplitButton::paintEvent(QPaintEvent*) {
     // 3. 绘制整体背景
     painter.setPen(Qt::NoPen);
     painter.setBrush(baseBg);
-    painter.drawRoundedRect(fullRect, CornerRadius::Control, CornerRadius::Control);
+    painter.drawRoundedRect(fullRect, radius.control, radius.control);
 
     // 4. 绘制分区域高亮
     if (isEnabled()) {
@@ -142,7 +142,7 @@ void SplitButton::paintEvent(QPaintEvent*) {
             painter.setBrush(highlight);
             painter.save();
             painter.setClipRect(r);
-            painter.drawRoundedRect(fullRect, CornerRadius::Control, CornerRadius::Control);
+            painter.drawRoundedRect(fullRect, radius.control, radius.control);
             painter.restore();
         };
 
@@ -204,7 +204,7 @@ void SplitButton::paintEvent(QPaintEvent*) {
         focusColor.setAlpha(120);
         painter.setPen(QPen(focusColor, 1.0));
         painter.setBrush(Qt::NoBrush);
-        painter.drawRoundedRect(fullRect.adjusted(1.5, 1.5, -1.5, -1.5), CornerRadius::Control - 1, CornerRadius::Control - 1);
+        painter.drawRoundedRect(fullRect.adjusted(1.5, 1.5, -1.5, -1.5), radius.control - 1, radius.control - 1);
     }
 }
 

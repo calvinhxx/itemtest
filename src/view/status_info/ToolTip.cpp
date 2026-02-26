@@ -1,7 +1,6 @@
 #include "ToolTip.h"
 #include "view/textfields/TextBlock.h"
 #include "common/Typography.h"
-#include "common/Spacing.h"
 #include <QVBoxLayout>
 #include <QPainter>
 
@@ -15,20 +14,20 @@ ToolTip::ToolTip(QWidget* parent) : QWidget(parent) {
     setAttribute(Qt::WA_ShowWithoutActivating);
     
     m_textBlock = new TextBlock(this);
-    // Ensure label background is transparent so ToolTip's paintEvent handles the background
+    // 确保标签背景透明，以便由 ToolTip 的 paintEvent 处理背景绘制
     m_textBlock->setAttribute(Qt::WA_TranslucentBackground);
     m_textBlock->setStyleSheet("background-color: transparent;");
     
-    // ToolTip text style: Default to Caption size, non-bold
+    // 1. 设置 ToolTip 文本样式: 默认使用 Caption 字号，不加粗
     QFont f = m_textBlock->font();
     f.setBold(false); 
-    f.setPixelSize(::Typography::FontSize::Caption);
+    f.setPixelSize(Typography::FontSize::Caption);
     m_textBlock->setFont(f);
     m_textBlock->setAlignment(Qt::AlignCenter);
 
-    // Initialize margins using Spacing constants
-    m_margins = QMargins(::Spacing::Small, ::Spacing::XSmall, 
-                        ::Spacing::Small, ::Spacing::XSmall);
+    // 2. 初始化内边距
+    m_margins = QMargins(themeSpacing().small, themeSpacing().xSmall, 
+                        themeSpacing().small, themeSpacing().xSmall);
 
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(m_margins);
@@ -36,7 +35,7 @@ ToolTip::ToolTip(QWidget* parent) : QWidget(parent) {
     
     setLayout(layout);
     
-    // Initial color setup
+    // 3. 初始颜色设置
     const auto& c = themeColors();
     m_bgColor = c.bgSolid; 
     m_borderColor = c.strokeDivider;
@@ -85,7 +84,7 @@ void ToolTip::paintEvent(QPaintEvent*) {
 
     const auto& r = themeRadius();
     
-    // Draw background
+    // 1. 绘制背景和边框
     p.setBrush(m_bgColor);
     p.setPen(QPen(m_borderColor, 1));
     p.drawRoundedRect(rect().adjusted(0,0,-1,-1), r.overlay, r.overlay);

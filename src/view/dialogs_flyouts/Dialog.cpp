@@ -165,13 +165,13 @@ void Dialog::paintEvent(QPaintEvent*) {
         painter.drawPixmap(0, 0, m_snapshot);
     } else {
         // --- 正常模式：绘制真实背景与阴影 ---
-    QRect contentRect = rect().adjusted(m_shadowSize, m_shadowSize, -m_shadowSize, -m_shadowSize);
-    drawShadow(painter, contentRect);
+        QRect contentRect = rect().adjusted(m_shadowSize, m_shadowSize, -m_shadowSize, -m_shadowSize);
+        drawShadow(painter, contentRect);
 
-    const auto& colors = themeColors();
-    int r = themeRadius().topLevel;
-    painter.setBrush(colors.bgLayer);
-    painter.setPen(colors.strokeDefault);
+        const auto& colors = themeColors();
+        int r = themeRadius().topLevel;
+        painter.setBrush(colors.bgLayer);
+        painter.setPen(colors.strokeDefault);
         painter.drawRoundedRect(contentRect, r, r);
     }
 }
