@@ -1,17 +1,16 @@
 #include "TextBox.h"
-#include <QHBoxLayout>
-#include <QVBoxLayout>
 #include <QPainter>
 #include <QPainterPath>
-#include <QAbstractTextDocumentLayout>
 #include <QTextOption>
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QScrollBar>
+#include <QValidator>
 #include <QEvent>
 #include <QFocusEvent>
 
 #include "view/basicinput/Button.h"
+#include "view/scrolling/ScrollBar.h"
 #include "common/Typography.h"
 
 namespace view::textfields {
@@ -40,6 +39,15 @@ void TextBox::initUi() {
     
     m_clearButton->hide();
 
+    // 预先创建 overlay 垂直滚动条，锚点方式与 TextBox 其他元素保持一致
+    m_vScrollBar = new ::view::scrolling::ScrollBar(Qt::Vertical, this);
+    m_vScrollBar->anchors()->right  = {this, ::view::AnchorLayout::Edge::Right, -2};
+    // 跟随 TextBox 内容区域的上下边界（与 m_textEdit 的 fillMargins 中 top/bottom=1 对齐）
+    m_vScrollBar->anchors()->top    = {this, ::view::AnchorLayout::Edge::Top, 2};
+    m_vScrollBar->anchors()->bottom = {this, ::view::AnchorLayout::Edge::Bottom, -2};
+    layout->addAnchoredWidget(m_vScrollBar, *m_vScrollBar->anchors());
+    m_vScrollBar->hide();
+
     connect(m_clearButton, &::view::basicinput::Button::clicked, this, [this]() {
         if (m_multiLine && m_textEdit) m_textEdit->clear();
         else if (!m_multiLine && m_lineEdit) m_lineEdit->clear();
@@ -62,9 +70,10 @@ void TextBox::ensureEditor() {
             m_textEdit->installEventFilter(this);
             m_textEdit->setLineWrapMode(QPlainTextEdit::WidgetWidth);
             m_textEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-            if (m_textEdit->verticalScrollBar()) {
-                m_textEdit->verticalScrollBar()->setStyleSheet("QScrollBar { background: transparent; width: 8px; }");
-            }
+            // 隐藏内部滚动条，仅保留滚动行为（滚轮 / 触控板等仍可滚动）
+            m_textEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+            m_textEdit->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
             connect(m_textEdit, &QPlainTextEdit::textChanged, this, [this]() {
                 updateClearButtonVisibility();
                 emit textChanged(text());
@@ -75,10 +84,32 @@ void TextBox::ensureEditor() {
             anchors.fill = true;
             anchors.fillMargins = QMargins(0, 1, 0, 1); // 留出边框位置
             layout->addAnchoredWidget(m_textEdit, anchors);
+
+            // 绑定内部滚动条与 overlay 滚动条
+            auto* innerVBar = m_textEdit->verticalScrollBar();
+
+            // 初始同步范围、步长和值
+            m_vScrollBar->setRange(innerVBar->minimum(), innerVBar->maximum());
+            m_vScrollBar->setPageStep(innerVBar->pageStep());
+            m_vScrollBar->setValue(innerVBar->value());
+
+            // 范围与步长：内部滚动条 -> 自定义滚动条（一向同步即可）
+            connect(innerVBar, &QScrollBar::rangeChanged,
+                    this, [this, innerVBar](int min, int max) {
+                        if (!m_vScrollBar) return;
+                        m_vScrollBar->setRange(min, max);
+                        m_vScrollBar->setPageStep(innerVBar->pageStep());
+                    });
+
+            // 数值：使用 QMLPlus 提供的 PropertyBinder 做双向绑定
+            view::PropertyBinder::bind(innerVBar, "value",
+                                       m_vScrollBar, "value",
+                                       view::PropertyBinder::TwoWay);
         }
         if (m_lineEdit) m_lineEdit->hide();
         m_textEdit->show();
-        m_textEdit->raise(); // 放在底层，让 clearButton 在上
+        m_textEdit->raise(); // 放在底层，让 clearButton / ScrollBar 在上
+        if (m_vScrollBar) m_vScrollBar->show(), m_vScrollBar->raise();
     } else {
         if (!m_lineEdit) {
             m_lineEdit = new QLineEdit(this);
@@ -90,13 +121,17 @@ void TextBox::ensureEditor() {
                 emit textChanged(text());
             });
             connect(m_lineEdit, &QLineEdit::returnPressed, this, &TextBox::returnPressed);
+            if (m_validator) m_lineEdit->setValidator(m_validator);
 
             ::view::AnchorLayout::Anchors anchors;
             anchors.fill = true;
             anchors.fillMargins = QMargins(0, 1, 0, 1);
             layout->addAnchoredWidget(m_lineEdit, anchors);
+        } else if (m_validator) {
+            m_lineEdit->setValidator(m_validator);
         }
         if (m_textEdit) m_textEdit->hide();
+        if (m_vScrollBar) m_vScrollBar->hide();
         m_lineEdit->show();
         m_lineEdit->raise();
     }
@@ -145,18 +180,10 @@ void TextBox::paintEvent(QPaintEvent*) {
         bottomBorderColor = colors.strokeDivider;
     }
 
-    // 仅底部两个角为圆角，顶部保持直角
+    // 四角均为圆角
     qreal r = radius.control;
     QPainterPath framePath;
-    framePath.moveTo(bgRect.left(), bgRect.top());
-    framePath.lineTo(bgRect.right(), bgRect.top());
-    framePath.lineTo(bgRect.right(), bgRect.bottom() - r);
-    framePath.quadTo(QPointF(bgRect.right(), bgRect.bottom()),
-                     QPointF(bgRect.right() - r, bgRect.bottom()));
-    framePath.lineTo(bgRect.left() + r, bgRect.bottom());
-    framePath.quadTo(QPointF(bgRect.left(), bgRect.bottom()),
-                     QPointF(bgRect.left(), bgRect.bottom() - r));
-    framePath.closeSubpath();
+    framePath.addRoundedRect(bgRect, r, r);
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(bgColor);
@@ -275,6 +302,12 @@ void TextBox::setUnfocusedBorderWidth(int width) {
     }
 }
 
+void TextBox::setValidator(QValidator* validator) {
+    if (m_validator == validator) return;
+    m_validator = validator;
+    if (m_lineEdit) m_lineEdit->setValidator(m_validator);
+}
+
 void TextBox::setClearButtonEnabled(bool enabled) {
     if (m_clearButtonEnabled != enabled) {
         m_clearButtonEnabled = enabled;
@@ -284,63 +317,8 @@ void TextBox::setClearButtonEnabled(bool enabled) {
 }
 
 void TextBox::updateHeight() {
-    if (!m_multiLine || !m_textEdit) return;
-
-    const auto& s = themeSpacing();
-
-    // 使用文档布局计算像素高度，能同时反映显式换行和自动换行
-    auto* docLayout = m_textEdit->document()->documentLayout();
-    if (!docLayout) return;
-
-    QFontMetrics fm(m_textEdit->font());
-    int lineHeight = fm.lineSpacing();
-
-    // 文档内容高度（像素），包含自动换行
-    int docHeight = static_cast<int>(docLayout->documentSize().height());
-    if (docHeight < lineHeight) {
-        docHeight = lineHeight;
-    }
-
-    // 至少展示 2 行，使其在视觉上明显是多行输入
-    int minLines = 2;
-    int minH = minLines * lineHeight
-               + m_textMargins.top() + m_textMargins.bottom()
-               + 8; // 焦点条等额外空间
-
-    // 期望高度 = 内容高度 + padding
-    int desiredHeight = docHeight
-                        + m_textMargins.top() + m_textMargins.bottom()
-                        + 8;
-
-    // 默认最大高度按 10 行估算，除非外部显式设置了 maximumHeight
-    int maxPixel;
-    if (maximumHeight() > 0 && maximumHeight() < 16777215) {
-        maxPixel = maximumHeight();
-    } else {
-        maxPixel = 10 * lineHeight
-                   + m_textMargins.top() + m_textMargins.bottom()
-                   + 8;
-    }
-    if (maxPixel < minH) maxPixel = minH;
-
-    int finalHeight = qBound(minH, desiredHeight, maxPixel);
-
-    if (height() != finalHeight) {
-        setFixedHeight(finalHeight);
-        updateGeometry();
-
-        if (auto* parent = parentWidget()) {
-            if (auto* lay = parent->layout()) {
-                lay->invalidate();
-            }
-            parent->updateGeometry();
-        }
-    }
-
-    // 内容高度大于最终高度时，允许滚动
-    bool overflow = desiredHeight > finalHeight + 1;
-    m_textEdit->setVerticalScrollBarPolicy(overflow ? Qt::ScrollBarAsNeeded
-                                                    : Qt::ScrollBarAlwaysOff);
+    // 多行模式不再根据内容自适应高度，交由外部布局 / setFixedHeight 控制。
+    // 这里保留空实现，仅作为兼容旧调用点的占位。
 }
 
 void TextBox::resizeEvent(QResizeEvent* event) {

@@ -7,7 +7,6 @@
 #include <QStyle>
 #include <QMouseEvent>
 #include <QPropertyAnimation>
-#include <QHBoxLayout>
 #include <algorithm>
 
 #include "common/Typography.h"

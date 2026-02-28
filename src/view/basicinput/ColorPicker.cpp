@@ -1,12 +1,16 @@
 #include "ColorPicker.h"
 
 #include "view/textfields/TextBlock.h"
-#include <QLineEdit>
+#include "view/textfields/TextBox.h"
+#include "view/basicinput/Slider.h"
+#include <QIntValidator>
+#include <QRegularExpressionValidator>
+#include <QSlider>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QIntValidator>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 
 namespace view::basicinput {
 
@@ -25,8 +29,13 @@ protected:
         if (!m_picker) return;
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
-
         QRectF r = rect().adjusted(1, 1, -1, -1);
+
+        // 使用圆角裁剪色盘区域，半径与 Fluent 主题保持一致
+        qreal radius = m_picker->themeRadius().control;
+        QPainterPath clipPath;
+        clipPath.addRoundedRect(r, radius, radius);
+        p.setClipPath(clipPath);
 
         // 基础：从白色到当前色相的水平渐变（S）
         QColor hueColor = QColor::fromHsvF(m_picker->hue(), 1.0, 1.0);
@@ -134,6 +143,38 @@ private:
     ColorPicker* m_picker = nullptr;
 };
 
+// 右侧预览 pane：棋盘格 + 当前色（含 alpha），参考 WinUI 3
+class ColorPreviewPaneWidget : public QWidget {
+public:
+    explicit ColorPreviewPaneWidget(ColorPicker* picker, QWidget* parent = nullptr)
+        : QWidget(parent), m_picker(picker) {
+        setFixedWidth(28);
+        setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override {
+        if (!m_picker) return;
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
+        const int tile = 6;
+        for (int y = 0; y < height(); y += tile) {
+            for (int x = 0; x < width(); x += tile) {
+                bool light = ((x / tile) + (y / tile)) % 2 == 0;
+                p.fillRect(QRect(x, y, tile, tile), light ? Qt::white : QColor(0xE0, 0xE0, 0xE0));
+            }
+        }
+        p.fillRect(r, m_picker->color());
+        p.setPen(QPen(QColor(0, 0, 0, 60), 1));
+        p.setBrush(Qt::NoBrush);
+        p.drawRect(r);
+    }
+
+private:
+    ColorPicker* m_picker = nullptr;
+};
+
 ColorPicker::ColorPicker(QWidget* parent)
     : QWidget(parent) {
     initUi();
@@ -141,75 +182,137 @@ ColorPicker::ColorPicker(QWidget* parent)
 }
 
 void ColorPicker::initUi() {
-    auto* mainLayout = new QVBoxLayout(this);
+    using Edge = ::view::AnchorLayout::Edge;
+    auto* anchorLayout = new ::view::AnchorLayout(this);
     const auto& spacing = themeSpacing();
-    mainLayout->setContentsMargins(spacing.padding.card, spacing.padding.card,
-                                   spacing.padding.card, spacing.padding.card);
-    mainLayout->setSpacing(spacing.gap.normal);
+    const int pad = spacing.padding.card;
+    const int gap = spacing.gap.normal;
 
-    // 上半部分：色谱 + 色相条
-    initSpectrumUi(mainLayout);
+    // 输入区：Hex + RGBA 五行
+    auto* inputsPanel = new QWidget(this);
+    auto* inputsLayout = new QVBoxLayout(inputsPanel);
+    inputsLayout->setContentsMargins(0, 0, 0, 0);
+    inputsLayout->setSpacing(spacing.gap.tight);
 
-    // Hex 输入
-    auto* hexRow = new QHBoxLayout();
-    hexRow->setContentsMargins(0, 0, 0, 0);
-    hexRow->setSpacing(spacing.gap.tight);
-    m_hexLabel = new view::textfields::TextBlock("Hex:", this);
-    m_hexEdit = new QLineEdit(this);
-    m_hexEdit->setMaxLength(9); // #RRGGBB or #RRGGBBAA
-    m_hexEdit->setFixedHeight(spacing.standard); // spacing.standard is usually 32px
-    hexRow->addWidget(m_hexLabel);
-    hexRow->addWidget(m_hexEdit, 1);
-    mainLayout->addLayout(hexRow);
-
-    connect(m_hexEdit, &QLineEdit::editingFinished, this, &ColorPicker::handleHexEdited);
-
-    // RGB / A 文本输入框
-    auto createChannelRow = [&](const QString& labelText, QLineEdit*& edit) {
+    auto createTextRow = [&](const QString& labelText,
+                             view::textfields::TextBox*& edit,
+                             void (ColorPicker::*slot)()) {
         auto* row = new QHBoxLayout();
         row->setContentsMargins(0, 0, 0, 0);
         row->setSpacing(spacing.gap.tight);
-
-        edit = new QLineEdit(this);
-        edit->setValidator(new QIntValidator(0, 255, this));
-        edit->setFixedHeight(spacing.standard); // spacing.standard is 32px
-        row->addWidget(edit, 1);
-
-        auto* label = new view::textfields::TextBlock(labelText, this);
-        label->setFixedWidth(48); // Ensure enough space for "Green"
+        auto* label = new view::textfields::TextBlock(labelText, inputsPanel);
+        label->setFixedWidth(48);
         row->addWidget(label);
-
-        connect(edit, &QLineEdit::editingFinished, this, &ColorPicker::handleChannelEdited);
-        mainLayout->addLayout(row);
+        edit = new view::textfields::TextBox(inputsPanel);
+        edit->setMultiLine(false);
+        edit->setClearButtonEnabled(false);
+        row->addWidget(edit, 1);
+        connect(edit, &view::textfields::TextBox::returnPressed, this, slot);
+        inputsLayout->addLayout(row);
     };
+    createTextRow("Hex:",   m_hexEdit, &ColorPicker::handleHexEdited);
+    createTextRow("Red:",   m_rEdit,   &ColorPicker::handleChannelEdited);
+    createTextRow("Green:", m_gEdit,   &ColorPicker::handleChannelEdited);
+    createTextRow("Blue:",  m_bEdit,   &ColorPicker::handleChannelEdited);
+    m_alphaInputRowWidget = new QWidget(inputsPanel);
+    auto* alphaInputRow = new QHBoxLayout(m_alphaInputRowWidget);
+    alphaInputRow->setContentsMargins(0, 0, 0, 0);
+    alphaInputRow->setSpacing(spacing.gap.tight);
+    auto* alphaInputLabel = new view::textfields::TextBlock("Alpha:", m_alphaInputRowWidget);
+    alphaInputLabel->setFixedWidth(48);
+    m_aEdit = new view::textfields::TextBox(m_alphaInputRowWidget);
+    m_aEdit->setMultiLine(false);
+    m_aEdit->setClearButtonEnabled(false);
+    alphaInputRow->addWidget(alphaInputLabel);
+    alphaInputRow->addWidget(m_aEdit, 1);
+    connect(m_aEdit, &view::textfields::TextBox::returnPressed, this, &ColorPicker::handleChannelEdited);
+    inputsLayout->addWidget(m_alphaInputRowWidget);
 
-    createChannelRow("Red", m_rEdit);
-    createChannelRow("Green", m_gEdit);
-    createChannelRow("Blue", m_bEdit);
-    createChannelRow("Alpha", m_aEdit);
+    m_hexEdit->setValidator(new QRegularExpressionValidator(
+        QRegularExpression("^#?[0-9A-Fa-f]{0,8}$"), this));
+    m_rEdit->setValidator(new QIntValidator(0, 255, this));
+    m_gEdit->setValidator(new QIntValidator(0, 255, this));
+    m_bEdit->setValidator(new QIntValidator(0, 255, this));
+    m_aEdit->setValidator(new QIntValidator(0, 255, this));
 
-    onThemeUpdated();
-}
+    ::view::AnchorLayout::Anchors aInputs;
+    aInputs.left = {this, Edge::Left, pad};
+    aInputs.right = {this, Edge::Right, -pad};
+    aInputs.bottom = {this, Edge::Bottom, -pad};
+    anchorLayout->addAnchoredWidget(inputsPanel, aInputs);
 
-void ColorPicker::initSpectrumUi(QVBoxLayout* parentLayout) {
-    const auto& spacing = themeSpacing();
+    // 下方 Slider 区：明度 (V) + Alpha，参考 WinUI 3
+    auto* slidersPanel = new QWidget(this);
+    auto* slidersLayout = new QVBoxLayout(slidersPanel);
+    slidersLayout->setContentsMargins(0, 0, 0, 0);
+    slidersLayout->setSpacing(spacing.gap.tight);
 
-    auto* row = new QHBoxLayout();
-    row->setContentsMargins(0, 0, 0, 0);
-    row->setSpacing(spacing.gap.normal);
+    auto* valueRow = new QHBoxLayout();
+    valueRow->setContentsMargins(0, 0, 0, 0);
+    valueRow->setSpacing(spacing.gap.tight);
+    auto* valueLabel = new view::textfields::TextBlock("Value:", slidersPanel);
+    valueLabel->setFixedWidth(48);
+    m_valueSlider = new Slider(Qt::Horizontal, slidersPanel);
+    m_valueSlider->setMinimum(0);
+    m_valueSlider->setMaximum(100);
+    m_valueSlider->setValue(100);
+    connect(m_valueSlider, &QSlider::valueChanged, this, &ColorPicker::setValueFromSlider);
+    valueRow->addWidget(valueLabel);
+    valueRow->addWidget(m_valueSlider, 1);
+    slidersLayout->addLayout(valueRow);
+
+    m_alphaRowWidget = new QWidget(slidersPanel);
+    auto* alphaRow = new QHBoxLayout(m_alphaRowWidget);
+    alphaRow->setContentsMargins(0, 0, 0, 0);
+    alphaRow->setSpacing(spacing.gap.tight);
+    auto* alphaLabel = new view::textfields::TextBlock("Alpha:", m_alphaRowWidget);
+    alphaLabel->setFixedWidth(48);
+    m_alphaSlider = new Slider(Qt::Horizontal, m_alphaRowWidget);
+    m_alphaSlider->setMinimum(0);
+    m_alphaSlider->setMaximum(255);
+    m_alphaSlider->setValue(255);
+    connect(m_alphaSlider, &QSlider::valueChanged, this, &ColorPicker::setAlphaFromSlider);
+    alphaRow->addWidget(alphaLabel);
+    alphaRow->addWidget(m_alphaSlider, 1);
+    slidersLayout->addWidget(m_alphaRowWidget);
+
+    ::view::AnchorLayout::Anchors aSliders;
+    aSliders.left = {this, Edge::Left, pad};
+    aSliders.right = {this, Edge::Right, -pad};
+    aSliders.bottom = {inputsPanel, Edge::Top, -gap};
+    anchorLayout->addAnchoredWidget(slidersPanel, aSliders);
 
     m_spectrum = new ColorSpectrumWidget(this, this);
-    m_spectrum->setMinimumSize(240, 180);
+    m_spectrum->setMinimumSize(200, 160);
     m_spectrum->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     m_hueBar = new HueBarWidget(this, this);
     m_hueBar->setFixedWidth(24);
 
-    row->addWidget(m_spectrum, 1);
-    row->addWidget(m_hueBar);
+    m_previewPane = new ColorPreviewPaneWidget(this, this);
 
-    parentLayout->addWidget(new view::textfields::TextBlock("Color spectrum:", this));
-    parentLayout->addLayout(row);
+    ::view::AnchorLayout::Anchors aSpectrum;
+    aSpectrum.left = {this, Edge::Left, pad};
+    aSpectrum.top = {this, Edge::Top, pad};
+    aSpectrum.right = {m_hueBar, Edge::Left, -gap};
+    aSpectrum.bottom = {slidersPanel, Edge::Top, -gap};
+    anchorLayout->addAnchoredWidget(m_spectrum, aSpectrum);
+
+    ::view::AnchorLayout::Anchors aHue;
+    aHue.right = {m_previewPane, Edge::Left, -gap};
+    aHue.left = {m_hueBar, Edge::Right, -24};
+    aHue.top = {m_spectrum, Edge::Top, 0};
+    aHue.bottom = {m_spectrum, Edge::Bottom, 0};
+    anchorLayout->addAnchoredWidget(m_hueBar, aHue);
+
+    ::view::AnchorLayout::Anchors aPreview;
+    aPreview.right = {this, Edge::Right, -pad};
+    aPreview.left = {m_previewPane, Edge::Right, -28};
+    aPreview.top = {m_spectrum, Edge::Top, 0};
+    aPreview.bottom = {m_spectrum, Edge::Bottom, 0};
+    anchorLayout->addAnchoredWidget(m_previewPane, aPreview);
+
+    onThemeUpdated();
 }
 
 void ColorPicker::onThemeUpdated() {
@@ -224,14 +327,13 @@ void ColorPicker::onThemeUpdated() {
     }
 
     setFont(f);
-    
-    // 2. 显式更新 LineEdits 确保它们立即应用新的字体/大小
-    // 这修复了启动时的布局问题（LineEdits 可能保留默认的字体大小提示）
+
+    // 2. 显式更新文本输入框的字体，具体高度交由 TextBox 自己根据主题计算
     if (m_hexEdit) m_hexEdit->setFont(f);
-    if (m_rEdit) m_rEdit->setFont(f);
-    if (m_gEdit) m_gEdit->setFont(f);
-    if (m_bEdit) m_bEdit->setFont(f);
-    if (m_aEdit) m_aEdit->setFont(f);
+    if (m_rEdit)   m_rEdit->setFont(f);
+    if (m_gEdit)   m_gEdit->setFont(f);
+    if (m_bEdit)   m_bEdit->setFont(f);
+    if (m_aEdit)   m_aEdit->setFont(f);
 
     updateFromColor();
 }
@@ -267,13 +369,8 @@ void ColorPicker::setAlphaEnabled(bool enabled) {
     if (m_alphaEnabled == enabled)
         return;
     m_alphaEnabled = enabled;
-    
-    // Todo: Implement visibility toggling for Alpha input row if strictly required.
-    // For now, we adjust the Hex label support.
-
-    if (m_hexLabel) {
-        m_hexLabel->setText(enabled ? "Hex ARGB:" : "Hex RGB:");
-    }
+    if (m_alphaRowWidget) m_alphaRowWidget->setVisible(enabled);
+    if (m_alphaInputRowWidget) m_alphaInputRowWidget->setVisible(enabled);
     updateFromColor();
     emit alphaEnabledChanged(enabled);
 }
@@ -290,6 +387,21 @@ void ColorPicker::setSVFromSpectrum(qreal s, qreal v) {
     m_s = s;
     m_v = v;
     QColor c = QColor::fromHsvF(m_h, m_s, m_v, m_color.alphaF());
+    setColor(c);
+}
+
+void ColorPicker::setValueFromSlider(int percent) {
+    if (m_isInternalUpdate) return;
+    m_v = std::clamp(percent / 100.0, 0.0, 1.0);
+    QColor c = QColor::fromHsvF(m_h, m_s, m_v, m_color.alphaF());
+    setColor(c);
+}
+
+void ColorPicker::setAlphaFromSlider(int alpha) {
+    if (m_isInternalUpdate) return;
+    alpha = std::clamp(alpha, 0, 255);
+    QColor c = m_color;
+    c.setAlpha(alpha);
     setColor(c);
 }
 
@@ -335,14 +447,12 @@ void ColorPicker::updateFromColor() {
         m_bEdit->setText(QString::number(m_color.blue()));
         m_aEdit->setText(QString::number(m_color.alpha()));
     }
-
-    // 更新 Hex
-    if (m_hexEdit) {
-        m_hexEdit->setText(colorToHex(m_color, m_alphaEnabled));
-    }
-
+    if (m_hexEdit) m_hexEdit->setText(colorToHex(m_color, m_alphaEnabled));
+    if (m_valueSlider) m_valueSlider->setValue(qRound(m_v * 100));
+    if (m_alphaSlider) m_alphaSlider->setValue(m_color.alpha());
     if (m_spectrum) m_spectrum->update();
     if (m_hueBar) m_hueBar->update();
+    if (m_previewPane) m_previewPane->update();
     m_isInternalUpdate = false;
 }
 

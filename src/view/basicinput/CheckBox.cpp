@@ -1,6 +1,5 @@
 #include "CheckBox.h"
 #include <QPainter>
-#include <QPainterPath>
 #include <QPropertyAnimation>
 #include "common/Typography.h"
 #include "common/CornerRadius.h"

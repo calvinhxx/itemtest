@@ -14,6 +14,7 @@ macro(add_qt_test_module module_name source_file)
         PRIVATE
         itemstest_lib
         Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Test
         GTest::gtest_main
     )
     target_include_directories(${module_name} PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})

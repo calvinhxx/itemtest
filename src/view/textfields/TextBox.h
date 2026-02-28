@@ -18,10 +18,12 @@ typedef QEvent QEnterEvent;
 
 class QLineEdit;
 class QPlainTextEdit;
+class QValidator;
 class QPaintEvent;
 class QResizeEvent;
 
 namespace view::basicinput { class Button; }
+namespace view::scrolling  { class ScrollBar; }
 
 namespace view::textfields {
 
@@ -91,6 +93,10 @@ public:
     int unfocusedBorderWidth() const { return m_unfocusedBorderWidth; }
     void setUnfocusedBorderWidth(int width);
 
+    /** @brief 设置输入验证器（仅单行模式生效，所有权由调用方或 TextBox 管理） */
+    void setValidator(QValidator* validator);
+    QValidator* validator() const { return m_validator; }
+
     void onThemeUpdated() override;
     void setFocus(Qt::FocusReason reason = Qt::OtherFocusReason);
 
@@ -122,6 +128,7 @@ private:
     QLineEdit* m_lineEdit = nullptr;
     QPlainTextEdit* m_textEdit = nullptr;
     ::view::basicinput::Button* m_clearButton = nullptr;
+    ::view::scrolling::ScrollBar* m_vScrollBar = nullptr;
     
     // 状态缓存
     bool m_isHovered = false;
@@ -135,6 +142,7 @@ private:
     int m_clearButtonSize = 22;
     QMargins m_textMargins = QMargins(6, 0, 6, 0); // Default margins
     QPoint m_clearButtonOffset = QPoint(6, 0);
+    QValidator* m_validator = nullptr;
 };
 
 } // namespace view::textfields

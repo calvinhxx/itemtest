@@ -122,6 +122,7 @@ TEST_F(TextBoxTest, VisualCheck) {
 
     TextBox* multiLineBox = new TextBox(window);
     multiLineBox->setMultiLine(true);
+    multiLineBox->setFixedHeight(120);
     multiLineBox->setPlaceholderText("Type multiple lines here...");
     multiLineBox->anchors()->top = {multiHeader, Edge::Bottom, 8};
     multiLineBox->anchors()->left = {window, Edge::Left, 40};
