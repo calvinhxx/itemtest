@@ -1,7 +1,7 @@
 #include "ColorPicker.h"
 
 #include "view/textfields/TextBlock.h"
-#include "view/textfields/TextBox.h"
+#include "view/textfields/LineEdit.h"
 #include "view/basicinput/Slider.h"
 #include <QIntValidator>
 #include <QRegularExpressionValidator>
@@ -195,7 +195,7 @@ void ColorPicker::initUi() {
     inputsLayout->setSpacing(spacing.gap.tight);
 
     auto createTextRow = [&](const QString& labelText,
-                             view::textfields::TextBox*& edit,
+                             view::textfields::LineEdit*& edit,
                              void (ColorPicker::*slot)()) {
         auto* row = new QHBoxLayout();
         row->setContentsMargins(0, 0, 0, 0);
@@ -203,11 +203,10 @@ void ColorPicker::initUi() {
         auto* label = new view::textfields::TextBlock(labelText, inputsPanel);
         label->setFixedWidth(48);
         row->addWidget(label);
-        edit = new view::textfields::TextBox(inputsPanel);
-        edit->setMultiLine(false);
+        edit = new view::textfields::LineEdit(inputsPanel);
         edit->setClearButtonEnabled(false);
         row->addWidget(edit, 1);
-        connect(edit, &view::textfields::TextBox::returnPressed, this, slot);
+        connect(edit, &QLineEdit::returnPressed, this, slot);
         inputsLayout->addLayout(row);
     };
     createTextRow("Hex:",   m_hexEdit, &ColorPicker::handleHexEdited);
@@ -220,20 +219,19 @@ void ColorPicker::initUi() {
     alphaInputRow->setSpacing(spacing.gap.tight);
     auto* alphaInputLabel = new view::textfields::TextBlock("Alpha:", m_alphaInputRowWidget);
     alphaInputLabel->setFixedWidth(48);
-    m_aEdit = new view::textfields::TextBox(m_alphaInputRowWidget);
-    m_aEdit->setMultiLine(false);
+    m_aEdit = new view::textfields::LineEdit(m_alphaInputRowWidget);
     m_aEdit->setClearButtonEnabled(false);
     alphaInputRow->addWidget(alphaInputLabel);
     alphaInputRow->addWidget(m_aEdit, 1);
-    connect(m_aEdit, &view::textfields::TextBox::returnPressed, this, &ColorPicker::handleChannelEdited);
+    connect(m_aEdit, &QLineEdit::returnPressed, this, &ColorPicker::handleChannelEdited);
     inputsLayout->addWidget(m_alphaInputRowWidget);
 
     m_hexEdit->setValidator(new QRegularExpressionValidator(
-        QRegularExpression("^#?[0-9A-Fa-f]{0,8}$"), this));
-    m_rEdit->setValidator(new QIntValidator(0, 255, this));
-    m_gEdit->setValidator(new QIntValidator(0, 255, this));
-    m_bEdit->setValidator(new QIntValidator(0, 255, this));
-    m_aEdit->setValidator(new QIntValidator(0, 255, this));
+        QRegularExpression("^#?[0-9A-Fa-f]{0,8}$"), m_hexEdit));
+    m_rEdit->setValidator(new QIntValidator(0, 255, m_rEdit));
+    m_gEdit->setValidator(new QIntValidator(0, 255, m_gEdit));
+    m_bEdit->setValidator(new QIntValidator(0, 255, m_bEdit));
+    m_aEdit->setValidator(new QIntValidator(0, 255, m_aEdit));
 
     ::view::AnchorLayout::Anchors aInputs;
     aInputs.left = {this, Edge::Left, pad};
@@ -328,12 +326,12 @@ void ColorPicker::onThemeUpdated() {
 
     setFont(f);
 
-    // 2. 显式更新文本输入框的字体，具体高度交由 TextBox 自己根据主题计算
-    if (m_hexEdit) m_hexEdit->setFont(f);
-    if (m_rEdit)   m_rEdit->setFont(f);
-    if (m_gEdit)   m_gEdit->setFont(f);
-    if (m_bEdit)   m_bEdit->setFont(f);
-    if (m_aEdit)   m_aEdit->setFont(f);
+    // 2. 同步输入框主题样式
+    if (m_hexEdit) m_hexEdit->onThemeUpdated();
+    if (m_rEdit)   m_rEdit->onThemeUpdated();
+    if (m_gEdit)   m_gEdit->onThemeUpdated();
+    if (m_bEdit)   m_bEdit->onThemeUpdated();
+    if (m_aEdit)   m_aEdit->onThemeUpdated();
 
     updateFromColor();
 }

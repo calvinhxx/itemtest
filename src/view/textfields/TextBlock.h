@@ -7,6 +7,9 @@
 
 namespace view::textfields {
 
+/**
+ * @brief Label - WinUI 3 风格文本标签组件（兼容旧名 TextBlock）
+ */
 class TextBlock : public QLabel, public FluentElement, public view::QMLPlus {
     Q_OBJECT
     /** @brief 绑定的 Fluent 排版样式名称 (如 "Title", "Display", "Caption") */
@@ -27,6 +30,8 @@ signals:
 private:
     QString m_styleName = "Body";
 };
+
+using Label = TextBlock;
 
 } // namespace view::textfields
 
