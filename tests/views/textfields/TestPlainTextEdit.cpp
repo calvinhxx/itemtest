@@ -1,10 +1,13 @@
 #include <gtest/gtest.h>
 #include <QApplication>
 #include <QFontDatabase>
+#include <QtTest/QSignalSpy>
 #include "view/textfields/PlainTextEdit.h"
 #include "view/textfields/TextBlock.h"
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
+#include "common/Spacing.h"
+#include "common/Typography.h"
 
 using namespace view::textfields;
 using namespace view::basicinput;
@@ -64,6 +67,83 @@ TEST_F(PlainTextEditTest, ContentMargins) {
     QMargins margins(12, 4, 12, 4);
     edit->setContentMargins(margins);
     EXPECT_EQ(edit->contentMargins(), margins);
+}
+
+TEST_F(PlainTextEditTest, FluentPropertiesDefaultsAndSetters) {
+    PlainTextEdit* edit = new PlainTextEdit(window);
+
+    // 默认值应与 Spacing / Typography 常量一致
+    EXPECT_EQ(edit->contentMargins(),
+              QMargins(Spacing::Padding::TextFieldHorizontal, 0,
+                       Spacing::Padding::TextFieldHorizontal, 0));
+    EXPECT_EQ(edit->fontRole(), Typography::FontRole::Body);
+    EXPECT_EQ(edit->focusedBorderWidth(),   Spacing::Border::Focused);
+    EXPECT_EQ(edit->unfocusedBorderWidth(), Spacing::Border::Normal);
+    EXPECT_EQ(edit->lineHeight(),     Spacing::XLarge);
+    EXPECT_EQ(edit->minVisibleLines(), 1);
+    EXPECT_EQ(edit->maxVisibleLines(), 4);
+
+    QSignalSpy spyFocused(edit,   SIGNAL(focusedBorderWidthChanged()));
+    QSignalSpy spyUnfocused(edit, SIGNAL(unfocusedBorderWidthChanged()));
+    QSignalSpy spyLayout(edit,    SIGNAL(layoutMetricsChanged()));
+    QSignalSpy spyFont(edit,      SIGNAL(fontRoleChanged()));
+
+    edit->setFocusedBorderWidth(3);
+    EXPECT_EQ(edit->focusedBorderWidth(), 3);
+    EXPECT_EQ(spyFocused.count(), 1);
+
+    edit->setUnfocusedBorderWidth(2);
+    EXPECT_EQ(edit->unfocusedBorderWidth(), 2);
+    EXPECT_EQ(spyUnfocused.count(), 1);
+
+    edit->setMinVisibleLines(2);
+    EXPECT_EQ(edit->minVisibleLines(), 2);
+    EXPECT_EQ(spyLayout.count(), 1);
+
+    edit->setMaxVisibleLines(6);
+    EXPECT_EQ(edit->maxVisibleLines(), 6);
+    EXPECT_EQ(spyLayout.count(), 2);
+
+    edit->setFontRole(Typography::FontRole::Subtitle);
+    EXPECT_EQ(edit->fontRole(), Typography::FontRole::Subtitle);
+    EXPECT_EQ(spyFont.count(), 1);
+
+    // 相同值不应再次触发信号
+    edit->setFocusedBorderWidth(3);
+    edit->setUnfocusedBorderWidth(2);
+    edit->setMinVisibleLines(2);
+    EXPECT_EQ(spyFocused.count(), 1);
+    EXPECT_EQ(spyUnfocused.count(), 1);
+    EXPECT_EQ(spyLayout.count(), 2);
+}
+
+TEST_F(PlainTextEditTest, MinVisibleLinesClampsBelowContent) {
+    PlainTextEdit* edit = new PlainTextEdit(window);
+    edit->setLineHeight(32);
+    edit->setMinVisibleLines(2);
+    edit->setMaxVisibleLines(4);
+
+    // 空文档时高度 = minVisibleLines * lineHeight
+    EXPECT_EQ(edit->height(), 2 * 32);
+
+    // 写入 3 行：高度应扩展到 3 行
+    edit->setPlainText("A\nB\nC");
+    EXPECT_EQ(edit->height(), 3 * 32);
+
+    // 清空后应回到 minVisibleLines 高度
+    edit->clear();
+    EXPECT_EQ(edit->height(), 2 * 32);
+}
+
+TEST_F(PlainTextEditTest, MaxVisibleLinesClampsAboveContent) {
+    PlainTextEdit* edit = new PlainTextEdit(window);
+    edit->setLineHeight(32);
+    edit->setMinVisibleLines(1);
+    edit->setMaxVisibleLines(3);
+
+    // 写入超过 3 行：高度固定在 maxVisibleLines
+    edit->setPlainText("A\nB\nC\nD\nE");
+    EXPECT_EQ(edit->height(), 3 * 32);
 }
 
 TEST_F(PlainTextEditTest, ReadOnly) {

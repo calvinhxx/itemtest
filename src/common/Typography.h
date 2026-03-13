@@ -198,6 +198,21 @@ namespace Typography {
     }
 
     /**
+     * @brief 字体角色名称常量
+     *
+     * 用于 FluentElement::themeFont(role) 的参数，避免拼写错误。
+     */
+    namespace FontRole {
+        const QString Caption    = QStringLiteral("Caption");
+        const QString Body       = QStringLiteral("Body");
+        const QString BodyStrong = QStringLiteral("BodyStrong");
+        const QString Subtitle   = QStringLiteral("Subtitle");
+        const QString Title      = QStringLiteral("Title");
+        const QString TitleLarge = QStringLiteral("TitleLarge");
+        const QString Display    = QStringLiteral("Display");
+    }
+
+    /**
      * @brief 行高（Line Height）
      */
     namespace LineHeight {

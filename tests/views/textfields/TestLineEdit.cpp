@@ -4,6 +4,8 @@
 #include <QFontDatabase>
 #include <QtTest/QSignalSpy>
 #include "view/textfields/LineEdit.h"
+#include "common/Spacing.h"
+#include "common/Typography.h"
 #include "view/textfields/TextBlock.h"
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
@@ -87,14 +89,17 @@ TEST_F(LineEditTest, Validator) {
 TEST_F(LineEditTest, FluentPropertiesDefaultsAndSetters) {
     LineEdit* edit = new LineEdit(window);
 
+    // 默认值验证（引用 Spacing/Typography 常量）
     EXPECT_TRUE(edit->isClearButtonEnabled());
     EXPECT_EQ(edit->clearButtonSize(), 22);
-    EXPECT_EQ(edit->clearButtonOffset(), QPoint(4, 0));
-    EXPECT_EQ(edit->focusedBorderWidth(), 2);
-    EXPECT_EQ(edit->unfocusedBorderWidth(), 1);
+    EXPECT_EQ(edit->clearButtonOffset(), QPoint(Spacing::XSmall, 0));
+    EXPECT_EQ(edit->focusedBorderWidth(), Spacing::Border::Focused);
+    EXPECT_EQ(edit->unfocusedBorderWidth(), Spacing::Border::Normal);
+    EXPECT_EQ(edit->fontRole(), Typography::FontRole::Body);
 
     QSignalSpy spyOffset(edit, SIGNAL(clearButtonOffsetChanged()));
-    QSignalSpy spyBorder(edit, SIGNAL(borderWidthChanged()));
+    QSignalSpy spyFocused(edit, SIGNAL(focusedBorderWidthChanged()));
+    QSignalSpy spyUnfocused(edit, SIGNAL(unfocusedBorderWidthChanged()));
 
     edit->setClearButtonOffset(QPoint(10, 3));
     EXPECT_EQ(edit->clearButtonOffset(), QPoint(10, 3));
@@ -102,18 +107,19 @@ TEST_F(LineEditTest, FluentPropertiesDefaultsAndSetters) {
 
     edit->setFocusedBorderWidth(3);
     EXPECT_EQ(edit->focusedBorderWidth(), 3);
-    EXPECT_EQ(spyBorder.count(), 1);
+    EXPECT_EQ(spyFocused.count(), 1);
 
     edit->setUnfocusedBorderWidth(2);
     EXPECT_EQ(edit->unfocusedBorderWidth(), 2);
-    EXPECT_EQ(spyBorder.count(), 2);
+    EXPECT_EQ(spyUnfocused.count(), 1);
 
-    // set same values should not emit again
+    // 相同值不应再次触发信号
     edit->setClearButtonOffset(QPoint(10, 3));
     edit->setFocusedBorderWidth(3);
     edit->setUnfocusedBorderWidth(2);
     EXPECT_EQ(spyOffset.count(), 1);
-    EXPECT_EQ(spyBorder.count(), 2);
+    EXPECT_EQ(spyFocused.count(), 1);
+    EXPECT_EQ(spyUnfocused.count(), 1);
 }
 
 TEST_F(LineEditTest, ClearButtonOffsetAffectsGeometry) {

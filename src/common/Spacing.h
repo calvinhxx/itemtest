@@ -50,11 +50,20 @@ namespace Spacing {
      * @brief 组件内边距规范
      */
     namespace Padding {
-        const int ControlHorizontal = 12; // 控件通用水平内边距
-        const int ControlVertical = 6;    // 控件通用垂直内边距
-        
-        const int Card = 16;              // 卡片内边距
-        const int Dialog = 24;            // 对话框内边距
+        const int ControlHorizontal   = 12; // 控件通用水平内边距
+        const int ControlVertical     = 6;  // 控件通用垂直内边距
+        const int TextFieldHorizontal = 6;  // 文本框水平内边距（内容区域）
+
+        const int Card   = 16; // 卡片内边距
+        const int Dialog = 24; // 对话框内边距
+    }
+
+    /**
+     * @brief 边框/描边宽度规范
+     */
+    namespace Border {
+        const int Normal  = 1; // 默认（未聚焦）边框宽度
+        const int Focused = 2; // 聚焦时底部高亮条宽度
     }
 
     /**

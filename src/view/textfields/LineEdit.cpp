@@ -154,6 +154,14 @@ void LineEdit::setContentMargins(const QMargins& margins) {
     emit contentMarginsChanged();
 }
 
+void LineEdit::setFontRole(const QString& role) {
+    if (m_fontRole == role)
+        return;
+    m_fontRole = role;
+    applyThemeStyle();
+    emit fontRoleChanged();
+}
+
 void LineEdit::setClearButtonEnabled(bool enabled) {
     if (m_clearButtonEnabled == enabled)
         return;
@@ -190,7 +198,7 @@ void LineEdit::setFocusedBorderWidth(int width) {
         return;
     m_focusedBorderWidth = width;
     update();
-    emit borderWidthChanged();
+    emit focusedBorderWidthChanged();
 }
 
 void LineEdit::setUnfocusedBorderWidth(int width) {
@@ -198,7 +206,7 @@ void LineEdit::setUnfocusedBorderWidth(int width) {
         return;
     m_unfocusedBorderWidth = width;
     update();
-    emit borderWidthChanged();
+    emit unfocusedBorderWidthChanged();
 }
 
 void LineEdit::onThemeUpdated() {
@@ -219,7 +227,7 @@ void LineEdit::applyThemeStyle() {
     pal.setColor(QPalette::Disabled, QPalette::Text, c.textDisabled);
     pal.setColor(QPalette::Disabled, QPalette::PlaceholderText, c.textDisabled);
     setPalette(pal);
-    setFont(themeFont("Body").toQFont());
+    setFont(themeFont(m_fontRole).toQFont());
 
     int rightPadding = m_contentMargins.right();
     if (m_clearButtonEnabled) {
