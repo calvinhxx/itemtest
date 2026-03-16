@@ -11,64 +11,84 @@ namespace view::dialogs_flyouts {
 
 /**
  * @brief Dialog - 现代设计风格的对话框
- * 
- * 采用高性能的位移+淡入动画，放弃昂贵的位图快照，确保在低配电脑上也能达到 60fps。
+ *
+ * ── 动画方案（全平台统一）──────────────────────────────────────────────────
+ *  快照 + painter 变换：setOpacity + translate，纯软件合成，不依赖任何 OS 合成器
+ *  API，Windows / macOS 行为完全一致。
+ *
+ * ── 卡顿 / 闪屏根因及修复 ───────────────────────────────────────────────────
+ *  macOS Core Animation 的 orderFront: 会在 showEvent 触发之前就将窗口提交到
+ *  compositor。若此时 Qt backing store 里存的是真实内容，用户就会看到一帧真实
+ *  对话框再消失（即"开场闪烁"）。
+ *
+ *  修复：在 exec() / open() 调用时（widget 仍为 hidden 状态），用 render() 把
+ *  真实内容预先渲染到 m_snapshot，并将 m_isAnimating 置为 true。showEvent 到来
+ *  时 backing store 的第一帧直接就是动画初始态（透明），compositor 永远看不到
+ *  真实内容。
+ *
+ *  关闭闪烁：done() 里在 hide 子控件之前先同步 repaint()，确保 compositor 下一
+ *  帧拿到的是快照帧，而不是子控件消失后的空白背景帧。
  */
 class Dialog : public QDialog, public FluentElement, public view::QMLPlus {
     Q_OBJECT
-    /** @brief 内部动画进度 (0.0 -> 1.0) */
     Q_PROPERTY(double animationProgress READ animationProgress WRITE setAnimationProgress)
-    /** @brief 是否允许鼠标拖拽移动窗口 */
     Q_PROPERTY(bool dragEnabled READ isDragEnabled WRITE setDragEnabled)
-    /** @brief 是否启用进出场动画效果 */
     Q_PROPERTY(bool animationEnabled READ isAnimationEnabled WRITE setAnimationEnabled)
 public:
     explicit Dialog(QWidget *parent = nullptr);
-    
+
     void onThemeUpdated() override { update(); }
 
-    /**
-     * @brief 获取内容区阴影预留空间（固定 24px 以支持现代软阴影）
-     */
-    int shadowSize() const { return m_shadowSize; }
+    int  shadowSize() const { return m_shadowSize; }
 
-    void setDragEnabled(bool enabled) { m_dragEnabled = enabled; }
-    bool isDragEnabled() const { return m_dragEnabled; }
+    void setDragEnabled(bool e)      { m_dragEnabled = e; }
+    bool isDragEnabled()  const      { return m_dragEnabled; }
 
-    void setAnimationEnabled(bool enabled) { m_animationEnabled = enabled; }
-    bool isAnimationEnabled() const { return m_animationEnabled; }
+    void setAnimationEnabled(bool e) { m_animationEnabled = e; }
+    bool isAnimationEnabled() const  { return m_animationEnabled; }
 
     double animationProgress() const { return m_animationProgress; }
-    void setAnimationProgress(double progress);
+    void   setAnimationProgress(double p);
+
+    // 重写以在显示前预渲染快照
+    void open() override;
+    int  exec() override;
 
     void done(int r) override;
 
 protected:
     void paintEvent(QPaintEvent* event) override;
-    void showEvent(QShowEvent* event) override;
-    
-    void mousePressEvent(QMouseEvent* event) override;
-    void mouseMoveEvent(QMouseEvent* event) override;
+    void showEvent(QShowEvent* event)   override;
+
+    void mousePressEvent(QMouseEvent* event)   override;
+    void mouseMoveEvent(QMouseEvent* event)    override;
     void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
-    void drawShadow(QPainter& painter, const QRect& contentRect);
-    
-    // 与 drawShadow 的扩散范围匹配，略留余量让阴影自然淡出
-    const int m_shadowSize = ::Spacing::Standard; 
+    /**
+     * @brief 在 widget 仍为 hidden 状态时预渲染快照并进入动画模式。
+     *        由 open() / exec() 调用，确保第一个 paintEvent 就已是动画帧。
+     */
+    void prepareAnimation();
 
-    bool m_dragEnabled = true;
+    /** @brief 渲染当前真实内容到像素图（忽略 m_isAnimating 状态）。 */
+    QPixmap renderSnapshot() const;
+
+    void drawShadow(QPainter& painter, const QRect& contentRect);
+
+    const int m_shadowSize = ::Spacing::Standard;
+
+    bool   m_dragEnabled      = true;
     QPoint m_dragPosition;
 
-    // 动画相关
-    bool m_animationEnabled = true;
-    double m_animationProgress = 0.0;
-    QPropertyAnimation* m_animation;
-    int m_closingResult = 0;
+    bool   m_animationEnabled  = true;
+    bool   m_isAnimating       = false;
+    bool   m_isClosing         = false;
+    double m_animationProgress = 1.0;
+    int    m_closingResult     = 0;
 
-    // 高性能快照逻辑
-    bool m_isAnimating = false;
-    QPixmap m_snapshot;
+    QPropertyAnimation* m_animation;
+    QPixmap             m_snapshot;
 };
 
 } // namespace view::dialogs_flyouts

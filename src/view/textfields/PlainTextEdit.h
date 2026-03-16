@@ -122,14 +122,16 @@ private:
 
     QPlainTextEdit*              m_editor     = nullptr;
     ::view::scrolling::ScrollBar* m_vScrollBar = nullptr;
-    QMargins m_contentMargins   = QMargins(::Spacing::Padding::TextFieldHorizontal, 0,
-                                           ::Spacing::Padding::TextFieldHorizontal, 0);
+    QMargins m_contentMargins   = QMargins(::Spacing::Padding::TextFieldHorizontal,
+                                           ::Spacing::Padding::TextFieldVertical,
+                                           ::Spacing::Padding::TextFieldHorizontal,
+                                           ::Spacing::Padding::TextFieldVertical);
     QString  m_fontRole         = Typography::FontRole::Body;
     bool     m_isHovered        = false;
     bool     m_isFocused        = false;
     int      m_focusedBorderWidth   = ::Spacing::Border::Focused;
     int      m_unfocusedBorderWidth = ::Spacing::Border::Normal;
-    int      m_lineHeight           = ::Spacing::XLarge; ///< 默认单行高度 32px
+    int      m_lineHeight           = ::Spacing::ControlHeight::Standard;  // 32px，与 TextBox 标准高度对齐
     int      m_minVisibleLines      = 1;
     int      m_maxVisibleLines      = 4;
     QString  m_placeholderText;

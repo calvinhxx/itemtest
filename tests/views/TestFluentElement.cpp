@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QWidget>
 #include "view/FluentElement.h"
+#include "common/CornerRadius.h"
 
 // 模拟一个继承自 FluentElement 的组件
 class MockComponent : public QWidget, public FluentElement {
@@ -26,11 +27,70 @@ public:
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QGraphicsDropShadowEffect>
+#include <QStackedLayout>
 #include <QMap>
 
 #include <QPropertyAnimation>
 #include <QResizeEvent>
 #include <QComboBox>
+#include <QPainter>
+#include <QPainterPath>
+#include <QLinearGradient>
+
+// 材质预览卡片：用 paintEvent 手动合成渐变底图 + 材质覆盖层，避免 QSS/QPalette 无法做透明合成的问题
+class MaterialPreviewCard : public QWidget {
+    Q_OBJECT
+public:
+    explicit MaterialPreviewCard(const QString& name, QWidget* parent = nullptr)
+        : QWidget(parent), m_name(name) {
+        setMinimumSize(160, 88);
+        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    }
+
+    void setMaterialColor(const QColor& color) {
+        m_color = color;
+        update();
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override {
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+
+        const QRectF r = rect().adjusted(1, 1, -1, -1);
+        const qreal radius = 8;
+        QPainterPath clip;
+        clip.addRoundedRect(r, radius, radius);
+        p.setClipPath(clip);
+
+        // 1. 底图：高对比度渐变，确保透明色能被感知
+        QLinearGradient grad(r.topLeft(), r.bottomRight());
+        grad.setColorAt(0.0, QColor(0x4f, 0x7f, 0xd4));
+        grad.setColorAt(0.5, QColor(0x59, 0xb0, 0x7a));
+        grad.setColorAt(1.0, QColor(0x9a, 0x67, 0xd9));
+        p.fillRect(r, grad);
+
+        // 2. 材质叠加层（SourceOver 自动做透明合成）
+        p.fillRect(r, m_color);
+
+        // 3. 边框
+        p.setClipping(false);
+        p.setPen(QPen(QColor(0, 0, 0, 40), 1));
+        p.drawRoundedRect(r, radius, radius);
+
+        // 4. 标签
+        const bool darkOverlay = m_color.alpha() > 160 && m_color.lightness() < 60;
+        p.setPen(darkOverlay ? QColor(240, 240, 240) : QColor(30, 30, 30));
+        QFont f = p.font();
+        f.setWeight(QFont::DemiBold);
+        p.setFont(f);
+        p.drawText(r, Qt::AlignCenter, m_name);
+    }
+
+private:
+    QString m_name;
+    QColor  m_color = Qt::transparent;
+};
 
 // 一个全功能的设计元素预览组件，用于测试 src/common 中的所有 Token
 class VisualMockComponent : public QWidget, public FluentElement {
@@ -160,9 +220,9 @@ private:
             m_cards[name] = card;
         };
 
-        addCard("Small + Low");
-        addCard("Medium + Med");
-        addCard("Large + High");
+        addCard("Control + Low");
+        addCard("Control + Med");
+        addCard("Overlay + High");
         
         m_contentLayout->addWidget(group);
     }
@@ -179,12 +239,17 @@ private:
     void setupMaterialSection() {
         QGroupBox* group = new QGroupBox("5. Materials (Material.h)", this);
         QHBoxLayout* layout = new QHBoxLayout(group);
-        m_acrylicLabel = new QLabel("Acrylic", this);
-        m_micaLabel = new QLabel("Mica", this);
-        m_smokeLabel = new QLabel("Smoke", this);
-        layout->addWidget(m_acrylicLabel);
-        layout->addWidget(m_micaLabel);
-        layout->addWidget(m_smokeLabel);
+        layout->setSpacing(12);
+
+        auto addCard = [&](const QString& name) -> MaterialPreviewCard* {
+            auto* card = new MaterialPreviewCard(name, this);
+            layout->addWidget(card);
+            return card;
+        };
+
+        m_acrylicCard = addCard("Acrylic");
+        m_micaCard    = addCard("Mica");
+        m_smokeCard   = addCard("Smoke");
         m_contentLayout->addWidget(group);
     }
 
@@ -209,7 +274,8 @@ private:
         layout->addLayout(controls);
 
         m_animContainer = new QFrame(this);
-        m_animContainer->setFixedSize(600, 150);
+        m_animContainer->setMinimumHeight(150);
+        m_animContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         m_animContainer->setStyleSheet("background: palette(dark); border-radius: 4px;");
         
         m_animBox = new QFrame(m_animContainer);
@@ -286,9 +352,9 @@ private:
             card->setGraphicsEffect(effect);
         };
 
-        applyEffect("Small + Low", r.small, Elevation::Low);
-        applyEffect("Medium + Med", r.medium, Elevation::Medium);
-        applyEffect("Large + High", r.large, Elevation::High);
+        applyEffect("Control + Low",  r.control, Elevation::Low);
+        applyEffect("Control + Med",  r.control, Elevation::Medium);
+        applyEffect("Overlay + High", r.overlay, Elevation::High);
     }
 
     void updateSpacing() {
@@ -300,13 +366,17 @@ private:
     }
 
     void updateMaterials() {
-        auto applyMat = [&](QLabel* l, const QString& type) {
-            l->setStyleSheet(themeMaterial(type) + "padding: 20px; border-radius: 8px; border: 1px solid palette(mid);");
-            l->setAlignment(Qt::AlignCenter);
+        auto toColor = [](QColor base, double opacity) {
+            base.setAlphaF(opacity);
+            return base;
         };
-        applyMat(m_acrylicLabel, "Acrylic");
-        applyMat(m_micaLabel, "Mica");
-        applyMat(m_smokeLabel, "Smoke");
+        const auto acrylic = themeAcrylic();
+        const auto mica    = themeMica();
+        const auto smoke   = themeSmoke();
+
+        m_acrylicCard->setMaterialColor(toColor(acrylic.tintColor, acrylic.tintOpacity));
+        m_micaCard->setMaterialColor(toColor(mica.baseColor, mica.opacity));
+        m_smokeCard->setMaterialColor(toColor(smoke.baseColor, smoke.opacity));
     }
 
     void updateAnimationPreview() {
@@ -346,9 +416,9 @@ private:
     QMap<QString, QWidget*> m_colorBlocks;
     QMap<QString, QFrame*> m_cards;
     QFrame* m_spacingFrame;
-    QLabel* m_acrylicLabel;
-    QLabel* m_micaLabel;
-    QLabel* m_smokeLabel;
+    MaterialPreviewCard* m_acrylicCard = nullptr;
+    MaterialPreviewCard* m_micaCard    = nullptr;
+    MaterialPreviewCard* m_smokeCard   = nullptr;
 
     view::basicinput::Button* m_themeBtn;
     QLabel* m_breakpointLabel;
@@ -435,7 +505,7 @@ TEST_F(FluentElementTest, FontTokenMapping) {
     EXPECT_FALSE(bodyFont.family.isEmpty());
 
     auto titleFont = component.themeFont("TitleLarge");
-    EXPECT_EQ(titleFont.size, 20);
+    EXPECT_EQ(titleFont.size, Typography::FontSize::TitleLarge);  // 40px (Figma MCP 实测)
     EXPECT_GT(titleFont.weight, bodyFont.weight);
 }
 
@@ -443,8 +513,9 @@ TEST_F(FluentElementTest, RadiusAndSpacingMapping) {
     MockComponent component;
     
     auto radius = component.themeRadius();
-    EXPECT_EQ(radius.inPage, 4);
-    EXPECT_EQ(radius.topLevel, 8);
+    EXPECT_EQ(radius.none,    0);
+    EXPECT_EQ(radius.control, CornerRadius::Control);
+    EXPECT_EQ(radius.overlay, CornerRadius::Overlay);
 
     auto spacing = component.themeSpacing();
     EXPECT_EQ(spacing.padding.controlH, 12);
@@ -471,9 +542,19 @@ TEST_F(FluentElementTest, AnimationTokenMapping) {
 
 TEST_F(FluentElementTest, MaterialAndShadow) {
     MockComponent component;
-    
-    QString acrylic = component.themeMaterial("Acrylic");
-    EXPECT_TRUE(acrylic.contains("rgba"));
+
+    auto acrylic = component.themeAcrylic();
+    EXPECT_GT(acrylic.blurRadius, 0);
+    EXPECT_GE(acrylic.tintOpacity, 0.0);
+    EXPECT_LE(acrylic.tintOpacity, 1.0);
+
+    auto mica = component.themeMica();
+    EXPECT_GE(mica.opacity, 0.0);
+    EXPECT_LE(mica.opacity, 1.0);
+
+    auto smoke = component.themeSmoke();
+    EXPECT_GE(smoke.opacity, 0.0);
+    EXPECT_LE(smoke.opacity, 1.0);
 
     auto shadow = component.themeShadow(Elevation::High);
     EXPECT_GT(shadow.blurRadius, 0);

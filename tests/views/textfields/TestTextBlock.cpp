@@ -22,7 +22,7 @@ protected:
 
     void SetUp() override {
         window = new QWidget();
-        window->setFixedSize(500, 600);
+        window->setFixedSize(800, 600);
         window->setWindowTitle("Fluent Typography Persistence Test");
         layout = new AnchorLayout(window);
         window->setLayout(layout);

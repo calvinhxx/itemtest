@@ -6,152 +6,248 @@
 #include <vector>
 
 /**
- * @brief ThemeColors - Windows UI Kit 语义化颜色系统
- * 完全对齐 Figma "Windows UI Kit — Community" 中的 Fill Color, Stroke Color, Text Color 规范
+ * ThemeColors - Fluent Design 语义化颜色系统（Light / Dark / Contrast）。
+ *
+ * 关键 Accent 色值：
+ *   Light  #005FB8   Dark  #60CDFF
+ *
+ * System 语义色（Light / Dark）：
+ *   Critical        #C42B1C / #FF99A4
+ *   Critical Bg     #FDE7E9 / #442726
  */
 namespace ThemeColors {
 
-    /**
-     * @brief Light 主题颜色 (标准语义化 Token)
-     */
+    // -------------------------------------------------------------------------
+    // Light 主题
+    // -------------------------------------------------------------------------
     namespace Light {
-        // --- Fill Colors (填充色) ---
+
+        // --- Fill Colors ---
         namespace Fill {
-            // Accent (强调色，如按钮背景)
-            const QColor AccentDefault = QColor("#005FB8");
-            const QColor AccentSecondary = QColor("#005FB8").lighter(110); // 90% opacity 效果
-            const QColor AccentTertiary = QColor("#005FB8").lighter(120);  // 80% opacity 效果
-            const QColor AccentDisabled = QColor(0, 0, 0, 54);           // 21% opacity black
+            // Accent（强调色）— Figma MCP 实测
+            const QColor AccentDefault   = QColor("#005FB8");        // Figma 实测值
+            const QColor AccentSecondary = QColor(0, 95, 184, 230);  // ~90% opacity
+            const QColor AccentTertiary  = QColor(0, 95, 184, 204);  // ~80% opacity
+            const QColor AccentDisabled  = QColor(0, 0, 0, 37);      // ~15% black
 
-            // Control (控件背景，如输入框、次要按钮)
-            const QColor ControlDefault = QColor("#FFFFFF");
-            const QColor ControlSecondary = QColor("#F9F9F9");
-            const QColor ControlTertiary = QColor("#F3F3F3");
-            const QColor ControlDisabled = QColor("#F3F3F3");
-            
-            // Control Alt (用于交替背景)
-            const QColor ControlAltSecondary = QColor(0, 0, 0, 5);      // 2% opacity black
-            const QColor ControlAltTertiary = QColor(0, 0, 0, 15);      // 6% opacity black
-            
-            // Subtle (透明/悬停态)
+            // Control（控件背景）
+            const QColor ControlDefault    = QColor("#FFFFFF");
+            const QColor ControlSecondary  = QColor(249, 249, 249, 242); // 95%
+            const QColor ControlTertiary   = QColor(249, 249, 249, 204); // 80%
+            const QColor ControlDisabled   = QColor(249, 249, 249, 77);  // 30%
+
+            // Control Alt（交替背景）
+            const QColor ControlAltTransparent = QColor(255, 255, 255, 0);
+            const QColor ControlAltSecondary   = QColor(0, 0, 0, 5);    // ~2%
+            const QColor ControlAltTertiary    = QColor(0, 0, 0, 15);   // ~6%
+            const QColor ControlAltQuarternary = QColor(0, 0, 0, 31);   // ~12%
+
+            // Subtle（悬停/按下）
             const QColor SubtleTransparent = QColor(0, 0, 0, 0);
-            const QColor SubtleSecondary = QColor(0, 0, 0, 9);         // Hover
-            const QColor SubtleTertiary = QColor(0, 0, 0, 15);         // Pressed
+            const QColor SubtleSecondary   = QColor(0, 0, 0, 9);        // Hover
+            const QColor SubtleTertiary    = QColor(0, 0, 0, 6);        // Drag over
+            const QColor SubtleDisabled    = QColor(0, 0, 0, 0);
         }
 
-        // --- Stroke Colors (描边/边框) ---
+        // --- Stroke Colors ---
         namespace Stroke {
-            const QColor ControlDefault = QColor(0, 0, 0, 15);         // 6% black
-            const QColor ControlSecondary = QColor(0, 0, 0, 41);       // 16% black
-            const QColor ControlStrong = QColor(0, 0, 0, 112);        // 44% black
-            const QColor CardDefault = QColor(0, 0, 0, 13);            // 5% black
-            const QColor DividerDefault = QColor(0, 0, 0, 20);         // 8% black
-            const QColor SurfaceDefault = QColor("#757575");
+            const QColor ControlDefault    = QColor(0, 0, 0, 12);    // ~5% black  ← 原 15，已修正
+            const QColor ControlSecondary  = QColor(0, 0, 0, 41);    // ~16% black
+            const QColor ControlStrong     = QColor(0, 0, 0, 112);   // ~44% black
+            const QColor ControlOnImage    = QColor(28, 28, 28, 196);
+            const QColor CardDefault       = QColor(0, 0, 0, 13);    // ~5% black
+            const QColor DividerDefault    = QColor(0, 0, 0, 20);    // ~8% black
+            const QColor SurfaceDefault    = QColor("#757575");
+            const QColor FocusOuter        = QColor(0, 0, 0, 230);   // 外层焦点环
+            const QColor FocusInner        = QColor("#FFFFFF");       // 内层焦点环
         }
 
-        // --- Text Colors (文本) ---
+        // --- Text Colors ---
         namespace Text {
-            const QColor Primary = QColor(0, 0, 0, 230);               // 90% black
-            const QColor Secondary = QColor(0, 0, 0, 154);             // 60% black
-            const QColor Tertiary = QColor(0, 0, 0, 112);              // 44% black
-            const QColor Disabled = QColor(0, 0, 0, 92);               // 36% black
-            const QColor OnAccentPrimary = QColor("#FFFFFF");          // 强调色上的文本
+            const QColor Primary        = QColor(0, 0, 0, 230);   // ~90%
+            const QColor Secondary      = QColor(0, 0, 0, 154);   // ~60%
+            const QColor Tertiary       = QColor(0, 0, 0, 112);   // ~44%
+            const QColor Disabled       = QColor(0, 0, 0, 92);    // ~36%
+            const QColor OnAccentPrimary   = QColor("#FFFFFF");
+            const QColor OnAccentSecondary = QColor(255, 255, 255, 204);
+            const QColor OnAccentTertiary  = QColor(255, 255, 255, 179);
+            const QColor OnAccentDisabled  = QColor(255, 255, 255, 128);
+            // Figma MCP 实测：强调色上的文字（深色链接）
+            const QColor AccentPrimary  = QColor("#003E92");
         }
 
-        // --- Backgrounds (页面背景) ---
-        const QColor BackgroundCanvas = QColor("#F3F3F3");
-        const QColor BackgroundLayer = QColor("#FFFFFF");
-        const QColor BackgroundSolid = QColor("#EEEEEE");
-        
-        // --- 中性色阶 (Neutral / Grey) ---
-        const QColor Grey10 = QColor("#FAF9F8");
-        const QColor Grey20 = QColor("#F3F2F1");
-        const QColor Grey30 = QColor("#EDEBE9");
-        const QColor Grey40 = QColor("#E1DFDD");
-        const QColor Grey50 = QColor("#D2D0CE");
-        const QColor Grey60 = QColor("#C8C6C4");
-        const QColor Grey90 = QColor("#A19F9D");
-        const QColor Grey130 = QColor("#605E5C");
-        const QColor Grey160 = QColor("#323130");
-        const QColor Grey190 = QColor("#201F1E");
+        // --- System / Semantic Colors（Figma MCP 实测）---
+        namespace System {
+            const QColor Critical           = QColor("#C42B1C");
+            const QColor CriticalBackground = QColor("#FDE7E9");
+            // 其余语义色（参考 WinUI3，Figma 当前 node 未导出）
+            const QColor Caution            = QColor("#9D5D00");
+            const QColor CautionBackground  = QColor("#FFF4CE");
+            const QColor Informational      = QColor("#015CDA");
+            const QColor InfoBackground     = QColor("#F6F6F6");
+            const QColor Success            = QColor("#0F7B0F");
+            const QColor SuccessBackground  = QColor("#DFF6DD");
+        }
 
-        // --- 图表色 (Charts - Guidance & Charts 页面) ---
+        // --- Backgrounds ---
+        const QColor BackgroundCanvas     = QColor("#F3F3F3");
+        const QColor BackgroundLayer      = QColor("#FFFFFF");
+        const QColor BackgroundLayerAlt   = QColor("#F9F9F9");
+        const QColor BackgroundSolid      = QColor("#EEEEEE");
+
+        // --- 中性灰阶 (Neutral Palette) ---
+        const QColor Grey10  = QColor("#FAF9F8");
+        const QColor Grey20  = QColor("#F3F2F1");
+        const QColor Grey30  = QColor("#EDEBE9");
+        const QColor Grey40  = QColor("#E1DFDD");
+        const QColor Grey50  = QColor("#D2D0CE");
+        const QColor Grey60  = QColor("#C8C6C4");
+        const QColor Grey80  = QColor("#B3B0AD");
+        const QColor Grey90  = QColor("#A19F9D");
+        const QColor Grey100 = QColor("#979593");
+        const QColor Grey110 = QColor("#8A8886");
+        const QColor Grey120 = QColor("#797775");
+        const QColor Grey130 = QColor("#605E5C");
+        const QColor Grey140 = QColor("#484644");
+        const QColor Grey150 = QColor("#3B3A39");
+        const QColor Grey160 = QColor("#323130");
+        const QColor Grey170 = QColor("#292827");
+        const QColor Grey180 = QColor("#252423");
+        const QColor Grey190 = QColor("#201F1E");
+        const QColor Grey200 = QColor("#11100F");
+
+        // --- 图表色 (Guidance & Charts 页面) ---
         const std::vector<QColor> Charts = {
-            QColor("#005FB8"), QColor("#00BCF2"), QColor("#2B88D8"), 
+            QColor("#005FB8"), QColor("#00BCF2"), QColor("#2B88D8"),
             QColor("#004B50"), QColor("#00AD56"), QColor("#007833"),
             QColor("#881798"), QColor("#B4009E"), QColor("#E3008C"),
             QColor("#D83B01"), QColor("#EA4300"), QColor("#FF8C00")
         };
     }
 
-    /**
-     * @brief Dark 主题颜色 (标准语义化 Token)
-     */
+    // -------------------------------------------------------------------------
+    // Dark 主题
+    // -------------------------------------------------------------------------
     namespace Dark {
-        // --- Fill Colors (填充色) ---
+
+        // --- Fill Colors ---
         namespace Fill {
-            const QColor AccentDefault = QColor("#60CDFF");
-            const QColor AccentSecondary = QColor("#60CDFF").darker(110);
-            const QColor AccentTertiary = QColor("#60CDFF").darker(120);
-            const QColor AccentDisabled = QColor(255, 255, 255, 40);
+            const QColor AccentDefault   = QColor("#60CDFF");
+            const QColor AccentSecondary = QColor(96, 205, 255, 230);  // ~90%
+            const QColor AccentTertiary  = QColor(96, 205, 255, 204);  // ~80%
+            const QColor AccentDisabled  = QColor(255, 255, 255, 37);  // ~15%
 
-            const QColor ControlDefault = QColor(255, 255, 255, 15);
-            const QColor ControlSecondary = QColor(255, 255, 255, 20);
-            const QColor ControlTertiary = QColor(255, 255, 255, 10);
-            const QColor ControlDisabled = QColor(255, 255, 255, 10);
-            
-            // Control Alt (用于交替背景)
-            const QColor ControlAltSecondary = QColor(255, 255, 255, 15);
-            const QColor ControlAltTertiary = QColor(255, 255, 255, 20);
-            
+            const QColor ControlDefault    = QColor(255, 255, 255, 15);  // ~6%
+            const QColor ControlSecondary  = QColor(255, 255, 255, 23);  // ~9%
+            const QColor ControlTertiary   = QColor(255, 255, 255, 10);  // ~4%
+            const QColor ControlDisabled   = QColor(255, 255, 255, 6);   // ~2.5%
+
+            const QColor ControlAltTransparent = QColor(255, 255, 255, 0);
+            const QColor ControlAltSecondary   = QColor(255, 255, 255, 15);
+            const QColor ControlAltTertiary    = QColor(255, 255, 255, 20);
+            const QColor ControlAltQuarternary = QColor(255, 255, 255, 30);
+
             const QColor SubtleTransparent = QColor(255, 255, 255, 0);
-            const QColor SubtleSecondary = QColor(255, 255, 255, 15);   // Hover
-            const QColor SubtleTertiary = QColor(255, 255, 255, 20);    // Pressed
+            const QColor SubtleSecondary   = QColor(255, 255, 255, 15); // Hover
+            const QColor SubtleTertiary    = QColor(255, 255, 255, 10); // Drag over
+            const QColor SubtleDisabled    = QColor(255, 255, 255, 0);
         }
 
-        // --- Stroke Colors (描边/边框) ---
+        // --- Stroke Colors ---
         namespace Stroke {
-            const QColor ControlDefault = QColor(255, 255, 255, 17);    // 7% white
-            const QColor ControlSecondary = QColor(255, 255, 255, 23);  // 9% white
-            const QColor ControlStrong = QColor(255, 255, 255, 138);   // 54% white
-            const QColor CardDefault = QColor(255, 255, 255, 10);      // 4% white
-            const QColor DividerDefault = QColor(255, 255, 255, 20);    // 8% white
-            const QColor SurfaceDefault = QColor(255, 255, 255, 30);    // 12% white
+            const QColor ControlDefault   = QColor(255, 255, 255, 17);  // ~7%
+            const QColor ControlSecondary = QColor(255, 255, 255, 23);  // ~9%
+            const QColor ControlStrong    = QColor(255, 255, 255, 138); // ~54%
+            const QColor ControlOnImage   = QColor(255, 255, 255, 26);
+            const QColor CardDefault      = QColor(255, 255, 255, 10);  // ~4%
+            const QColor DividerDefault   = QColor(255, 255, 255, 20);  // ~8%
+            const QColor SurfaceDefault   = QColor(255, 255, 255, 30);  // ~12%
+            const QColor FocusOuter       = QColor(255, 255, 255, 230);
+            const QColor FocusInner       = QColor(0, 0, 0, 230);
         }
 
-        // --- Text Colors (文本) ---
+        // --- Text Colors ---
         namespace Text {
-            const QColor Primary = QColor("#FFFFFF");
-            const QColor Secondary = QColor(255, 255, 255, 200);        // 78% white
-            const QColor Tertiary = QColor(255, 255, 255, 138);         // 54% white
-            const QColor Disabled = QColor(255, 255, 255, 92);          // 36% white
-            const QColor OnAccentPrimary = QColor("#000000");
+            const QColor Primary           = QColor("#FFFFFF");
+            const QColor Secondary         = QColor(255, 255, 255, 199); // ~78%
+            const QColor Tertiary          = QColor(255, 255, 255, 138); // ~54%
+            const QColor Disabled          = QColor(255, 255, 255, 92);  // ~36%
+            const QColor OnAccentPrimary   = QColor("#000000");
+            const QColor OnAccentSecondary = QColor(0, 0, 0, 128);
+            const QColor OnAccentTertiary  = QColor(0, 0, 0, 77);
+            const QColor OnAccentDisabled  = QColor(0, 0, 0, 128);
+            // Figma MCP 实测：Dark 主题强调色文字
+            const QColor AccentPrimary     = QColor("#99EBFF");
         }
 
-        // --- Backgrounds (页面背景) ---
-        const QColor BackgroundCanvas = QColor("#202020");
-        const QColor BackgroundLayer = QColor("#2D2D2D");
-        const QColor BackgroundSolid = QColor("#1C1C1C");
+        // --- System / Semantic Colors（Figma MCP 实测）---
+        namespace System {
+            const QColor Critical           = QColor("#FF99A4");
+            const QColor CriticalBackground = QColor("#442726");
+            const QColor Caution            = QColor("#FCE100");
+            const QColor CautionBackground  = QColor("#433519");
+            const QColor Informational      = QColor("#60CDFF");
+            const QColor InfoBackground     = QColor("#1F3150");
+            const QColor Success            = QColor("#6CCB5F");
+            const QColor SuccessBackground  = QColor("#1E3C1F");
+        }
 
-        // --- 中性色阶 (Neutral / Grey) ---
-        const QColor Grey10 = QColor("#201F1E");
-        const QColor Grey20 = QColor("#252423");
-        const QColor Grey30 = QColor("#292827");
-        const QColor Grey40 = QColor("#323130");
-        const QColor Grey50 = QColor("#3B3A39");
-        const QColor Grey60 = QColor("#484644");
-        const QColor Grey90 = QColor("#8A8886");
-        const QColor Grey130 = QColor("#C8C6C4");
-        const QColor Grey160 = QColor("#F3F2F1");
-        const QColor Grey190 = QColor("#FAF9F8");
+        // --- Backgrounds（Figma MCP 实测：#202020）---
+        const QColor BackgroundCanvas   = QColor("#202020");  // Figma: Dark/Background/Solid Background/Base
+        const QColor BackgroundLayer    = QColor("#2C2C2C");
+        const QColor BackgroundLayerAlt = QColor("#3D3D3D");
+        const QColor BackgroundSolid    = QColor("#1C1C1C");
 
-        // --- 图表色 (Charts - Guidance & Charts 页面) ---
+        // --- 中性灰阶（Dark 下灰阶方向反转）---
+        const QColor Grey10  = QColor("#FAF9F8");
+        const QColor Grey20  = QColor("#F3F2F1");
+        const QColor Grey30  = QColor("#EDEBE9");
+        const QColor Grey40  = QColor("#E1DFDD");
+        const QColor Grey50  = QColor("#D2D0CE");
+        const QColor Grey60  = QColor("#C8C6C4");
+        const QColor Grey90  = QColor("#A19F9D");
+        const QColor Grey130 = QColor("#605E5C");
+        const QColor Grey160 = QColor("#323130");
+        const QColor Grey190 = QColor("#201F1E");
+
+        // --- 图表色 ---
         const std::vector<QColor> Charts = {
             QColor("#60CDFF"), QColor("#00BCF2"), QColor("#2B88D8"),
             QColor("#00AD56"), QColor("#107C10"), QColor("#004B50"),
             QColor("#FF8C00"), QColor("#F7630C"), QColor("#EA4300"),
             QColor("#E3008C"), QColor("#BF0077"), QColor("#C239B3")
         };
+    }
+
+    // -------------------------------------------------------------------------
+    // Contrast 高对比度主题（Figma Color Styles 面板第三组）
+    // -------------------------------------------------------------------------
+    namespace Contrast {
+
+        namespace Fill {
+            const QColor AccentDefault  = QColor("#1AEBFF");  // 高对比 Accent
+            const QColor AccentSelected = QColor("#000000");
+            const QColor ControlDefault = QColor("#000000");
+            const QColor ControlFocus   = QColor("#000000");
+            const QColor ButtonText     = QColor("#FFFFFF");
+        }
+
+        namespace Stroke {
+            const QColor ControlDefault  = QColor("#FFFFFF");
+            const QColor ControlFocused  = QColor("#1AEBFF");
+            const QColor ButtonBorder    = QColor("#FFFFFF");
+        }
+
+        namespace Text {
+            const QColor Primary     = QColor("#FFFFFF");
+            const QColor Secondary   = QColor("#FFFFFF");
+            const QColor Disabled    = QColor("#3FF23F");  // 高对比度禁用文字使用绿色
+            const QColor OnAccent    = QColor("#000000");
+            const QColor Hyperlink   = QColor("#FFFF00");
+        }
+
+        const QColor BackgroundCanvas = QColor("#000000");
+        const QColor BackgroundLayer  = QColor("#000000");
     }
 }
 

@@ -74,12 +74,12 @@ TEST_F(PlainTextEditTest, FluentPropertiesDefaultsAndSetters) {
 
     // 默认值应与 Spacing / Typography 常量一致
     EXPECT_EQ(edit->contentMargins(),
-              QMargins(Spacing::Padding::TextFieldHorizontal, 0,
-                       Spacing::Padding::TextFieldHorizontal, 0));
+              QMargins(Spacing::Padding::TextFieldHorizontal, Spacing::Padding::TextFieldVertical,
+                       Spacing::Padding::TextFieldHorizontal, Spacing::Padding::TextFieldVertical));
     EXPECT_EQ(edit->fontRole(), Typography::FontRole::Body);
     EXPECT_EQ(edit->focusedBorderWidth(),   Spacing::Border::Focused);
     EXPECT_EQ(edit->unfocusedBorderWidth(), Spacing::Border::Normal);
-    EXPECT_EQ(edit->lineHeight(),     Spacing::XLarge);
+    EXPECT_EQ(edit->lineHeight(), Spacing::ControlHeight::Standard);
     EXPECT_EQ(edit->minVisibleLines(), 1);
     EXPECT_EQ(edit->maxVisibleLines(), 4);
 
@@ -123,16 +123,15 @@ TEST_F(PlainTextEditTest, MinVisibleLinesClampsBelowContent) {
     edit->setMinVisibleLines(2);
     edit->setMaxVisibleLines(4);
 
-    // 空文档时高度 = minVisibleLines * lineHeight
-    EXPECT_EQ(edit->height(), 2 * 32);
+    // 高度 = lines * lineHeight + top + bottom padding
+    const int vPad = Spacing::Padding::TextFieldVertical * 2;
+    EXPECT_EQ(edit->height(), 2 * 32 + vPad);
 
-    // 写入 3 行：高度应扩展到 3 行
     edit->setPlainText("A\nB\nC");
-    EXPECT_EQ(edit->height(), 3 * 32);
+    EXPECT_EQ(edit->height(), 3 * 32 + vPad);
 
-    // 清空后应回到 minVisibleLines 高度
     edit->clear();
-    EXPECT_EQ(edit->height(), 2 * 32);
+    EXPECT_EQ(edit->height(), 2 * 32 + vPad);
 }
 
 TEST_F(PlainTextEditTest, MaxVisibleLinesClampsAboveContent) {
@@ -142,8 +141,9 @@ TEST_F(PlainTextEditTest, MaxVisibleLinesClampsAboveContent) {
     edit->setMaxVisibleLines(3);
 
     // 写入超过 3 行：高度固定在 maxVisibleLines
+    const int vPad = Spacing::Padding::TextFieldVertical * 2;
     edit->setPlainText("A\nB\nC\nD\nE");
-    EXPECT_EQ(edit->height(), 3 * 32);
+    EXPECT_EQ(edit->height(), 3 * 32 + vPad);
 }
 
 TEST_F(PlainTextEditTest, ReadOnly) {

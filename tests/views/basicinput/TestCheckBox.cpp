@@ -37,12 +37,12 @@ protected:
 
     void SetUp() override {
         window = new CheckBoxTestWindow();
-        window->setFixedSize(600, 900);
+        window->setFixedSize(600, 750);
         window->setWindowTitle("Fluent CheckBox Visual Test");
 
         auto* layout = new QVBoxLayout(window);
         layout->setContentsMargins(40, 40, 40, 40);
-        layout->setSpacing(20);
+        layout->setSpacing(10);
 
         // 1. Basic 2-state CheckBox
         layout->addWidget(new QLabel("1. A 2-state CheckBox:", window));

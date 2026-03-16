@@ -1,138 +1,90 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include <QString>
 #include <QColor>
 
 /**
- * @brief Material - Windows UI Kit 材质系统
- * 包括 Acrylic（透明）、Mica（非透明）、Smoke（模态背景）等材质效果
+ * Material - Fluent Design 材质系统参数。
+ *
+ * 每种材质以结构体形式暴露纯数据，不包含任何渲染逻辑。
+ * 调用方根据自身渲染方式（QPainter / QSS / QGraphicsEffect 等）自行决定如何使用这些参数。
+ *
+ *   Acrylic — 毛玻璃透明材质：tintColor + tintOpacity 组成覆盖层，luminosityOpacity 提供亮度层
+ *   Mica    — 云母非透明材质：较高 opacity 的单色填充，呈半透明实心感
+ *   Smoke   — 模态遮罩背景：黑色半透明，用于遮罩下层内容
  */
 namespace Material {
-    /**
-     * @brief 材质类型
-     */
-    enum Type {
-        Acrylic,    // 透明材质（毛玻璃效果）
-        Mica,       // 非透明材质（云母效果）
-        Smoke       // 模态背景（烟雾效果）
+
+    // -------------------------------------------------------------------------
+    // 数据结构
+    // -------------------------------------------------------------------------
+
+    struct AcrylicToken {
+        QColor tintColor;           // Tint 叠加色
+        double tintOpacity;         // Tint 层透明度 [0, 1]
+        double luminosityOpacity;   // Luminosity 层透明度 [0, 1]
+        int    blurRadius;          // 背景模糊半径（需 QGraphicsBlurEffect 或平台 API 实现）
     };
 
-    /**
-     * @brief Acrylic 材质参数
-     * 透明材质，具有毛玻璃模糊效果
-     */
-    namespace AcrylicParams {
-        // Light 主题
-        namespace Light {
-            const double TintOpacity = 0.8;        // 色调不透明度
-            const double LuminosityOpacity = 0.6;  // 亮度不透明度
-            const int BlurRadius = 30;             // 模糊半径
-            const QColor TintColor = QColor(243, 242, 241); // 浅色色调
-        }
+    struct MicaToken {
+        QColor baseColor;           // 材质基础色
+        double opacity;             // 整体透明度 [0, 1]
+    };
 
-        // Dark 主题
-        namespace Dark {
-            const double TintOpacity = 0.8;
-            const double LuminosityOpacity = 0.6;
-            const int BlurRadius = 30;
-            const QColor TintColor = QColor(32, 32, 32);    // 深色色调
-        }
+    struct SmokeToken {
+        QColor baseColor;           // 遮罩色（通常为黑色）
+        double opacity;             // 整体透明度 [0, 1]
+    };
 
-        /**
-         * @brief 获取 Acrylic 样式表
-         * 注意：Qt 的 QSS 对背景模糊支持有限，可能需要使用 QGraphicsBlurEffect
-         */
-        inline QString getStyleSheet(bool isDark = false) {
-            if (isDark) {
-                return QString("background-color: rgba(%1, %2, %3, %4);")
-                    .arg(Dark::TintColor.red())
-                    .arg(Dark::TintColor.green())
-                    .arg(Dark::TintColor.blue())
-                    .arg(static_cast<int>(Dark::TintOpacity * 255));
-            } else {
-                return QString("background-color: rgba(%1, %2, %3, %4);")
-                    .arg(Light::TintColor.red())
-                    .arg(Light::TintColor.green())
-                    .arg(Light::TintColor.blue())
-                    .arg(static_cast<int>(Light::TintOpacity * 255));
-            }
+    // -------------------------------------------------------------------------
+    // Acrylic 参数
+    // -------------------------------------------------------------------------
+    namespace Acrylic {
+        inline AcrylicToken light() {
+            return { QColor(252, 252, 252), 0.60, 0.22, 30 };
+        }
+        inline AcrylicToken dark() {
+            return { QColor(44, 44, 44), 0.65, 0.16, 30 };
+        }
+        inline AcrylicToken get(bool isDark) {
+            return isDark ? dark() : light();
         }
     }
 
-    /**
-     * @brief Mica 材质参数
-     * 非透明材质，具有云母纹理效果
-     */
-    namespace MicaParams {
-        // Light 主题
-        namespace Light {
-            const QColor BaseColor = QColor(243, 242, 241);  // 基础颜色
-            const double Opacity = 0.9;                      // 不透明度
+    // -------------------------------------------------------------------------
+    // Mica 参数
+    // -------------------------------------------------------------------------
+    namespace Mica {
+        inline MicaToken light() {
+            return { QColor(243, 242, 241), 0.90 };
         }
-
-        // Dark 主题
-        namespace Dark {
-            const QColor BaseColor = QColor(32, 32, 32);
-            const double Opacity = 0.9;
+        inline MicaToken dark() {
+            return { QColor(32, 32, 32), 0.90 };
         }
-
-        /**
-         * @brief 获取 Mica 样式表
-         */
-        inline QString getStyleSheet(bool isDark = false) {
-            if (isDark) {
-                return QString("background-color: rgba(%1, %2, %3, %4);")
-                    .arg(Dark::BaseColor.red())
-                    .arg(Dark::BaseColor.green())
-                    .arg(Dark::BaseColor.blue())
-                    .arg(static_cast<int>(Dark::Opacity * 255));
-            } else {
-                return QString("background-color: rgba(%1, %2, %3, %4);")
-                    .arg(Light::BaseColor.red())
-                    .arg(Light::BaseColor.green())
-                    .arg(Light::BaseColor.blue())
-                    .arg(static_cast<int>(Light::Opacity * 255));
-            }
+        inline MicaToken get(bool isDark) {
+            return isDark ? dark() : light();
         }
     }
 
-    /**
-     * @brief Smoke 材质参数
-     * 模态背景，用于对话框、弹窗等场景
-     */
-    namespace SmokeParams {
-        // Light 主题
-        namespace Light {
-            const QColor BaseColor = QColor(0, 0, 0);         // 黑色基础
-            const double Opacity = 0.4;                        // 40% 不透明度
+    // -------------------------------------------------------------------------
+    // Smoke 参数
+    // -------------------------------------------------------------------------
+    namespace Smoke {
+        inline SmokeToken light() {
+            return { QColor(0, 0, 0), 0.40 };
         }
-
-        // Dark 主题
-        namespace Dark {
-            const QColor BaseColor = QColor(0, 0, 0);
-            const double Opacity = 0.6;                        // 60% 不透明度（暗色主题需要更高）
+        inline SmokeToken dark() {
+            return { QColor(0, 0, 0), 0.60 };
         }
-
-        /**
-         * @brief 获取 Smoke 样式表
-         */
-        inline QString getStyleSheet(bool isDark = false) {
-            if (isDark) {
-                return QString("background-color: rgba(%1, %2, %3, %4);")
-                    .arg(Dark::BaseColor.red())
-                    .arg(Dark::BaseColor.green())
-                    .arg(Dark::BaseColor.blue())
-                    .arg(static_cast<int>(Dark::Opacity * 255));
-            } else {
-                return QString("background-color: rgba(%1, %2, %3, %4);")
-                    .arg(Light::BaseColor.red())
-                    .arg(Light::BaseColor.green())
-                    .arg(Light::BaseColor.blue())
-                    .arg(static_cast<int>(Light::Opacity * 255));
-            }
+        inline SmokeToken get(bool isDark) {
+            return isDark ? dark() : light();
         }
     }
+
+    // -------------------------------------------------------------------------
+    // 材质类型枚举（用于接口统一访问）
+    // -------------------------------------------------------------------------
+    enum class Type { Acrylic, Mica, Smoke };
 }
 
 #endif // MATERIAL_H

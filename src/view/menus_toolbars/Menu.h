@@ -20,10 +20,21 @@ namespace view::menus_toolbars {
  */
 class FluentMenuItem : public QWidgetAction, public FluentElement, public view::QMLPlus {
     Q_OBJECT
+    Q_PROPERTY(QString fontStyle READ fontStyle WRITE setFontStyle NOTIFY fontStyleChanged)
 public:
     explicit FluentMenuItem(const QString& text, QObject* parent = nullptr);
 
+    /** @brief 设置菜单项的字体样式，对应 themeFont() 的 style 参数，默认 "Body"。 */
+    void setFontStyle(const QString& style);
+    QString fontStyle() const { return m_fontStyle; }
+
     void onThemeUpdated() override;
+
+signals:
+    void fontStyleChanged();
+
+private:
+    QString m_fontStyle = QStringLiteral("Body");
 };
 
 /**
@@ -33,10 +44,18 @@ public:
  */
 class FluentMenu : public QMenu, public FluentElement, public view::QMLPlus {
     Q_OBJECT
+    Q_PROPERTY(QString fontStyle READ fontStyle WRITE setFontStyle NOTIFY fontStyleChanged)
 public:
     explicit FluentMenu(const QString& title, QWidget* parent = nullptr);
 
+    /** @brief 设置菜单的字体样式，对应 themeFont() 的 style 参数，默认 "Body"。 */
+    void setFontStyle(const QString& style);
+    QString fontStyle() const { return m_fontStyle; }
+
     void onThemeUpdated() override;
+
+signals:
+    void fontStyleChanged();
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -47,6 +66,8 @@ private:
 
     // 与 drawShadow 扩散范围一致，略留余量自然淡出
     const int m_shadowSize = ::Spacing::Standard;
+
+    QString m_fontStyle = QStringLiteral("Body");
 };
 
 } // namespace view::menus_toolbars

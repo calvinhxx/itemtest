@@ -2,78 +2,67 @@
 #define SPACING_H
 
 /**
- * @brief Spacing - Windows UI Kit 间距系统
- * 提供标准化的间距值，确保 UI 元素之间的一致性
+ * Spacing - Fluent Design 间距系统
+ *
+ * 基于 4px 网格，对齐 Windows UI Kit (Community) Basic Input 规范。
  */
 namespace Spacing {
-    /**
-     * @brief 基础间距单位（4px 网格系统）
-     */
+
+    // -------------------------------------------------------------------------
+    // 基础间距阶梯（4px 网格）
+    // -------------------------------------------------------------------------
     const int BaseUnit = 4;
 
-    /**
-     * @brief 极小间距
-     */
-    const int XSmall = 4;   // 1x base unit
+    const int XSmall   =  4;   // 1×
+    const int Small    =  8;   // 2×
+    const int Medium   = 12;   // 3×
+    const int Standard = 16;   // 4×
+    const int Large    = 24;   // 6×
+    const int XLarge   = 32;   // 8×
+    const int XXLarge  = 48;   // 12×
 
-    /**
-     * @brief 小间距
-     */
-    const int Small = 8;    // 2x base unit
-
-    /**
-     * @brief 中等间距
-     */
-    const int Medium = 12;  // 3x base unit
-
-    /**
-     * @brief 标准间距
-     */
-    const int Standard = 16; // 4x base unit
-
-    /**
-     * @brief 大间距
-     */
-    const int Large = 24;    // 6x base unit
-
-    /**
-     * @brief 超大间距
-     */
-    const int XLarge = 32;   // 8x base unit
-
-    /**
-     * @brief 极大间距
-     */
-    const int XXLarge = 48;  // 12x base unit
-
-    /**
-     * @brief 组件内边距规范
-     */
+    // -------------------------------------------------------------------------
+    // 组件内边距（Padding）
+    // -------------------------------------------------------------------------
     namespace Padding {
-        const int ControlHorizontal   = 12; // 控件通用水平内边距
-        const int ControlVertical     = 6;  // 控件通用垂直内边距
-        const int TextFieldHorizontal = 6;  // 文本框水平内边距（内容区域）
+        const int ControlHorizontal  = 12;  // 通用控件左右（Button、ComboBox）
+        const int ControlVertical    =  8;  // 通用控件上下
 
-        const int Card   = 16; // 卡片内边距
-        const int Dialog = 24; // 对话框内边距
+        const int TextFieldHorizontal = 8;  // 输入框内容区左右
+        const int TextFieldVertical   = 4;  // 输入框内容区上下
+
+        const int Card   = 16;  // 卡片
+        const int Dialog = 24;  // 对话框
+
+        const int ListItemHorizontal = 12;  // 列表项左右
+        const int ListItemVertical   =  8;  // 列表项上下
     }
 
-    /**
-     * @brief 边框/描边宽度规范
-     */
+    // -------------------------------------------------------------------------
+    // 描边宽度
+    // -------------------------------------------------------------------------
     namespace Border {
-        const int Normal  = 1; // 默认（未聚焦）边框宽度
-        const int Focused = 2; // 聚焦时底部高亮条宽度
+        const int Normal  = 1;  // 默认状态
+        const int Focused = 2;  // 聚焦高亮条
     }
 
-    /**
-     * @brief 组件间距规范
-     */
+    // -------------------------------------------------------------------------
+    // 组件间距（Gap）
+    // -------------------------------------------------------------------------
     namespace Gap {
-        const int Tight = 4;      // 紧密间距
-        const int Normal = 8;     // 正常间距
-        const int Loose = 16;      // 宽松间距
-        const int Section = 24;    // 区块间距
+        const int Tight   =  4;  // 图标与文字之间
+        const int Normal  =  8;  // 同组控件之间
+        const int Loose   = 16;  // 不同组控件之间
+        const int Section = 24;  // 区块之间
+    }
+
+    // -------------------------------------------------------------------------
+    // 标准控件高度
+    // -------------------------------------------------------------------------
+    namespace ControlHeight {
+        const int Small    = 24;  // 紧凑布局
+        const int Standard = 32;  // 默认（TextBox、Button）
+        const int Large    = 40;  // 宽松布局
     }
 }
 

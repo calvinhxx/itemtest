@@ -506,7 +506,7 @@ private:
         add(Typography::Icons::Brightness, "Brightness");
         add(Typography::Icons::History, "History");
         add(Typography::Icons::Warning, "Warning");
-        add(Typography::Icons::Error, "Error");
+        add(Typography::Icons::ErrorIcon, "ErrorIcon");
         add(Typography::Icons::Success, "Success");
         add(Typography::Icons::HeartFill, "HeartFill");
         add(Typography::Icons::Lock, "Lock");

@@ -162,8 +162,10 @@ void SplitButton::paintEvent(QPaintEvent*) {
     // 6. 绘制主内容 (Text/Icon)
     painter.setPen(textColor);
     painter.setFont(font());
-    double pressOffset = (m_pressPart == Primary) ? 0.5 : 0;
-    
+    // 两侧独立计算下沉偏移，模拟各自的点击触感
+    const double primaryOffset   = (m_pressPart == Primary)   ? 0.5 : 0.0;
+    const double secondaryOffset = (m_pressPart == Secondary) ? 0.5 : 0.0;
+
     QString txt = (fluentLayout() == IconOnly) ? "" : text();
     bool hasIconFont = !iconGlyph().isEmpty();
     int gap = (fluentSize() == Small) ? spacing.gap.tight : spacing.gap.normal;
@@ -180,22 +182,22 @@ void SplitButton::paintEvent(QPaintEvent*) {
         QFont iconFont(iconFontFamily());
         iconFont.setPixelSize(iconPixelSize());
         painter.setFont(iconFont);
-        QRectF iconRect(startX, primaryRect.top() + pressOffset, iconWidth, primaryRect.height());
+        QRectF iconRect(startX, primaryRect.top() + primaryOffset, iconWidth, primaryRect.height());
         painter.drawText(iconRect, Qt::AlignCenter, iconGlyph());
         painter.setFont(font());
         startX += iconWidth + gap;
     }
     
     if (!txt.isEmpty()) {
-        QRectF textRect(startX, primaryRect.top() + pressOffset, txtWidth, primaryRect.height());
+        QRectF textRect(startX, primaryRect.top() + primaryOffset, txtWidth, primaryRect.height());
         painter.drawText(textRect, Qt::AlignCenter, txt);
     }
 
-    // 7. 绘制 Chevron (下拉箭头)
+    // 7. 绘制 Chevron (下拉箭头)，按下时同样下沉 0.5px
     QFont iconFont(Typography::FontFamily::SegoeFluentIcons);
     iconFont.setPixelSize(chevronSize);
     painter.setFont(iconFont);
-    painter.drawText(secondaryRect.translated(0, (m_pressPart == Secondary) ? pressOffset : 0), 
+    painter.drawText(secondaryRect.translated(0, secondaryOffset),
                      Qt::AlignCenter, Typography::Icons::ChevronDown);
 
     // 8. 焦点框

@@ -98,8 +98,10 @@ private:
     void updateClearButtonVisibility();
     void updateClearButtonGeometry();
 
-    QMargins m_contentMargins  = QMargins(::Spacing::Padding::TextFieldHorizontal, 0,
-                                          ::Spacing::Padding::TextFieldHorizontal, 0);
+    QMargins m_contentMargins  = QMargins(::Spacing::Padding::TextFieldHorizontal,
+                                          ::Spacing::Padding::TextFieldVertical,
+                                          ::Spacing::Padding::TextFieldHorizontal,
+                                          ::Spacing::Padding::TextFieldVertical);
     QString  m_fontRole        = Typography::FontRole::Body;
     ::view::basicinput::Button* m_clearButton = nullptr;
     bool     m_clearButtonEnabled = true;

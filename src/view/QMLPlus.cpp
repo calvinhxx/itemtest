@@ -1,4 +1,5 @@
 #include "QMLPlus.h"
+#include "FluentElement.h"
 #include <QWidgetItem>
 #include <QDebug>
 
@@ -71,6 +72,26 @@ int AnchorLayout::getEdgeValue(QWidget* target, Edge edge, const QRect& parentRe
 void AnchorLayout::setGeometry(const QRect& rect) {
     QLayout::setGeometry(rect);
     if (m_items.isEmpty()) return;
+
+    // 首次布局：在查询 sizeHint() 之前，确保每个子控件的字体 metrics 已正确解析。
+    //
+    // 原因：FluentElement 在构造时调用 onThemeUpdated() 设置 pixelSize 字体，
+    // 但此时控件尚未加入窗口体系，macOS 上变量字体（Segoe UI Variable）的 metrics
+    // 可能未完全初始化。QStyle::polish() 也可能覆盖自定义字体。
+    // 因此在首次 setGeometry() 中：先 ensurePolished()（让 style 就位），
+    // 再 onThemeUpdated()（重新应用 Fluent 字体），保证 sizeHint() 返回正确尺寸。
+    if (m_firstLayout) {
+        m_firstLayout = false;
+        for (const Item& it : m_items) {
+            if (QWidget* w = it.item->widget()) {
+                w->ensurePolished();
+                if (auto* fe = dynamic_cast<FluentElement*>(w)) {
+                    fe->onThemeUpdated();
+                }
+            }
+        }
+    }
+
     QRect parentRect = contentsRect();
     for (Item& it : m_items) {
         if (QWidget* w = it.item->widget()) {
