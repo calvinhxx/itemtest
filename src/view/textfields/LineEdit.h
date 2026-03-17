@@ -105,7 +105,7 @@ private:
     QString  m_fontRole        = Typography::FontRole::Body;
     ::view::basicinput::Button* m_clearButton = nullptr;
     bool     m_clearButtonEnabled = true;
-    int      m_clearButtonSize    = 22; ///< 清除按钮边长（px）
+    int      m_clearButtonSize    = 22;
     QPoint   m_clearButtonOffset  = QPoint(::Spacing::XSmall, 0);
     int      m_focusedBorderWidth   = ::Spacing::Border::Focused;
     int      m_unfocusedBorderWidth = ::Spacing::Border::Normal;

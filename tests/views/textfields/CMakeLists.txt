@@ -1,3 +1,3 @@
 add_qt_test_module(test_text_block TestTextBlock.cpp)
 add_qt_test_module(test_line_edit TestLineEdit.cpp)
-add_qt_test_module(test_plain_text_edit TestPlainTextEdit.cpp)
+add_qt_test_module(test_text_edit TestTextEdit.cpp)

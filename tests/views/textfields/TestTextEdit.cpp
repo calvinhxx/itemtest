@@ -2,7 +2,7 @@
 #include <QApplication>
 #include <QFontDatabase>
 #include <QtTest/QSignalSpy>
-#include "view/textfields/PlainTextEdit.h"
+#include "view/textfields/TextEdit.h"
 #include "view/textfields/TextBlock.h"
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
@@ -22,7 +22,7 @@ public:
     }
 };
 
-class PlainTextEditTest : public ::testing::Test {
+class TextEditTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         int argc = 0;
@@ -39,7 +39,7 @@ protected:
     void SetUp() override {
         window = new FluentTestWindow();
         window->setFixedSize(500, 400);
-        window->setWindowTitle("Fluent PlainTextEdit Test");
+        window->setWindowTitle("Fluent TextEdit Test");
         layout = new AnchorLayout(window);
         window->setLayout(layout);
         window->onThemeUpdated();
@@ -53,8 +53,8 @@ protected:
     AnchorLayout* layout;
 };
 
-TEST_F(PlainTextEditTest, TextAndPlaceholder) {
-    PlainTextEdit* edit = new PlainTextEdit(window);
+TEST_F(TextEditTest, TextAndPlaceholder) {
+    TextEdit* edit = new TextEdit(window);
     edit->setPlaceholderText("Multi-line placeholder");
     EXPECT_EQ(edit->placeholderText(), "Multi-line placeholder");
 
@@ -62,17 +62,16 @@ TEST_F(PlainTextEditTest, TextAndPlaceholder) {
     EXPECT_EQ(edit->toPlainText(), "line1\nline2");
 }
 
-TEST_F(PlainTextEditTest, ContentMargins) {
-    PlainTextEdit* edit = new PlainTextEdit(window);
+TEST_F(TextEditTest, ContentMargins) {
+    TextEdit* edit = new TextEdit(window);
     QMargins margins(12, 4, 12, 4);
     edit->setContentMargins(margins);
     EXPECT_EQ(edit->contentMargins(), margins);
 }
 
-TEST_F(PlainTextEditTest, FluentPropertiesDefaultsAndSetters) {
-    PlainTextEdit* edit = new PlainTextEdit(window);
+TEST_F(TextEditTest, FluentPropertiesDefaultsAndSetters) {
+    TextEdit* edit = new TextEdit(window);
 
-    // 默认值应与 Spacing / Typography 常量一致
     EXPECT_EQ(edit->contentMargins(),
               QMargins(Spacing::Padding::TextFieldHorizontal, Spacing::Padding::TextFieldVertical,
                        Spacing::Padding::TextFieldHorizontal, Spacing::Padding::TextFieldVertical));
@@ -117,37 +116,41 @@ TEST_F(PlainTextEditTest, FluentPropertiesDefaultsAndSetters) {
     EXPECT_EQ(spyLayout.count(), 2);
 }
 
-TEST_F(PlainTextEditTest, MinVisibleLinesClampsBelowContent) {
-    PlainTextEdit* edit = new PlainTextEdit(window);
+TEST_F(TextEditTest, MinVisibleLinesClampsBelowContent) {
+    TextEdit* edit = new TextEdit(window);
     edit->setLineHeight(32);
     edit->setMinVisibleLines(2);
     edit->setMaxVisibleLines(4);
 
-    // 高度 = lines * lineHeight + top + bottom padding
-    const int vPad = Spacing::Padding::TextFieldVertical * 2;
-    EXPECT_EQ(edit->height(), 2 * 32 + vPad);
+    // height = clampedLines × lineHeight（无额外 top/bottom padding）
+    EXPECT_EQ(edit->height(), 2 * 32);
 
     edit->setPlainText("A\nB\nC");
-    EXPECT_EQ(edit->height(), 3 * 32 + vPad);
+    EXPECT_EQ(edit->height(), 3 * 32);
 
     edit->clear();
-    EXPECT_EQ(edit->height(), 2 * 32 + vPad);
+    EXPECT_EQ(edit->height(), 2 * 32);
 }
 
-TEST_F(PlainTextEditTest, MaxVisibleLinesClampsAboveContent) {
-    PlainTextEdit* edit = new PlainTextEdit(window);
+TEST_F(TextEditTest, MaxVisibleLinesClampsAboveContent) {
+    TextEdit* edit = new TextEdit(window);
     edit->setLineHeight(32);
     edit->setMinVisibleLines(1);
     edit->setMaxVisibleLines(3);
 
-    // 写入超过 3 行：高度固定在 maxVisibleLines
-    const int vPad = Spacing::Padding::TextFieldVertical * 2;
+    // 写入超过 3 行：高度固定在 maxVisibleLines × lineHeight，滚动条出现
     edit->setPlainText("A\nB\nC\nD\nE");
-    EXPECT_EQ(edit->height(), 3 * 32 + vPad);
+    EXPECT_EQ(edit->height(), 3 * 32);
 }
 
-TEST_F(PlainTextEditTest, ReadOnly) {
-    PlainTextEdit* edit = new PlainTextEdit(window);
+TEST_F(TextEditTest, SingleLineDefaultHeight) {
+    // 默认 minVisibleLines=1：空控件高度应与单行 TextBox 等高（lineHeight = 32）
+    TextEdit* edit = new TextEdit(window);
+    EXPECT_EQ(edit->height(), Spacing::ControlHeight::Standard);
+}
+
+TEST_F(TextEditTest, ReadOnly) {
+    TextEdit* edit = new TextEdit(window);
     edit->setPlainText("read only content");
     edit->setReadOnly(true);
     EXPECT_TRUE(edit->isReadOnly());
@@ -155,37 +158,49 @@ TEST_F(PlainTextEditTest, ReadOnly) {
     EXPECT_FALSE(edit->isReadOnly());
 }
 
-TEST_F(PlainTextEditTest, VisualCheck) {
+TEST_F(TextEditTest, VisualCheck) {
     if (qEnvironmentVariableIsSet("QT_QPA_PLATFORM") && qEnvironmentVariable("QT_QPA_PLATFORM") == "offscreen") {
         GTEST_SKIP() << "Skipping visual test in offscreen mode";
     }
 
     using Edge = AnchorLayout::Edge;
 
-    TextBlock* header = new TextBlock("PlainTextEdit (multi-line):", window);
-    header->anchors()->top = {window, Edge::Top, 30};
+    TextBlock* header = new TextBlock("TextEdit - 自适应行高 + 垂直居中:", window);
+    header->anchors()->top  = {window, Edge::Top,  30};
     header->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(header);
 
-    PlainTextEdit* edit = new PlainTextEdit(window);
-    edit->setPlaceholderText("Type multiple lines here...");
-    edit->setPlainText("First line\nSecond line");
-    edit->setFixedHeight(100);
-    edit->setContentMargins(QMargins(8, 4, 8, 4));
-    edit->anchors()->top = {header, Edge::Bottom, 8};
-    edit->anchors()->left = {window, Edge::Left, 40};
-    edit->anchors()->right = {window, Edge::Right, -40};
-    layout->addWidget(edit);
+    // 默认 1 行（同 LineEdit 高度），自动居中
+    TextEdit* edit1 = new TextEdit(window);
+    edit1->setPlaceholderText("Type here... (auto grows up to 4 lines)");
+    edit1->anchors()->top   = {header, Edge::Bottom, 8};
+    edit1->anchors()->left  = {window, Edge::Left, 40};
+    edit1->anchors()->right = {window, Edge::Right, -40};
+    layout->addWidget(edit1);
+
+    TextBlock* header2 = new TextBlock("预填 2 行（高度 = 64px）:", window);
+    header2->anchors()->top  = {edit1, Edge::Bottom, 12};
+    header2->anchors()->left = {window, Edge::Left, 40};
+    layout->addWidget(header2);
+
+    TextEdit* edit2 = new TextEdit(window);
+    edit2->setPlainText("First line\nSecond line");
+    edit2->anchors()->top   = {header2, Edge::Bottom, 8};
+    edit2->anchors()->left  = {window, Edge::Left, 40};
+    edit2->anchors()->right = {window, Edge::Right, -40};
+    layout->addWidget(edit2);
 
     Button* themeBtn = new Button("Switch Theme", window);
     themeBtn->setFluentStyle(Button::Accent);
     themeBtn->setFixedSize(120, 32);
     themeBtn->anchors()->bottom = {window, Edge::Bottom, -30};
-    themeBtn->anchors()->right = {window, Edge::Right, -30};
+    themeBtn->anchors()->right  = {window, Edge::Right,  -30};
     layout->addWidget(themeBtn);
 
     QObject::connect(themeBtn, &Button::clicked, []() {
-        FluentElement::setTheme(FluentElement::currentTheme() == FluentElement::Light ? FluentElement::Dark : FluentElement::Light);
+        FluentElement::setTheme(FluentElement::currentTheme() == FluentElement::Light
+                                    ? FluentElement::Dark
+                                    : FluentElement::Light);
     });
 
     window->show();
