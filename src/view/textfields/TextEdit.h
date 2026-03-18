@@ -131,6 +131,7 @@ private:
     QTextEdit*                    m_editor      = nullptr;
     ::view::scrolling::ScrollBar* m_vScrollBar  = nullptr;
     bool m_updatingFormat = false;
+    bool m_scrollEnabled  = false;
 
     QMargins m_contentMargins   = QMargins(::Spacing::Padding::TextFieldHorizontal,
                                            ::Spacing::Padding::TextFieldVertical,

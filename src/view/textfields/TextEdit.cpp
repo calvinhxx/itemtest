@@ -15,6 +15,7 @@
 #include <QFocusEvent>
 #include <QEvent>
 #include <QFontMetrics>
+#include <QTextLayout>
 #include "view/scrolling/ScrollBar.h"
 
 namespace view::textfields {
@@ -115,11 +116,11 @@ TextEdit::TextEdit(QWidget* parent)
     m_vScrollBar->setValue(innerVBar->value());
 
     connect(innerVBar, &QScrollBar::rangeChanged,
-            this, [this, innerVBar](int min, int max) {
+            this, [this, innerVBar](int /*min*/, int /*max*/) {
                 if (!m_vScrollBar) return;
-                m_vScrollBar->setRange(min, max);
+                m_vScrollBar->setRange(innerVBar->minimum(), innerVBar->maximum());
                 m_vScrollBar->setPageStep(innerVBar->pageStep());
-                m_vScrollBar->setVisible(min != max);
+                // 滚动条可见性由 updateHeightForContent 统一管理
             });
     connect(innerVBar, &QScrollBar::valueChanged,
             this, [this](int v) {
@@ -288,6 +289,8 @@ bool TextEdit::eventFilter(QObject* obj, QEvent* event) {
             m_isFocused = true; update();
         } else if (event->type() == QEvent::FocusOut) {
             m_isFocused = false; update();
+        } else if (event->type() == QEvent::Wheel && !m_scrollEnabled) {
+            return true; // 内容未超过 maxVisibleLines 时禁止滚动
         }
     }
     return QWidget::eventFilter(obj, event);
@@ -413,9 +416,11 @@ void TextEdit::applyBlockCenterFormat() {
     rff.setRightMargin(0);
     m_editor->document()->rootFrame()->setFrameFormat(rff);
 
-    // 2. 每个 block 设置 bottomMargin = lineHeight - fontLh，拉开行间距
+    // 2. LineDistanceHeight — 每个视觉行高 = fontLh + botPad = lineHeight
+    //    不使用 bottomMargin，否则与 LineDistanceHeight 重叠导致行间距翻倍
     QTextBlockFormat fmt;
-    fmt.setBottomMargin(botPad);
+    fmt.setLineHeight(botPad, QTextBlockFormat::LineDistanceHeight);
+    fmt.setBottomMargin(0);
 
     QTextCursor cursor(m_editor->document());
     cursor.movePosition(QTextCursor::Start);
@@ -432,13 +437,29 @@ void TextEdit::applyBlockCenterFormat() {
 void TextEdit::updateHeightForContent() {
     if (!m_editor) return;
 
-    int lines = m_editor->document()->blockCount();
-    if (lines < 1) lines = 1;
+    // 统计所有可视行数（包括自动换行产生的行）
+    int visualLines = 0;
+    QTextBlock block = m_editor->document()->begin();
+    while (block.isValid()) {
+        int lc = block.layout()->lineCount();
+        visualLines += (lc > 0) ? lc : 1;
+        block = block.next();
+    }
+    if (visualLines < 1) visualLines = 1;
 
-    const int clamped = qBound(m_minVisibleLines, lines, m_maxVisibleLines);
+    const int clamped = qBound(m_minVisibleLines, visualLines, m_maxVisibleLines);
 
     // height = clampedLines × lineHeight
     setFixedHeight(clamped * m_lineHeight);
+
+    // 滚动条仅在内容实际超过 maxVisibleLines 时显示
+    m_scrollEnabled = (visualLines > m_maxVisibleLines);
+    if (m_vScrollBar)
+        m_vScrollBar->setVisible(m_scrollEnabled);
+    // 无需滚动时重置内部滚动位置，避免内容偏移
+    if (!m_scrollEnabled && m_editor)
+        m_editor->verticalScrollBar()->setValue(0);
+
     updateGeometry();
 }
 

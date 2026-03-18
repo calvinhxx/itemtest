@@ -38,6 +38,10 @@ protected:
 };
 
 TEST_F(AnchorLayoutTest, FullScenarioVisualCheck) {
+    if (qEnvironmentVariableIsSet("SKIP_VISUAL_TEST")) {
+        GTEST_SKIP() << "Set SKIP_VISUAL_TEST=1 to skip visual tests";
+    }
+
     using Edge = AnchorLayout::Edge;
 
     // 1) 左上：锚定到父控件 (10, 10)
