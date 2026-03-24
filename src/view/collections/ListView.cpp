@@ -9,6 +9,8 @@
 #include <QPaintEvent>
 #include <QResizeEvent>
 #include <QScrollBar>
+#include <QShowEvent>
+#include <QTimer>
 #include <QVariantAnimation>
 
 #include "common/Animation.h"
@@ -36,6 +38,7 @@ ListView::ListView(QWidget* parent)
     });
 
     m_vScrollBar = new ::view::scrolling::ScrollBar(Qt::Vertical, this);
+    m_vScrollBar->setObjectName(QStringLiteral("fluentListViewScrollBar"));
     m_vScrollBar->hide();
 
     auto* innerVBar = verticalScrollBar();
@@ -48,7 +51,8 @@ ListView::ListView(QWidget* parent)
                 if (!m_vScrollBar) return;
                 m_vScrollBar->setRange(innerVBar->minimum(), innerVBar->maximum());
                 m_vScrollBar->setPageStep(innerVBar->pageStep());
-                m_vScrollBar->setVisible(innerVBar->maximum() > innerVBar->minimum());
+                suppressNativeScrollBars();
+                layoutScrollBar();
             });
     connect(innerVBar, &QScrollBar::valueChanged,
             this, [this](int v) {
@@ -70,12 +74,8 @@ ListView::ListView(QWidget* parent)
         emit selectionAccentProgressChanged();
         if (viewport()) viewport()->update();
     });
-    connect(m_accentAnim, &QVariantAnimation::finished, this, [this] {
-        m_selectionAccentProgress = 1.0;
-        emit selectionAccentProgressChanged();
-        if (viewport()) viewport()->update();
-    });
 
+    suppressNativeScrollBars();
     onThemeUpdated();
 }
 
@@ -113,12 +113,11 @@ int ListView::selectedIndex() const {
 }
 
 QList<int> ListView::selectedRows() const {
-    QList<int> rows;
-    rows.reserve(selectionModel()->selectedIndexes().size());
+    QSet<int> seen;
     for (const auto& idx : selectionModel()->selectedIndexes())
-        rows.append(idx.row());
+        seen.insert(idx.row());
+    QList<int> rows(seen.begin(), seen.end());
     std::sort(rows.begin(), rows.end());
-    rows.erase(std::unique(rows.begin(), rows.end()), rows.end());
     return rows;
 }
 
@@ -165,7 +164,19 @@ void ListView::paintEvent(QPaintEvent* event) {
 
 void ListView::resizeEvent(QResizeEvent* event) {
     QListView::resizeEvent(event);
+    suppressNativeScrollBars();
     layoutScrollBar();
+}
+
+void ListView::showEvent(QShowEvent* event) {
+    QListView::showEvent(event);
+    suppressNativeScrollBars();
+    layoutScrollBar();
+    // QComboBox 弹层 / macOS 等会在布局后再把内置条拉起来，下一帧再压一次
+    QTimer::singleShot(0, this, [this]() {
+        suppressNativeScrollBars();
+        layoutScrollBar();
+    });
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -227,6 +238,34 @@ void ListView::layoutScrollBar() {
     int y = r.top() + 2;
     int h = r.height() - 4;
     m_vScrollBar->setGeometry(x, y, m_vScrollBar->thickness(), h);
+    if (m_vScrollBar->isVisible())
+        m_vScrollBar->raise();
+}
+
+void ListView::suppressNativeScrollBars() {
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    if (QScrollBar* vsb = verticalScrollBar()) {
+        vsb->setAttribute(Qt::WA_DontShowOnScreen, true);
+        vsb->hide();
+    }
+    if (QScrollBar* hsb = horizontalScrollBar()) {
+        hsb->setAttribute(Qt::WA_DontShowOnScreen, true);
+        hsb->hide();
+    }
+
+    if (m_vScrollBar) {
+        const bool need = verticalScrollBar()->maximum() > verticalScrollBar()->minimum();
+        m_vScrollBar->setVisible(need);
+        if (need)
+            m_vScrollBar->raise();
+    }
+}
+
+void ListView::refreshFluentScrollChrome() {
+    suppressNativeScrollBars();
+    layoutScrollBar();
 }
 
 } // namespace view::collections

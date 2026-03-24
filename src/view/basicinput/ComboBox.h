@@ -2,6 +2,7 @@
 #define COMBOBOX_H
 
 #include <QComboBox>
+#include <QPointer>
 #include <QPoint>
 #include <QString>
 #include "view/FluentElement.h"
@@ -14,21 +15,26 @@ class QPropertyAnimation;
 namespace view::basicinput {
 
 /**
- * @brief ComboBox - WinUI 3 风格的下拉选择控件
+ * @brief ComboBox — Fluent / WinUI 3 风格下拉框（Qt 自绘 + 设计 Token）
  *
- * 参考 WinUI 3 Gallery：
- * - 矩形圆角 + Fluent 颜色 Token
- * - Hover / Focus 状态高亮
- * - 右侧 ChevronDown 图标
- * 
- * 行为完全沿用 QComboBox，只是重绘外观并与 Fluent 主题联动。
+ * 设计对齐（实现时以项目内 FluentElement Token 为准）：
+ * - [Windows UI Kit (Community) — Figma](https://www.figma.com/design/urqb6Xq3nerP5OrnbUAxGJ/Windows-UI-kit--Community-)：
+ *   ComboBox 组件：圆角 4px、内容区水平约 11px / 垂直约 4px、正文 Body 14/20、Chevron 12px。
+ * - [WinUI Gallery — ComboBox 页](https://github.com/microsoft/WinUI-Gallery)：
+ *   `ComboBoxPage.xaml`：Header + PlaceholderText、固定宽度示例、可编辑 `IsEditable` 字号列表等。
+ *
+ * 行为沿用 QComboBox；关闭系统原生绘制（setFrame(false)），由 paintEvent 绘制 Rest / Hover / Pressed /
+ * Focus / Disabled。下拉视图默认为 view::collections::ListView；列表行样式由业务设置 ItemDelegate。
+ *
+ * 下拉浮层（Flyout）视觉对齐 WinUI / view::dialogs_flyouts::Dialog：Overlay 圆角（8px）、多层柔和阴影、
+ * stroke 描边；展开后将当前选中行垂直对齐到 ComboBox 中心（类似 WinUI Gallery 字号下拉）。
  */
 class ComboBox : public QComboBox, public FluentElement, public view::QMLPlus {
     Q_OBJECT
 
     /** @brief 文本使用的主题字体 Token 名称，例如 \"Body\"、\"Subtitle\" */
     Q_PROPERTY(QString fontRole READ fontRole WRITE setFontRole NOTIFY fontRoleChanged)
-    /** @brief 左右内容内边距（不含箭头区域），默认 Spacing::Padding::ControlHorizontal */
+    /** @brief 左右内容内边距（不含箭头区域），默认 Spacing::Padding::ComboBoxHorizontal（WinUI Kit ComboBox） */
     Q_PROPERTY(int contentPaddingH READ contentPaddingH WRITE setContentPaddingH NOTIFY contentPaddingChanged)
     /** @brief 右侧箭头区域宽度，默认 24px */
     Q_PROPERTY(int arrowWidth READ arrowWidth WRITE setArrowWidth NOTIFY arrowWidthChanged)
@@ -69,6 +75,9 @@ public:
     qreal pressProgress() const { return m_pressProgress; }
     void setPressProgress(qreal value);
 
+    /** 与 QComboBox::setEditable 相同，并在创建 lineEdit 后同步 Fluent 线框样式 */
+    void setEditable(bool editable);
+
 protected:
     void paintEvent(QPaintEvent* event) override;
 
@@ -83,13 +92,21 @@ protected:
     void focusInEvent(QFocusEvent* event) override;
     void focusOutEvent(QFocusEvent* event) override;
 
+    void showPopup() override;
+    void hidePopup() override;
+
 private:
     void initAnimation();
+    void syncLineEditFromTheme();
+    void polishFluentComboPopup();
+
+    /** 浮层阴影边距，与 Dialog::m_shadowSize（Spacing::Standard）一致 */
+    QPointer<QWidget> m_popupChrome;
 
     bool m_isHovered = false;
     bool m_isPressed = false;
     QString m_fontRole = "Body";
-    int m_contentPaddingH = ::Spacing::Padding::ControlHorizontal;
+    int m_contentPaddingH = ::Spacing::Padding::ComboBoxHorizontal;
     int m_arrowWidth = 24;
     QString m_chevronGlyph = Typography::Icons::ChevronDown;
     QString m_iconFontFamily = Typography::FontFamily::SegoeFluentIcons;

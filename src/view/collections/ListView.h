@@ -13,6 +13,7 @@
 class QItemSelection;
 class QPaintEvent;
 class QResizeEvent;
+class QShowEvent;
 class QVariantAnimation;
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 class QEvent;
@@ -72,6 +73,12 @@ public:
 
     ::view::scrolling::ScrollBar* verticalFluentScrollBar() const;
 
+    /**
+     * 隐藏 QAbstractScrollArea 内置滚动条并刷新 Fluent 纵向条（QComboBox 弹层等场景下
+     * 平台/样式可能把系统滚动条重新显示出来，需在 show 后再次压制）。
+     */
+    void refreshFluentScrollChrome();
+
 signals:
     void selectionModeChanged();
     void fontRoleChanged();
@@ -82,6 +89,7 @@ signals:
 protected:
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
+    void showEvent(QShowEvent* event) override;
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     void enterEvent(QEnterEvent* event) override;
@@ -97,6 +105,8 @@ protected:
 private:
     void applyThemeStyle();
     void layoutScrollBar();
+    /** 始终隐藏 Qt 内置 QScrollBar，仅使用 m_vScrollBar 自绘条 */
+    void suppressNativeScrollBars();
     void setViewportHovered(bool hovered);
     void restartSelectionAccentAnimation();
 

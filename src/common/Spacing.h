@@ -28,6 +28,10 @@ namespace Spacing {
         const int ControlHorizontal  = 12;  // 通用控件左右（Button、ComboBox）
         const int ControlVertical    =  8;  // 通用控件上下
 
+        /** ComboBox 内容区内边距（Windows UI Kit / Figma「ComboBox / ComboBox」Rest） */
+        const int ComboBoxHorizontal = 11;
+        const int ComboBoxVertical   = 4;
+
         const int TextFieldHorizontal = 8;  // 输入框内容区左右
         const int TextFieldVertical   = 4;  // 输入框内容区上下
 
