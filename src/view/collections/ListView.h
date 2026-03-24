@@ -10,11 +10,13 @@
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 
-class QItemSelection;
+class QLabel;
 class QPaintEvent;
 class QResizeEvent;
 class QShowEvent;
+class QTimer;
 class QVariantAnimation;
+class QWheelEvent;
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 class QEvent;
 #endif
@@ -27,8 +29,13 @@ namespace view::collections {
  * Fluent 列表视图（仅视图层）。
  *
  * 不负责注入 QAbstractItemModel 或 QStyledItemDelegate；由业务 / 页面层或测试组装。
- * 提供：主题调色板与字体、Fluent 纵向滚动条、WinUI 风格选择模式映射、视口 hover、
- * 选中项左侧强调条动画进度（供 delegate 读取）；时长可通过属性配置。
+ * 提供：主题调色板与字体、Fluent 纵向滚动条、WinUI 风格选择模式映射、视口 hover。
+ *
+ * WinUI 3 / Figma 视觉对齐：
+ *   - 容器 1px ControlStrokeColor 边框 + CornerRadius::Control(4px) 圆角
+ *   - 可选 headerText 显示在列表上方
+ *   - 空列表占位符文本
+ *   - viewport 内容裁剪至圆角区域
  *
  * 默认不允许行内编辑（editTriggers 为 NoEditTriggers）；需要可编辑列表时请自行 setEditTriggers。
  */
@@ -47,26 +54,37 @@ public:
     Q_PROPERTY(ListSelectionMode selectionMode READ selectionMode WRITE setSelectionMode NOTIFY selectionModeChanged)
     Q_PROPERTY(QString fontRole READ fontRole WRITE setFontRole NOTIFY fontRoleChanged)
     Q_PROPERTY(bool viewportHovered READ viewportHovered NOTIFY viewportHoveredChanged)
-    /**
-     * 选中变化时 0→1 的强调条动画进度，供 item delegate 绘制左侧 accent 时使用。
-     * 无选中或未启动动画时为 1。
-     */
-    Q_PROPERTY(qreal selectionAccentProgress READ selectionAccentProgress
-                   NOTIFY selectionAccentProgressChanged)
+
+    /** 容器外边框是否可见（WinUI ListView 默认带 1px ControlStroke 边框） */
+    Q_PROPERTY(bool borderVisible READ borderVisible WRITE setBorderVisible NOTIFY borderVisibleChanged)
+    /** 列表上方标题文本（对应 WinUI ListView.Header） */
+    Q_PROPERTY(QString headerText READ headerText WRITE setHeaderText NOTIFY headerTextChanged)
+    /** 列表为空时的占位提示文本 */
+    Q_PROPERTY(QString placeholderText READ placeholderText WRITE setPlaceholderText NOTIFY placeholderTextChanged)
 
     explicit ListView(QWidget* parent = nullptr);
     ~ListView() override = default;
 
+    // --- Selection ---
     ListSelectionMode selectionMode() const { return m_selectionMode; }
     void setSelectionMode(ListSelectionMode mode);
 
+    // --- Appearance ---
     QString fontRole() const { return m_fontRole; }
     void setFontRole(const QString& role);
 
+    bool borderVisible() const { return m_borderVisible; }
+    void setBorderVisible(bool visible);
+
+    QString headerText() const { return m_headerText; }
+    void setHeaderText(const QString& text);
+
+    QString placeholderText() const { return m_placeholderText; }
+    void setPlaceholderText(const QString& text);
+
     bool viewportHovered() const { return m_viewportHovered; }
 
-    qreal selectionAccentProgress() const { return m_selectionAccentProgress; }
-
+    // --- Selection API ---
     int selectedIndex() const;
     QList<int> selectedRows() const;
     void setSelectedIndex(int index);
@@ -83,7 +101,9 @@ signals:
     void selectionModeChanged();
     void fontRoleChanged();
     void viewportHoveredChanged();
-    void selectionAccentProgressChanged();
+    void borderVisibleChanged();
+    void headerTextChanged();
+    void placeholderTextChanged();
     void itemClicked(int index);
 
 protected:
@@ -97,27 +117,36 @@ protected:
     void enterEvent(QEvent* event) override;
 #endif
     void leaveEvent(QEvent* event) override;
-
-    void selectionChanged(const QItemSelection& selected, const QItemSelection& deselected) override;
+    void wheelEvent(QWheelEvent* event) override;
+    int verticalOffset() const override;
 
     void onThemeUpdated() override;
 
 private:
     void applyThemeStyle();
-    void layoutScrollBar();
-    /** 始终隐藏 Qt 内置 QScrollBar，仅使用 m_vScrollBar 自绘条 */
-    void suppressNativeScrollBars();
+    /** 压制原生条 + 同步 range/pageStep + 定位 + 显隐 Fluent 纵向滚动条 */
+    void syncFluentScrollBar();
+    void layoutHeader();
     void setViewportHovered(bool hovered);
-    void restartSelectionAccentAnimation();
+    void updateViewportMargins();
+    void startBounceBack();
 
     ListSelectionMode m_selectionMode = ListSelectionMode::Single;
     QString m_fontRole;
 
+    // --- Container visuals ---
+    bool m_borderVisible = true;
+    QString m_headerText;
+    QString m_placeholderText;
+    QLabel* m_headerLabel = nullptr;
+
     ::view::scrolling::ScrollBar* m_vScrollBar = nullptr;
     bool m_viewportHovered = false;
 
-    QVariantAnimation* m_accentAnim = nullptr;
-    qreal m_selectionAccentProgress = 1.0;
+    // --- Overscroll bounce ---
+    qreal m_overscrollY = 0.0;
+    QVariantAnimation* m_bounceAnim = nullptr;
+    QTimer* m_bounceTimer = nullptr;
 };
 
 using ListSelectionMode = ListView::ListSelectionMode;

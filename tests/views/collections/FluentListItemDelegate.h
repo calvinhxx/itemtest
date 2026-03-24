@@ -4,9 +4,12 @@
 #include <QStyledItemDelegate>
 
 class FluentElement;
+class QAbstractItemView;
 class QModelIndex;
 class QPainter;
 class QStyleOptionViewItem;
+
+namespace view::collections { class ListItemAccentAnimator; }
 
 /**
  * 测试 / 示例用：Fluent 风格列表行代理（业务层组装，不放入 itemstest_lib）。
@@ -17,6 +20,7 @@ class FluentListItemDelegate : public QStyledItemDelegate {
     Q_OBJECT
 public:
     explicit FluentListItemDelegate(FluentElement* themeHost, int rowHeight,
+                                  QAbstractItemView* view,
                                   QObject* parent = nullptr);
 
     void setThemeHost(FluentElement* host);
@@ -31,6 +35,7 @@ public:
 private:
     FluentElement* m_themeHost = nullptr;
     int m_rowHeight = 0;
+    view::collections::ListItemAccentAnimator* m_accentAnimator = nullptr;
 };
 
 } // namespace listview_test

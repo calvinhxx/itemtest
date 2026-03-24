@@ -568,6 +568,9 @@ TEST_F(FluentElementTest, BreakpointMapping) {
 }
 
 TEST_F(FluentElementTest, VisualExample) {
+    if (qEnvironmentVariableIsSet("SKIP_VISUAL_TEST")) {
+        GTEST_SKIP() << "Set SKIP_VISUAL_TEST=1 to skip visual tests";
+    }
     // 如果没有显示设备（如在某些沙盒/CI中），跳过可视化测试
     if (qEnvironmentVariableIsSet("QT_QPA_PLATFORM") && qEnvironmentVariable("QT_QPA_PLATFORM") == "offscreen") {
         GTEST_SKIP() << "Skipping visual test in offscreen mode";

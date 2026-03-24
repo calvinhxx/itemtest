@@ -1,11 +1,5 @@
 /**
  * Fluent ComboBox 测试与可视化样例。
- *
- * 场景对齐：
- * - WinUI Gallery：microsoft/WinUI-Gallery — WinUIGallery/Samples/ControlPages/ComboBoxPage.xaml
- *   （Header、PlaceholderText、Width=200、可编辑字号列表等）
- * - Windows UI Kit (Figma)：ComboBox 组件 Rest 状态尺寸与内边距见设计稿
- *   https://www.figma.com/design/urqb6Xq3nerP5OrnbUAxGJ/Windows-UI-kit--Community-
  */
 
 #include <gtest/gtest.h>
@@ -15,8 +9,10 @@
 #include <QLabel>
 #include <QFontDatabase>
 #include <QLineEdit>
+#include <QSignalSpy>
 
 #include "common/Spacing.h"
+#include "common/Typography.h"
 #include "FluentListItemDelegate.h"
 #include "view/basicinput/ComboBox.h"
 #include "view/collections/ListView.h"
@@ -33,15 +29,12 @@ int comboPopupRowHeight() {
     return Spacing::ControlHeight::Standard + Spacing::Gap::Tight;
 }
 
-/**
- * 下拉层使用 QComboBox 内部 model，仅挂上测试用 FluentListItemDelegate（与 TestListView 共用）。
- */
 void attachFluentDelegateToComboPopup(ComboBox* cb) {
     auto* lv = qobject_cast<ListView*>(cb->view());
     if (!lv)
         return;
     lv->setItemDelegate(new listview_test::FluentListItemDelegate(
-        static_cast<FluentElement*>(lv), comboPopupRowHeight(), lv));
+        static_cast<FluentElement*>(lv), comboPopupRowHeight(), lv, lv));
     lv->setUniformItemSizes(true);
 }
 
@@ -84,6 +77,19 @@ protected:
     ComboBoxTestWindow* window = nullptr;
 };
 
+// ── 基础属性 ──────────────────────────────────────────────────────────────────
+
+TEST_F(ComboBoxTest, DefaultPropertyValues) {
+    ComboBox cb;
+    EXPECT_EQ(cb.fontRole(), "Body");
+    EXPECT_EQ(cb.contentPaddingH(), Spacing::Padding::ComboBoxHorizontal);
+    EXPECT_EQ(cb.arrowWidth(), 24);
+    EXPECT_EQ(cb.chevronGlyph(), Typography::Icons::ChevronDown);
+    EXPECT_EQ(cb.chevronSize(), Typography::FontSize::Caption);
+    EXPECT_EQ(cb.chevronOffset(), QPoint());
+    EXPECT_DOUBLE_EQ(cb.pressProgress(), 0.0);
+}
+
 TEST_F(ComboBoxTest, PopupUsesCollectionsListView) {
     ComboBox cb;
     auto* lv = qobject_cast<ListView*>(cb.view());
@@ -101,6 +107,74 @@ TEST_F(ComboBoxTest, PopupListViewUsesFluentDelegateFromTestHelper) {
     ASSERT_NE(lv->itemDelegate(), nullptr);
 }
 
+// ── ChevronOffset ─────────────────────────────────────────────────────────────
+
+TEST_F(ComboBoxTest, ChevronOffsetDefaultZero) {
+    ComboBox cb;
+    EXPECT_EQ(cb.chevronOffset(), QPoint(0, 0));
+}
+
+TEST_F(ComboBoxTest, SetChevronOffsetEmitsSignal) {
+    ComboBox cb;
+    QSignalSpy spy(&cb, &ComboBox::chevronChanged);
+    cb.setChevronOffset(QPoint(8, 2));
+    EXPECT_EQ(spy.count(), 1);
+    EXPECT_EQ(cb.chevronOffset(), QPoint(8, 2));
+}
+
+TEST_F(ComboBoxTest, SetSameChevronOffsetNoSignal) {
+    ComboBox cb;
+    cb.setChevronOffset(QPoint(8, 2));
+    QSignalSpy spy(&cb, &ComboBox::chevronChanged);
+    cb.setChevronOffset(QPoint(8, 2));
+    EXPECT_EQ(spy.count(), 0);
+}
+
+// ── Editable ──────────────────────────────────────────────────────────────────
+
+TEST_F(ComboBoxTest, EditableModeHasLineEdit) {
+    ComboBox cb;
+    EXPECT_EQ(cb.lineEdit(), nullptr);
+    cb.setEditable(true);
+    ASSERT_NE(cb.lineEdit(), nullptr);
+}
+
+TEST_F(ComboBoxTest, EditableLineEditTransparentBackground) {
+    ComboBox cb;
+    cb.setEditable(true);
+    auto* le = cb.lineEdit();
+    ASSERT_NE(le, nullptr);
+    EXPECT_FALSE(le->autoFillBackground());
+}
+
+// ── Selection ─────────────────────────────────────────────────────────────────
+
+TEST_F(ComboBoxTest, SelectionIndex) {
+    ComboBox cb;
+    cb.addItems({"Blue", "Green", "Red", "Yellow"});
+    EXPECT_EQ(cb.currentIndex(), 0);
+    cb.setCurrentIndex(2);
+    EXPECT_EQ(cb.currentText(), "Red");
+}
+
+TEST_F(ComboBoxTest, PlaceholderTextWhenNoSelection) {
+    ComboBox cb;
+    cb.setPlaceholderText("Pick a color");
+    EXPECT_EQ(cb.placeholderText(), "Pick a color");
+    EXPECT_EQ(cb.currentIndex(), -1);
+}
+
+// ── Disabled ──────────────────────────────────────────────────────────────────
+
+TEST_F(ComboBoxTest, DisabledState) {
+    ComboBox cb;
+    cb.addItems({"A", "B"});
+    cb.setEnabled(false);
+    EXPECT_FALSE(cb.isEnabled());
+}
+
+// ── VisualCheck ───────────────────────────────────────────────────────────────
+
 TEST_F(ComboBoxTest, VisualCheck) {
     if (qEnvironmentVariableIsSet("SKIP_VISUAL_TEST")) {
         GTEST_SKIP() << "Set SKIP_VISUAL_TEST=1 to skip visual tests";
@@ -114,12 +188,10 @@ TEST_F(ComboBoxTest, VisualCheck) {
     title->setFont(window->themeFont("Title").toQFont());
     root->addWidget(title);
 
-    // 1. 对齐 WinUI Gallery：Header + PlaceholderText + Width=200 + 内联项
-    auto* header = new QLabel("Colors", window);
-    header->setFont(window->themeFont("BodyStrong").toQFont());
-    root->addWidget(header);
-    root->addWidget(new QLabel(
-        QStringLiteral("与 ComboBoxPage.xaml 一致：Header、PlaceholderText、固定宽度 200。"), window));
+    // 1. Colors + PlaceholderText + Width=200
+    auto* colorsLabel = new QLabel(QStringLiteral("Colors"), window);
+    colorsLabel->setFont(window->themeFont("BodyStrong").toQFont());
+    root->addWidget(colorsLabel);
 
     auto* colorsCombo = new ComboBox(window);
     colorsCombo->setPlaceholderText(QStringLiteral("Pick a color"));
@@ -128,8 +200,11 @@ TEST_F(ComboBoxTest, VisualCheck) {
     colorsCombo->setFixedWidth(200);
     root->addWidget(colorsCombo, 0, Qt::AlignLeft);
 
-    // 2. 字体列表（对应 Gallery 中 ItemsSource + DisplayMemberPath 示例的简化版）
-    root->addWidget(new QLabel("A ComboBox with its ItemsSource set.", window));
+    // 2. Font + ItemsSource + SelectedIndex=2
+    auto* fontHeader = new QLabel("Font", window);
+    fontHeader->setFont(window->themeFont("BodyStrong").toQFont());
+    root->addWidget(fontHeader);
+
     auto* fontRow = new QHBoxLayout();
     fontRow->setSpacing(12);
 
@@ -138,7 +213,7 @@ TEST_F(ComboBoxTest, VisualCheck) {
 
     auto* fontCombo = new ComboBox(window);
     fontCombo->addItems({"Segoe UI", "Courier New", "Times New Roman", "Arial"});
-    fontCombo->setCurrentText("Courier New");
+    fontCombo->setCurrentIndex(2);
     fontCombo->setFixedWidth(200);
     QObject::connect(fontCombo, &QComboBox::currentTextChanged, [fontLabel](const QString& family) {
         QFont f = fontLabel->font();
@@ -149,8 +224,11 @@ TEST_F(ComboBoxTest, VisualCheck) {
     fontRow->addWidget(fontLabel, 1);
     root->addLayout(fontRow);
 
-    // 3. 可编辑 ComboBox（对应 Gallery IsEditable + 字号列表）
-    root->addWidget(new QLabel("An editable ComboBox.", window));
+    // 3. Font Size + IsEditable + 字号列表
+    auto* sizeHeader = new QLabel("Font Size", window);
+    sizeHeader->setFont(window->themeFont("BodyStrong").toQFont());
+    root->addWidget(sizeHeader);
+
     auto* sizeRow = new QHBoxLayout();
     sizeRow->setSpacing(12);
 
@@ -167,7 +245,7 @@ TEST_F(ComboBoxTest, VisualCheck) {
     auto updateSize = [sizeCombo, sizeLabel]() {
         bool ok = false;
         int pt = sizeCombo->currentText().toInt(&ok);
-        if (ok && pt > 0) {
+        if (ok && pt >= 8 && pt <= 100) {
             QFont f = sizeLabel->font();
             f.setPointSize(pt);
             sizeLabel->setFont(f);
@@ -179,6 +257,18 @@ TEST_F(ComboBoxTest, VisualCheck) {
     sizeRow->addWidget(sizeCombo, 0);
     sizeRow->addWidget(sizeLabel, 1);
     root->addLayout(sizeRow);
+
+    // 4. Disabled 状态
+    auto* disabledHeader = new QLabel("Disabled", window);
+    disabledHeader->setFont(window->themeFont("BodyStrong").toQFont());
+    root->addWidget(disabledHeader);
+
+    auto* disabledCombo = new ComboBox(window);
+    disabledCombo->addItems({"Option A", "Option B"});
+    disabledCombo->setCurrentIndex(0);
+    disabledCombo->setEnabled(false);
+    disabledCombo->setFixedWidth(200);
+    root->addWidget(disabledCombo, 0, Qt::AlignLeft);
 
     // 主题切换按钮
     auto* themeBtn = new Button("Switch Theme", window);
@@ -192,6 +282,7 @@ TEST_F(ComboBoxTest, VisualCheck) {
     attachFluentDelegateToComboPopup(colorsCombo);
     attachFluentDelegateToComboPopup(fontCombo);
     attachFluentDelegateToComboPopup(sizeCombo);
+    attachFluentDelegateToComboPopup(disabledCombo);
 
     window->show();
     qApp->exec();

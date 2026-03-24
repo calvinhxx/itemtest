@@ -168,14 +168,6 @@ void ComboBox::setChevronGlyph(const QString& glyph) {
     emit chevronChanged();
 }
 
-void ComboBox::setIconFontFamily(const QString& family) {
-    if (m_iconFontFamily == family)
-        return;
-    m_iconFontFamily = family;
-    update();
-    emit chevronChanged();
-}
-
 void ComboBox::setChevronSize(int size) {
     if (m_chevronSize == size)
         return;
@@ -273,14 +265,11 @@ void ComboBox::paintEvent(QPaintEvent* event) {
         p.drawPath(bottomPath);
     }
 
-    // 内容区：WinUI Kit ComboBox 水平/垂直内边距（Figma Base: px-11 py-4）
+    // 内容区
     const int paddingH = m_contentPaddingH;
     const int paddingV = ::Spacing::Padding::ComboBoxVertical;
     const int arrowWidth = m_arrowWidth;
-    QRect textRect = rect().adjusted(paddingH,
-                                     paddingV,
-                                     -paddingH - arrowWidth,
-                                     -paddingV);
+    QRect textRect = rect().adjusted(paddingH, paddingV, -paddingH - arrowWidth, -paddingV);
 
     QString displayText = currentText();
     QColor textColor = isEnabled() ? colors.textPrimary : colors.textDisabled;
@@ -289,11 +278,12 @@ void ComboBox::paintEvent(QPaintEvent* event) {
         textColor = colors.textSecondary;
     }
 
+    p.setFont(themeFont(m_fontRole).toQFont());
     p.setPen(textColor);
     p.drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, displayText);
 
-    // 右侧 ChevronDown 图标（与 DropDownButton 一致：字体、矩形、按压动画、对齐方式）
-    QFont iconFont(m_iconFontFamily);
+    // 右侧 ChevronDown 图标
+    QFont iconFont(Typography::FontFamily::SegoeFluentIcons);
     iconFont.setPixelSize(m_chevronSize);
     p.setFont(iconFont);
     QColor arrowColor = isEnabled() ? colors.textSecondary : colors.textDisabled;

@@ -69,6 +69,9 @@ protected:
 };
 
 TEST_F(SliderTest, VisualSliderGalleryLike) {
+    if (qEnvironmentVariableIsSet("SKIP_VISUAL_TEST")) {
+        GTEST_SKIP() << "Set SKIP_VISUAL_TEST=1 to skip visual tests";
+    }
     if (qEnvironmentVariableIsSet("QT_QPA_PLATFORM") &&
         qEnvironmentVariable("QT_QPA_PLATFORM") == "offscreen") {
         GTEST_SKIP() << "Skipping visual test in offscreen mode";

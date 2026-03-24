@@ -2,17 +2,29 @@
 
 #include <QPainter>
 #include <QPainterPath>
+#include <QAbstractItemView>
+#include <QItemSelectionModel>
 #include <QStyle>
 
 #include "common/Spacing.h"
 #include "view/FluentElement.h"
-#include "view/collections/ListView.h"
+#include "view/collections/ListItemAccentAnimator.h"
 
 namespace listview_test {
 
 FluentListItemDelegate::FluentListItemDelegate(FluentElement* themeHost, int rowHeight,
+                                               QAbstractItemView* view,
                                                QObject* parent)
-    : QStyledItemDelegate(parent), m_themeHost(themeHost), m_rowHeight(rowHeight) {}
+    : QStyledItemDelegate(parent), m_themeHost(themeHost), m_rowHeight(rowHeight) {
+    m_accentAnimator = new view::collections::ListItemAccentAnimator(view, this);
+    if (view && view->selectionModel()) {
+        connect(view->selectionModel(), &QItemSelectionModel::selectionChanged,
+                this, [this](const QItemSelection& selected, const QItemSelection&) {
+                    for (const auto& index : selected.indexes())
+                        m_accentAnimator->animateSelection(index);
+                });
+    }
+}
 
 void FluentListItemDelegate::setThemeHost(FluentElement* host) {
     m_themeHost = host;
@@ -73,9 +85,7 @@ void FluentListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem
     }
 
     if (isSelected && isEnabled && colors.accentDefault.isValid()) {
-        qreal accentT = 1.0;
-        if (auto* lv = qobject_cast<view::collections::ListView*>(parent()))
-            accentT = qBound(0.0, lv->selectionAccentProgress(), 1.0);
+        const qreal accentT = qBound(0.0, m_accentAnimator->progress(index), 1.0);
 
         const qreal indicatorW = 3.0;
         const qreal fullH = 16.0;

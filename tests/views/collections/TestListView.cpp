@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QFontDatabase>
 #include <QItemSelectionModel>
+#include <QLabel>
 #include <QMetaEnum>
 #include <QStandardItemModel>
 #include <QStringListModel>
@@ -36,7 +37,7 @@ int defaultListRowHeight() {
 /** 业务组装：为 ListView 挂上 Fluent 行高代理（主题来自 ListView 的 FluentElement）。 */
 void attachFluentDelegate(ListView* lv, int rowHeight = defaultListRowHeight()) {
     lv->setItemDelegate(new listview_test::FluentListItemDelegate(
-        static_cast<FluentElement*>(lv), rowHeight, lv));
+        static_cast<FluentElement*>(lv), rowHeight, lv, lv));
     lv->setUniformItemSizes(true);
 }
 
@@ -372,6 +373,80 @@ TEST_F(ListViewTest, ViewDoesNotProvideModelByDefault) {
     // Qt 会为 QAbstractItemView 提供默认 itemDelegate()，故不断言 delegate 为空。
 }
 
+// ── 新增属性: borderVisible / headerText / placeholderText ────────────────────
+
+TEST_F(ListViewTest, DefaultBorderVisible) {
+    ListView* lv = new ListView(window);
+    EXPECT_TRUE(lv->borderVisible());
+}
+
+TEST_F(ListViewTest, SetBorderVisible) {
+    ListView* lv = new ListView(window);
+    QSignalSpy spy(lv, &ListView::borderVisibleChanged);
+    lv->setBorderVisible(false);
+    EXPECT_FALSE(lv->borderVisible());
+    EXPECT_EQ(spy.count(), 1);
+
+    // 重复设置不触发信号
+    lv->setBorderVisible(false);
+    EXPECT_EQ(spy.count(), 1);
+}
+
+TEST_F(ListViewTest, DefaultHeaderText) {
+    ListView* lv = new ListView(window);
+    EXPECT_TRUE(lv->headerText().isEmpty());
+}
+
+TEST_F(ListViewTest, SetHeaderText) {
+    ListView* lv = new ListView(window);
+    QSignalSpy spy(lv, &ListView::headerTextChanged);
+    lv->setHeaderText("My Header");
+    EXPECT_EQ(lv->headerText(), "My Header");
+    EXPECT_EQ(spy.count(), 1);
+
+    // 重复设置不触发信号
+    lv->setHeaderText("My Header");
+    EXPECT_EQ(spy.count(), 1);
+}
+
+TEST_F(ListViewTest, DefaultPlaceholderText) {
+    ListView* lv = new ListView(window);
+    EXPECT_TRUE(lv->placeholderText().isEmpty());
+}
+
+TEST_F(ListViewTest, SetPlaceholderText) {
+    ListView* lv = new ListView(window);
+    QSignalSpy spy(lv, &ListView::placeholderTextChanged);
+    lv->setPlaceholderText("No items");
+    EXPECT_EQ(lv->placeholderText(), "No items");
+    EXPECT_EQ(spy.count(), 1);
+
+    lv->setPlaceholderText("No items");
+    EXPECT_EQ(spy.count(), 1);
+}
+
+TEST_F(ListViewTest, HeaderVisibleWhenTextSet) {
+    window->setAttribute(Qt::WA_DontShowOnScreen, true);
+    ListView* lv = new ListView(window);
+    lv->setGeometry(10, 10, 300, 200);
+    lv->setHeaderText("Header");
+    window->show();
+    QTest::qWait(50);
+    auto* headerLabel = lv->findChild<QLabel*>();
+    ASSERT_NE(headerLabel, nullptr);
+    EXPECT_TRUE(headerLabel->isVisible());
+    EXPECT_EQ(headerLabel->text(), "Header");
+}
+
+TEST_F(ListViewTest, HeaderHiddenWhenTextEmpty) {
+    ListView* lv = new ListView(window);
+    lv->setHeaderText("Header");
+    lv->setHeaderText("");
+    auto* headerLabel = lv->findChild<QLabel*>();
+    ASSERT_NE(headerLabel, nullptr);
+    EXPECT_FALSE(headerLabel->isVisible());
+}
+
 // ── 可视化测试（业务组装与上面一致）───────────────────────────────────────────
 
 TEST_F(ListViewTest, VisualCheck) {
@@ -379,36 +454,54 @@ TEST_F(ListViewTest, VisualCheck) {
         GTEST_SKIP() << "Set SKIP_VISUAL_TEST=1 to skip visual tests";
     }
 
+    window->setFixedSize(600, 700);
     using Edge = AnchorLayout::Edge;
 
-    TextBlock* header = new TextBlock("ListView - Fluent Design（单选）:", window);
-    header->anchors()->top  = {window, Edge::Top,  20};
-    header->anchors()->left = {window, Edge::Left, 20};
-    layout->addWidget(header);
-
+    // --- ListView 1: 带 header + border 的单选列表 ---
     ListView* lv1 = new ListView(window);
+    lv1->setHeaderText("Fruits (Single Selection)");
+    lv1->setBorderVisible(true);
     attachStringListModel(lv1, {"Apricot", "Banana", "Cherry", "Date", "Elderberry",
                                  "Fig", "Grape", "Honeydew"});
     lv1->setSelectedIndex(2);
     lv1->setFixedHeight(250);
-    lv1->anchors()->top   = {header, Edge::Bottom, 8};
+    lv1->anchors()->top   = {window, Edge::Top,  20};
     lv1->anchors()->left  = {window, Edge::Left, 20};
     lv1->anchors()->right = {window, Edge::Right, -20};
     layout->addWidget(lv1);
 
-    TextBlock* header2 = new TextBlock("多选模式:", window);
+    // --- ListView 2: 多选模式，无 border ---
+    TextBlock* header2 = new TextBlock("Multiple Selection (no border):", window);
     header2->anchors()->top  = {lv1, Edge::Bottom, 16};
     header2->anchors()->left = {window, Edge::Left, 20};
     layout->addWidget(header2);
 
     ListView* lv2 = new ListView(window);
     lv2->setSelectionMode(ListSelectionMode::Multiple);
+    lv2->setBorderVisible(false);
     attachStringListModel(lv2, {"Item A", "Item B", "Item C", "Item D"});
     lv2->setFixedHeight(160);
     lv2->anchors()->top   = {header2, Edge::Bottom, 8};
     lv2->anchors()->left  = {window, Edge::Left, 20};
     lv2->anchors()->right = {window, Edge::Right, -20};
     layout->addWidget(lv2);
+
+    // --- ListView 3: 空列表，显示 placeholder ---
+    TextBlock* header3 = new TextBlock("Empty list with placeholder:", window);
+    header3->anchors()->top  = {lv2, Edge::Bottom, 16};
+    header3->anchors()->left = {window, Edge::Left, 20};
+    layout->addWidget(header3);
+
+    ListView* lv3 = new ListView(window);
+    lv3->setHeaderText("Empty List");
+    lv3->setPlaceholderText("No items to display");
+    lv3->setBorderVisible(true);
+    attachStringListModel(lv3);
+    lv3->setFixedHeight(100);
+    lv3->anchors()->top   = {header3, Edge::Bottom, 8};
+    lv3->anchors()->left  = {window, Edge::Left, 20};
+    lv3->anchors()->right = {window, Edge::Right, -20};
+    layout->addWidget(lv3);
 
     Button* themeBtn = new Button("Switch Theme", window);
     themeBtn->setFluentStyle(Button::Accent);
