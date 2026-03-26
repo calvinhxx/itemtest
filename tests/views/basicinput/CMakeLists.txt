@@ -10,6 +10,7 @@ add_qt_test_module(test_radio_button TestRadioButton.cpp)
 add_qt_test_module(test_color_picker TestColorPicker.cpp)
 add_qt_test_module(test_slider TestSlider.cpp)
 add_qt_test_module(test_rating_control TestRatingControl.cpp)
+add_qt_test_module(test_toggle_switch TestToggleSwitch.cpp)
 # ComboBox 下拉使用 ListView；FluentListItemDelegate 仅在测试中组装（与 test_list_view 共用实现）
 add_executable(test_combo_box
     TestComboBox.cpp
