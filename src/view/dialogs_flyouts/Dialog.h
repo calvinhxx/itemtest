@@ -64,6 +64,8 @@ protected:
     void mouseMoveEvent(QMouseEvent* event)    override;
     void mouseReleaseEvent(QMouseEvent* event) override;
 
+    void drawShadow(QPainter& painter, const QRect& contentRect);
+
 private:
     /**
      * @brief 在 widget 仍为 hidden 状态时预渲染快照并进入动画模式。
@@ -73,8 +75,6 @@ private:
 
     /** @brief 渲染当前真实内容到像素图（忽略 m_isAnimating 状态）。 */
     QPixmap renderSnapshot() const;
-
-    void drawShadow(QPainter& painter, const QRect& contentRect);
 
     const int m_shadowSize = ::Spacing::Standard;
 

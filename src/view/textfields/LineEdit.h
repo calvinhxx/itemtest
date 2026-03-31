@@ -44,6 +44,8 @@ class LineEdit : public QLineEdit, public ::FluentElement, public ::view::QMLPlu
     Q_PROPERTY(int focusedBorderWidth READ focusedBorderWidth WRITE setFocusedBorderWidth NOTIFY focusedBorderWidthChanged)
     /** @brief 未聚焦时底部边框宽度 (px) */
     Q_PROPERTY(int unfocusedBorderWidth READ unfocusedBorderWidth WRITE setUnfocusedBorderWidth NOTIFY unfocusedBorderWidthChanged)
+    /** @brief 是否绘制边框与背景 (嵌入其他控件时可设为 false) */
+    Q_PROPERTY(bool frameVisible READ isFrameVisible WRITE setFrameVisible NOTIFY frameVisibleChanged)
 
 public:
     explicit LineEdit(QWidget* parent = nullptr);
@@ -71,6 +73,9 @@ public:
     int unfocusedBorderWidth() const { return m_unfocusedBorderWidth; }
     void setUnfocusedBorderWidth(int width);
 
+    bool isFrameVisible() const { return m_frameVisible; }
+    void setFrameVisible(bool visible);
+
 signals:
     void contentMarginsChanged();
     void fontRoleChanged();
@@ -79,6 +84,7 @@ signals:
     void clearButtonOffsetChanged();
     void focusedBorderWidthChanged();
     void unfocusedBorderWidthChanged();
+    void frameVisibleChanged();
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -109,6 +115,7 @@ private:
     QPoint   m_clearButtonOffset  = QPoint(::Spacing::XSmall, 0);
     int      m_focusedBorderWidth   = ::Spacing::Border::Focused;
     int      m_unfocusedBorderWidth = ::Spacing::Border::Normal;
+    bool     m_frameVisible = true;
     bool     m_isHovered = false;
     bool     m_isFocused = false;
 };

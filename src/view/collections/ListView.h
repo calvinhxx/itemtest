@@ -57,6 +57,8 @@ public:
 
     /** 容器外边框是否可见（WinUI ListView 默认带 1px ControlStroke 边框） */
     Q_PROPERTY(bool borderVisible READ borderVisible WRITE setBorderVisible NOTIFY borderVisibleChanged)
+    /** 容器背景是否可见（嵌入 Dialog/Flyout 等自绘容器时设为 false） */
+    Q_PROPERTY(bool backgroundVisible READ backgroundVisible WRITE setBackgroundVisible NOTIFY backgroundVisibleChanged)
     /** 列表上方标题文本（对应 WinUI ListView.Header） */
     Q_PROPERTY(QString headerText READ headerText WRITE setHeaderText NOTIFY headerTextChanged)
     /** 列表为空时的占位提示文本 */
@@ -75,6 +77,9 @@ public:
 
     bool borderVisible() const { return m_borderVisible; }
     void setBorderVisible(bool visible);
+
+    bool backgroundVisible() const { return m_backgroundVisible; }
+    void setBackgroundVisible(bool visible);
 
     QString headerText() const { return m_headerText; }
     void setHeaderText(const QString& text);
@@ -102,6 +107,7 @@ signals:
     void fontRoleChanged();
     void viewportHoveredChanged();
     void borderVisibleChanged();
+    void backgroundVisibleChanged();
     void headerTextChanged();
     void placeholderTextChanged();
     void itemClicked(int index);
@@ -136,6 +142,7 @@ private:
 
     // --- Container visuals ---
     bool m_borderVisible = true;
+    bool m_backgroundVisible = true;
     QString m_headerText;
     QString m_placeholderText;
     QLabel* m_headerLabel = nullptr;

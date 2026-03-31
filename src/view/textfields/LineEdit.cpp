@@ -40,7 +40,8 @@ LineEdit::LineEdit(QWidget* parent)
 void LineEdit::paintEvent(QPaintEvent* event) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
-    paintFrame(p);
+    if (m_frameVisible)
+        paintFrame(p);
     QLineEdit::paintEvent(event);
 }
 
@@ -207,6 +208,13 @@ void LineEdit::setUnfocusedBorderWidth(int width) {
     m_unfocusedBorderWidth = width;
     update();
     emit unfocusedBorderWidthChanged();
+}
+
+void LineEdit::setFrameVisible(bool visible) {
+    if (m_frameVisible == visible) return;
+    m_frameVisible = visible;
+    update();
+    emit frameVisibleChanged();
 }
 
 void LineEdit::onThemeUpdated() {

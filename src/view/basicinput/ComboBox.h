@@ -3,85 +3,116 @@
 
 #include <QComboBox>
 #include <QPoint>
-#include <QPointer>
-#include <QString>
+#include <QStyledItemDelegate>
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
-#include "common/Spacing.h"
+#include "view/dialogs_flyouts/Dialog.h"
 #include "common/Typography.h"
+#include "common/Spacing.h"
 
 class QPropertyAnimation;
 
+namespace view::collections {
+class ListView;
+class ListItemAccentAnimator;
+}
+namespace view::textfields { class LineEdit; }
+
 namespace view::basicinput {
 
+// ─── ComboBox 弹层代理 ──────────────────────────────────────────────────────
+
+class ComboBoxItemDelegate : public QStyledItemDelegate {
+    Q_OBJECT
+public:
+    explicit ComboBoxItemDelegate(FluentElement* themeHost, QAbstractItemView* view,
+                                  QObject* parent = nullptr);
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override;
+    QSize sizeHint(const QStyleOptionViewItem& option,
+                   const QModelIndex& index) const override;
+
+private:
+    FluentElement* m_themeHost = nullptr;
+    view::collections::ListItemAccentAnimator* m_accentAnimator = nullptr;
+};
+
 /**
- * @brief ComboBox — Fluent / WinUI 3 风格下拉框（Qt 自绘 + 设计 Token）
+ * @brief ComboBox - WinUI 3 风格组合框
  *
- * 视觉规范来源：
- * - Windows UI Kit (Community) Figma：ComboBox 组件
- *   圆角 4px、水平内边距 11px / 垂直 4px、正文 Body 14/20、Chevron 12px
- * - WinUI Gallery：microsoft/WinUI-Gallery — ComboBoxPage.xaml
+ * Figma MCP 设计规范：
+ *   - 控件：4px 外圆角，3px 内圆角，bg rgba(255,255,255,0.7)，1px border rgba(0,0,0,0.06)
+ *   - 内边距：px=11 py=4，文本 14px Body，色 rgba(0,0,0,0.9)
+ *   - Chevron：Segoe Fluent Icons 12px，色 rgba(0,0,0,0.61)
+ *   - 弹层：8px 圆角，阴影 0 8px 16px rgba(0,0,0,0.14)
+ *   - 列表项：40px 高，文本左缩进 16px
+ *   - 选中指示器：3px 宽 16px 高，accent 色，圆角药丸形
  *
- * 行为沿用 QComboBox；关闭系统原生绘制（setFrame(false)），由 paintEvent 绘制
- * Rest / Hover / Pressed / Focus / Disabled 五态。下拉视图默认为 view::collections::ListView。
+ * 状态驱动：Rest → Hover → Pressed → Disabled → Open
  *
- * Flyout 弹层：OverlayCornerRadius(8px)、多层柔和阴影、stroke 描边；展开后将当前选中行
- * 垂直对齐到 ComboBox 中心。
+ * 可编辑模式（setEditable(true)）：
+ *   - 内嵌 LineEdit 允许用户输入文本
+ *   - 边框 accent 底边条（WinUI 3 focused style）
+ *   - 下拉弹层位于控件下方
  */
 class ComboBox : public QComboBox, public FluentElement, public view::QMLPlus {
     Q_OBJECT
-
-    /** @brief 文本使用的主题字体 Token 名称，例如 "Body"、"Subtitle" */
     Q_PROPERTY(QString fontRole READ fontRole WRITE setFontRole NOTIFY fontRoleChanged)
-    /** @brief 左右内容内边距（不含箭头区域），默认 Spacing::Padding::ComboBoxHorizontal */
-    Q_PROPERTY(int contentPaddingH READ contentPaddingH WRITE setContentPaddingH NOTIFY contentPaddingChanged)
-    /** @brief 右侧箭头区域宽度，默认 24px */
-    Q_PROPERTY(int arrowWidth READ arrowWidth WRITE setArrowWidth NOTIFY arrowWidthChanged)
-    /** @brief 下拉图标的字符编码（默认 ChevronDown） */
+    Q_PROPERTY(int contentPaddingH READ contentPaddingH WRITE setContentPaddingH NOTIFY layoutChanged)
+    Q_PROPERTY(int contentPaddingV READ contentPaddingV WRITE setContentPaddingV NOTIFY layoutChanged)
     Q_PROPERTY(QString chevronGlyph READ chevronGlyph WRITE setChevronGlyph NOTIFY chevronChanged)
-    /** @brief 下拉图标字号（默认 Caption 12px） */
     Q_PROPERTY(int chevronSize READ chevronSize WRITE setChevronSize NOTIFY chevronChanged)
-    /** @brief 下拉图标相对默认位置的偏移量 */
     Q_PROPERTY(QPoint chevronOffset READ chevronOffset WRITE setChevronOffset NOTIFY chevronChanged)
-    /** @brief 点击/展开时 Chevron 按压动画进度 [0,1] */
+    Q_PROPERTY(int popupOffset READ popupOffset WRITE setPopupOffset NOTIFY layoutChanged)
     Q_PROPERTY(qreal pressProgress READ pressProgress WRITE setPressProgress)
 
 public:
     explicit ComboBox(QWidget* parent = nullptr);
+    ~ComboBox() override;
 
-    void onThemeUpdated() override;
-
+    // --- Appearance ---
     QString fontRole() const { return m_fontRole; }
     void setFontRole(const QString& role);
 
     int contentPaddingH() const { return m_contentPaddingH; }
-    void setContentPaddingH(int padding);
+    void setContentPaddingH(int px);
 
-    int arrowWidth() const { return m_arrowWidth; }
-    void setArrowWidth(int w);
+    int contentPaddingV() const { return m_contentPaddingV; }
+    void setContentPaddingV(int px);
 
     QString chevronGlyph() const { return m_chevronGlyph; }
     void setChevronGlyph(const QString& glyph);
+
     int chevronSize() const { return m_chevronSize; }
     void setChevronSize(int size);
+
     QPoint chevronOffset() const { return m_chevronOffset; }
     void setChevronOffset(const QPoint& offset);
 
-    qreal pressProgress() const { return m_pressProgress; }
-    void setPressProgress(qreal value);
+    int popupOffset() const { return m_popupOffset; }
+    void setPopupOffset(int offset);
 
-    /** 与 QComboBox::setEditable 相同，并在创建 lineEdit 后同步 Fluent 线框样式 */
+    qreal pressProgress() const { return m_pressProgress; }
+    void setPressProgress(qreal p);
+
+    // --- Editable ---
     void setEditable(bool editable);
+
+    // --- QComboBox overrides ---
+    void showPopup() override;
+    void hidePopup() override;
+
+    QSize sizeHint() const override;
 
 signals:
     void fontRoleChanged();
-    void contentPaddingChanged();
-    void arrowWidthChanged();
+    void layoutChanged();
     void chevronChanged();
 
 protected:
     void paintEvent(QPaintEvent* event) override;
-
+    void resizeEvent(QResizeEvent* event) override;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     void enterEvent(QEnterEvent* event) override;
 #else
@@ -90,34 +121,64 @@ protected:
     void leaveEvent(QEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
-    void focusInEvent(QFocusEvent* event) override;
-    void focusOutEvent(QFocusEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
-    void showPopup() override;
-    void hidePopup() override;
+    void onThemeUpdated() override;
 
 private:
+    friend class ComboBoxPopup;
     void initAnimation();
-    void syncLineEditFromTheme();
-    void polishFluentComboPopup();
+    void onPopupHidden();
+    void layoutLineEdit();
+    void applyLineEditStyle();
+    void validateLineEditText();
 
-    QPointer<QWidget> m_popupChrome;
+    // --- Configurable design tokens ---
+    QString m_fontRole       = Typography::FontRole::Body;
+    int     m_contentPaddingH = ::Spacing::Padding::ComboBoxHorizontal;
+    int     m_contentPaddingV = ::Spacing::Padding::ComboBoxVertical;
+    QString m_chevronGlyph   = Typography::Icons::ChevronDownMed;
+    int     m_chevronSize    = 12;
+    QPoint  m_chevronOffset  {::Spacing::Padding::ComboBoxHorizontal, 0};
+    int     m_popupOffset    = ::Spacing::XSmall; // 4px gap between combo and popup
 
-    bool m_isHovered = false;
-    bool m_isPressed = false;
-
-    QString m_fontRole = "Body";
-    int m_contentPaddingH = ::Spacing::Padding::ComboBoxHorizontal;
-    int m_arrowWidth = 24;
-    QString m_chevronGlyph = Typography::Icons::ChevronDown;
-    int m_chevronSize = Typography::FontSize::Caption;
-    QPoint m_chevronOffset;
-
+    // --- State ---
+    bool  m_hovered  = false;
+    bool  m_pressed  = false;
+    bool  m_chevronHovered = false;
+    bool  m_popupVisible = false;
     qreal m_pressProgress = 0.0;
+
     QPropertyAnimation* m_pressAnimation = nullptr;
+
+    // --- Editable ---
+    view::textfields::LineEdit* m_lineEdit = nullptr;
+
+    // --- Popup ---
+    class ComboBoxPopup;
+    ComboBoxPopup* m_popup = nullptr;
+};
+
+// ─── ComboBox 弹层窗口 ──────────────────────────────────────────────────────
+
+class ComboBox::ComboBoxPopup : public view::dialogs_flyouts::Dialog {
+public:
+    explicit ComboBoxPopup(ComboBox* comboBox);
+
+    void showForComboBox();
+    void onThemeUpdated() override;
+
+protected:
+    void paintEvent(QPaintEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
+
+private:
+    ComboBox* m_comboBox;
+    view::collections::ListView* m_listView;
+    ComboBoxItemDelegate* m_delegate;
 };
 
 } // namespace view::basicinput
 
 #endif // COMBOBOX_H
-

@@ -115,6 +115,13 @@ void ListView::setBorderVisible(bool visible) {
     emit borderVisibleChanged();
 }
 
+void ListView::setBackgroundVisible(bool visible) {
+    if (m_backgroundVisible == visible) return;
+    m_backgroundVisible = visible;
+    if (viewport()) viewport()->update();
+    emit backgroundVisibleChanged();
+}
+
 void ListView::setHeaderText(const QString& text) {
     if (m_headerText == text) return;
     m_headerText = text;
@@ -169,11 +176,13 @@ void ListView::paintEvent(QPaintEvent* event) {
     const auto& c = themeColors();
     const int r = CornerRadius::Control;
 
-    // --- 1. 绘制容器背景 + 圆角裁剪 ---
-    QPainter p(viewport());
-    p.setRenderHint(QPainter::Antialiasing);
-    p.fillRect(viewport()->rect(), c.bgLayer);
-    p.end();
+    // --- 1. 绘制容器背景 ---
+    if (m_backgroundVisible) {
+        QPainter p(viewport());
+        p.setRenderHint(QPainter::Antialiasing);
+        p.fillRect(viewport()->rect(), c.bgLayer);
+        p.end();
+    }
 
     // --- 2. 空列表占位符 ---
     const bool isEmpty = !model() || model()->rowCount() == 0;
