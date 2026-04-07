@@ -93,6 +93,11 @@ namespace Typography {
         const QString ChevronUpMed    = QString::fromUtf16(u"\uE971");
         const QString ChevronLeftMed  = QString::fromUtf16(u"\uE973");
         const QString ChevronRightMed = QString::fromUtf16(u"\uE974");
+        // FlipView 专用箭头（比常规 Chevron 更小/细）
+        const QString FlipViewPrevH   = QString::fromUtf16(u"\uEDD9");
+        const QString FlipViewNextH   = QString::fromUtf16(u"\uEDDA");
+        const QString FlipViewPrevV   = QString::fromUtf16(u"\uEDDB");
+        const QString FlipViewNextV   = QString::fromUtf16(u"\uEDDC");
         const QString Back            = QString::fromUtf16(u"\uE72B");
         const QString Forward         = QString::fromUtf16(u"\uE72A");
         const QString Home            = QString::fromUtf16(u"\uE80F");

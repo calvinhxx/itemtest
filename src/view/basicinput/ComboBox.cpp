@@ -15,7 +15,7 @@
 #include "common/CornerRadius.h"
 #include "common/Animation.h"
 #include "view/collections/ListView.h"
-#include "view/collections/ListItemAccentAnimator.h"
+#include <QVariantAnimation>
 #include "view/textfields/LineEdit.h"
 
 namespace {
@@ -36,15 +36,38 @@ namespace view::basicinput {
 
 ComboBoxItemDelegate::ComboBoxItemDelegate(FluentElement* themeHost, QAbstractItemView* view,
                                            QObject* parent)
-    : QStyledItemDelegate(parent), m_themeHost(themeHost) {
-    m_accentAnimator = new view::collections::ListItemAccentAnimator(view, this);
+    : QStyledItemDelegate(parent), m_themeHost(themeHost), m_view(view) {
     if (view && view->selectionModel()) {
         connect(view->selectionModel(), &QItemSelectionModel::selectionChanged,
                 this, [this](const QItemSelection& selected, const QItemSelection&) {
                     for (const auto& idx : selected.indexes())
-                        m_accentAnimator->animateSelection(idx);
+                        animateAccent(idx);
                 });
     }
+}
+
+qreal ComboBoxItemDelegate::accentProgress(const QModelIndex& index) const {
+    auto it = m_accentAnims.find(QPersistentModelIndex(index));
+    return it == m_accentAnims.end() ? 1.0 : it.value()->currentValue().toReal();
+}
+
+void ComboBoxItemDelegate::animateAccent(const QModelIndex& index) {
+    QPersistentModelIndex pi(index);
+    if (m_accentAnims.contains(pi)) return;
+    auto* a = new QVariantAnimation(this);
+    a->setDuration(167);
+    a->setEasingCurve(QEasingCurve::OutCubic);
+    a->setStartValue(0.0);
+    a->setEndValue(1.0);
+    m_accentAnims.insert(pi, a);
+    connect(a, &QVariantAnimation::valueChanged, this, [this] {
+        if (m_view && m_view->viewport()) m_view->viewport()->update();
+    });
+    connect(a, &QVariantAnimation::finished, this, [this, pi, a] {
+        m_accentAnims.remove(pi);
+        a->deleteLater();
+    });
+    a->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void ComboBoxItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
@@ -94,7 +117,7 @@ void ComboBoxItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& 
     }
 
     if (isSelected && isEnabled && colors.accentDefault.isValid()) {
-        const qreal accentT = qBound(0.0, m_accentAnimator->progress(index), 1.0);
+        const qreal accentT = qBound(0.0, accentProgress(index), 1.0);
         const qreal indicatorW = 3.0;
         const qreal fullH = 16.0;
         const qreal indicatorH = fullH * (0.35 + 0.65 * accentT);

@@ -9,7 +9,9 @@ class QModelIndex;
 class QPainter;
 class QStyleOptionViewItem;
 
-namespace view::collections { class ListItemAccentAnimator; }
+#include <QHash>
+#include <QPersistentModelIndex>
+class QVariantAnimation;
 
 /**
  * 测试 / 示例用：Fluent 风格列表行代理（业务层组装，不放入 itemstest_lib）。
@@ -33,9 +35,13 @@ public:
                    const QModelIndex& index) const override;
 
 private:
+    qreal accentProgress(const QModelIndex& index) const;
+    void animateAccent(const QModelIndex& index);
+
     FluentElement* m_themeHost = nullptr;
     int m_rowHeight = 0;
-    view::collections::ListItemAccentAnimator* m_accentAnimator = nullptr;
+    QAbstractItemView* m_view = nullptr;
+    QHash<QPersistentModelIndex, QVariantAnimation*> m_accentAnims;
 };
 
 } // namespace listview_test

@@ -2,7 +2,9 @@
 #define COMBOBOX_H
 
 #include <QComboBox>
+#include <QHash>
 #include <QPoint>
+#include <QPersistentModelIndex>
 #include <QStyledItemDelegate>
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
@@ -12,9 +14,10 @@
 
 class QPropertyAnimation;
 
+class QVariantAnimation;
+
 namespace view::collections {
 class ListView;
-class ListItemAccentAnimator;
 }
 namespace view::textfields { class LineEdit; }
 
@@ -34,8 +37,12 @@ public:
                    const QModelIndex& index) const override;
 
 private:
+    qreal accentProgress(const QModelIndex& index) const;
+    void animateAccent(const QModelIndex& index);
+
     FluentElement* m_themeHost = nullptr;
-    view::collections::ListItemAccentAnimator* m_accentAnimator = nullptr;
+    QAbstractItemView* m_view = nullptr;
+    QHash<QPersistentModelIndex, QVariantAnimation*> m_accentAnims;
 };
 
 /**

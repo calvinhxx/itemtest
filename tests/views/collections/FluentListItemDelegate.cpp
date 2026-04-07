@@ -8,22 +8,45 @@
 
 #include "common/Spacing.h"
 #include "view/FluentElement.h"
-#include "view/collections/ListItemAccentAnimator.h"
+#include <QVariantAnimation>
 
 namespace listview_test {
 
 FluentListItemDelegate::FluentListItemDelegate(FluentElement* themeHost, int rowHeight,
                                                QAbstractItemView* view,
                                                QObject* parent)
-    : QStyledItemDelegate(parent), m_themeHost(themeHost), m_rowHeight(rowHeight) {
-    m_accentAnimator = new view::collections::ListItemAccentAnimator(view, this);
+    : QStyledItemDelegate(parent), m_themeHost(themeHost), m_rowHeight(rowHeight), m_view(view) {
     if (view && view->selectionModel()) {
         connect(view->selectionModel(), &QItemSelectionModel::selectionChanged,
                 this, [this](const QItemSelection& selected, const QItemSelection&) {
                     for (const auto& index : selected.indexes())
-                        m_accentAnimator->animateSelection(index);
+                        animateAccent(index);
                 });
     }
+}
+
+qreal FluentListItemDelegate::accentProgress(const QModelIndex& index) const {
+    auto it = m_accentAnims.find(QPersistentModelIndex(index));
+    return it == m_accentAnims.end() ? 1.0 : it.value()->currentValue().toReal();
+}
+
+void FluentListItemDelegate::animateAccent(const QModelIndex& index) {
+    QPersistentModelIndex pi(index);
+    if (m_accentAnims.contains(pi)) return;
+    auto* a = new QVariantAnimation(this);
+    a->setDuration(167);
+    a->setEasingCurve(QEasingCurve::OutCubic);
+    a->setStartValue(0.0);
+    a->setEndValue(1.0);
+    m_accentAnims.insert(pi, a);
+    connect(a, &QVariantAnimation::valueChanged, this, [this] {
+        if (m_view && m_view->viewport()) m_view->viewport()->update();
+    });
+    connect(a, &QVariantAnimation::finished, this, [this, pi, a] {
+        m_accentAnims.remove(pi);
+        a->deleteLater();
+    });
+    a->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void FluentListItemDelegate::setThemeHost(FluentElement* host) {
@@ -85,7 +108,7 @@ void FluentListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem
     }
 
     if (isSelected && isEnabled && colors.accentDefault.isValid()) {
-        const qreal accentT = qBound(0.0, m_accentAnimator->progress(index), 1.0);
+        const qreal accentT = qBound(0.0, accentProgress(index), 1.0);
 
         const qreal indicatorW = 3.0;
         const qreal fullH = 16.0;
@@ -113,11 +136,16 @@ void FluentListItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem
     painter->restore();
 }
 
-QSize FluentListItemDelegate::sizeHint(const QStyleOptionViewItem& /*option*/,
-                                       const QModelIndex& /*index*/) const {
+QSize FluentListItemDelegate::sizeHint(const QStyleOptionViewItem& option,
+                                       const QModelIndex& index) const {
     const int h = m_rowHeight > 0 ? m_rowHeight
                                   : (Spacing::ControlHeight::Standard + Spacing::Gap::Tight);
-    return QSize(0, h);
+    const int hPad = Spacing::Padding::ListItemHorizontal;
+    const int hGap  = Spacing::Gap::Tight;  // 水平 item 之间的间距
+    const QString text = index.data(Qt::DisplayRole).toString();
+    const QFontMetrics fm(option.font);
+    const int w = fm.horizontalAdvance(text) + hPad * 2 + 12 + hGap;
+    return QSize(w, h);
 }
 
 } // namespace listview_test
