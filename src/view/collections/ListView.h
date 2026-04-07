@@ -166,13 +166,8 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
     void showEvent(QShowEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
-
-    // Drag-reorder events
-    void startDrag(Qt::DropActions supportedActions) override;
-    void dragEnterEvent(QDragEnterEvent* event) override;
-    void dragMoveEvent(QDragMoveEvent* event) override;
-    void dragLeaveEvent(QDragLeaveEvent* event) override;
-    void dropEvent(QDropEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     void enterEvent(QEnterEvent* event) override;
@@ -199,12 +194,12 @@ private:
     void setViewportHovered(bool hovered);
     void updateViewportMargins();
     void startBounceBack();
-    void paintSectionHeaders(QPainter& p);
     void installSectionProxy();
     bool isPointInSectionHeader(const QPoint& viewportPos) const;
     int dropIndicatorRow(const QPoint& pos) const;
     void updateDragDisplacement();
     void clearDragAnimations();
+    QPixmap renderItemPixmap(int row) const;
 
     ListSelectionMode m_selectionMode = ListSelectionMode::Single;
     QString m_fontRole;
@@ -226,8 +221,12 @@ private:
 
     // --- Drag reorder ---
     bool m_canReorderItems = false;
+    bool m_isDragging = false;
     int  m_dragSourceRow = -1;
     int  m_dropTargetRow = -1;      // 拖拽指示线位置
+    QPoint m_dragStartPos;
+    QPoint m_dragCurrentPos;
+    QPixmap m_dragPixmap;
     QHash<int, qreal>              m_dragOffsets;  // row → 当前 Y 位移 px
     QHash<int, QVariantAnimation*> m_dragAnims;    // row → 位移动画
     mutable bool m_paintingWithOffsets = false;

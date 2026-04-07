@@ -850,8 +850,6 @@ TEST_F(ListViewTest, SetCanReorderItems) {
     QSignalSpy spy(lv, &ListView::canReorderItemsChanged);
     lv->setCanReorderItems(true);
     EXPECT_TRUE(lv->canReorderItems());
-    EXPECT_TRUE(lv->dragEnabled());
-    EXPECT_TRUE(lv->acceptDrops());
     EXPECT_EQ(spy.count(), 1);
 }
 
@@ -860,7 +858,6 @@ TEST_F(ListViewTest, DisableCanReorderItems) {
     lv->setCanReorderItems(true);
     lv->setCanReorderItems(false);
     EXPECT_FALSE(lv->canReorderItems());
-    EXPECT_FALSE(lv->dragEnabled());
 }
 
 TEST_F(ListViewTest, CanReorderItemsSignalNotDuplicate) {

@@ -4,13 +4,8 @@
 
 #include <QAbstractItemModel>
 #include <QAbstractItemView>
-#include <QDrag>
-#include <QDragEnterEvent>
-#include <QDragLeaveEvent>
-#include <QDragMoveEvent>
-#include <QDropEvent>
+#include <QApplication>
 #include <QLabel>
-#include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -18,6 +13,7 @@
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QShowEvent>
+#include <QStandardItemModel>
 #include <QStyledItemDelegate>
 #include <QTimer>
 #include <QVariantAnimation>
@@ -369,15 +365,6 @@ void ListView::setPlaceholderText(const QString& text) {
 void ListView::setCanReorderItems(bool enabled) {
     if (m_canReorderItems == enabled) return;
     m_canReorderItems = enabled;
-
-    setDragEnabled(enabled);
-    setAcceptDrops(enabled);
-    if (enabled) {
-        setDragDropMode(QAbstractItemView::InternalMove);
-        setDefaultDropAction(Qt::MoveAction);
-    } else {
-        setDragDropMode(QAbstractItemView::NoDragDrop);
-    }
     emit canReorderItemsChanged();
 }
 
@@ -462,102 +449,68 @@ void ListView::setSelectedIndex(int index) {
 
 // ── Drag reorder events ───────────────────────────────────────────────────────
 
-static const QString kReorderMime = QStringLiteral("application/x-fluentlistview-reorder");
+QPixmap ListView::renderItemPixmap(int row) const {
+    if (!model() || row < 0 || row >= model()->rowCount())
+        return {};
 
-void ListView::startDrag(Qt::DropActions /*supportedActions*/) {
-    if (!m_canReorderItems) return;
-    QModelIndex idx = currentIndex();
-    if (!idx.isValid()) return;
+    QModelIndex idx = model()->index(row, 0);
+    QRect rect = QListView::visualRect(idx);
+    if (rect.isEmpty()) return {};
 
-    m_dragSourceRow = idx.row();
-
-    auto* mime = new QMimeData;
-    mime->setData(kReorderMime, QByteArray::number(m_dragSourceRow));
-
-    auto* drag = new QDrag(this);
-    drag->setMimeData(mime);
-    drag->exec(Qt::MoveAction);
-
-    m_dropTargetRow = -1;
-    clearDragAnimations();
-    viewport()->update();
-}
-
-void ListView::dragEnterEvent(QDragEnterEvent* event) {
-    if (m_canReorderItems && event->mimeData()->hasFormat(kReorderMime)) {
-        event->acceptProposedAction();
-    } else {
-        QListView::dragEnterEvent(event);
+    // Use full viewport width for the snapshot so it looks like the real row.
+    // If a SectionProxyDelegate is active, use the inner delegate directly
+    // so the snapshot doesn't include section header area.
+    QAbstractItemDelegate* del = itemDelegate();
+    int h = rect.height();
+    if (auto* proxy = dynamic_cast<SectionProxyDelegate*>(del)) {
+        del = proxy->innerDelegate() ? proxy->innerDelegate() : del;
+        // Subtract section header height for section-start rows
+        if (proxy->isSectionStart(row))
+            h -= proxy->sectionHeaderHeight();
     }
-}
+    const int w = viewport()->width();
 
-void ListView::dragMoveEvent(QDragMoveEvent* event) {
-    if (m_canReorderItems && event->mimeData()->hasFormat(kReorderMime)) {
-        int row = dropIndicatorRow(event->position().toPoint());
-        if (row != m_dropTargetRow) {
-            m_dropTargetRow = row;
-            updateDragDisplacement();
-            viewport()->update();
-        }
-        event->acceptProposedAction();
-    } else {
-        QListView::dragMoveEvent(event);
-    }
-}
+    const qreal dpr = devicePixelRatioF();
+    QPixmap pix(QSize(w, h) * dpr);
+    pix.setDevicePixelRatio(dpr);
+    pix.fill(themeColors().bgLayer);  // container background
 
-void ListView::dragLeaveEvent(QDragLeaveEvent* event) {
-    if (m_canReorderItems) {
-        m_dropTargetRow = -1;
-        clearDragAnimations();
-    }
-    QListView::dragLeaveEvent(event);
-}
+    QPainter p(&pix);
+    p.setRenderHint(QPainter::Antialiasing);
+    QStyleOptionViewItem opt;
+    initViewItemOption(&opt);
+    opt.rect = QRect(0, 0, w, h);
+    opt.state |= QStyle::State_Selected | QStyle::State_Enabled;
+    opt.state &= ~QStyle::State_MouseOver;
+    del->paint(&p, opt, idx);
+    p.end();
 
-void ListView::dropEvent(QDropEvent* event) {
-    if (!m_canReorderItems || !event->mimeData()->hasFormat(kReorderMime)) {
-        QListView::dropEvent(event);
-        return;
-    }
-
-    bool ok = false;
-    int sourceRow = event->mimeData()->data(kReorderMime).toInt(&ok);
-    if (!ok || !model()) {
-        m_dropTargetRow = -1;
-        viewport()->update();
-        return;
-    }
-
-    int targetRow = dropIndicatorRow(event->position().toPoint());
-    if (targetRow < 0) targetRow = model()->rowCount();
-
-    // Adjust: if moving below the source, the source removal shifts indices
-    if (sourceRow < targetRow) targetRow--;
-
-    if (sourceRow != targetRow && sourceRow >= 0 && sourceRow < model()->rowCount()) {
-        // Use QAbstractItemModel move API
-        int destRow = (sourceRow < targetRow) ? targetRow + 1 : targetRow;
-        if (model()->moveRow(QModelIndex(), sourceRow, QModelIndex(), destRow)) {
-            setCurrentIndex(model()->index(targetRow, 0));
-            emit itemReordered(sourceRow, targetRow);
-        }
-    }
-
-    m_dropTargetRow = -1;
-    m_dragSourceRow = -1;
-    clearDragAnimations();
-    event->acceptProposedAction();
+    return pix;
 }
 
 int ListView::dropIndicatorRow(const QPoint& pos) const {
+    if (!model()) return 0;
+    const int count = model()->rowCount();
+    if (count == 0) return 0;
+
+    // During drag, use displaced visual positions for hit testing
+    // so the indicator follows the actual visual layout.
+    if (m_isDragging) {
+        for (int i = 0; i < count; ++i) {
+            if (i == m_dragSourceRow) continue;
+            QRect rect = QListView::visualRect(model()->index(i, 0));
+            rect.translate(0, qRound(m_dragOffsets.value(i, 0.0)));
+            if (pos.y() < rect.center().y())
+                return i;
+        }
+        return count;
+    }
+
+    // Non-drag: standard hit test
     QModelIndex idx = indexAt(pos);
-    if (!idx.isValid()) {
-        return model() ? model()->rowCount() : 0;
-    }
+    if (!idx.isValid()) return count;
     QRect rect = visualRect(idx);
-    // If cursor is in the bottom half, insert after this row
-    if (pos.y() > rect.center().y()) {
-        return idx.row() + 1;
-    }
+    if (pos.y() > rect.center().y()) return idx.row() + 1;
     return idx.row();
 }
 
@@ -592,23 +545,10 @@ void ListView::paintEvent(QPaintEvent* event) {
     QListView::paintEvent(event);
     m_paintingWithOffsets = false;
 
-    // --- 3.2 拖拽源行半透明效果 ---
-    if (m_canReorderItems && m_dragSourceRow >= 0 && m_dragSourceRow < (model() ? model()->rowCount() : 0)) {
-        QRect srcRect = QListView::visualRect(model()->index(m_dragSourceRow, 0));
-        if (!srcRect.isEmpty()) {
-            QPainter ghost(viewport());
-            ghost.setRenderHint(QPainter::Antialiasing);
-            QColor overlay = c.bgLayer;
-            overlay.setAlphaF(0.7f);
-            ghost.fillRect(srcRect, overlay);
-            ghost.end();
-        }
-    }
-
     // --- 3.5 Section headers are now handled by SectionProxyDelegate ---
 
     // --- 3.6 绘制拖拽指示线 ---
-    if (m_canReorderItems && m_dropTargetRow >= 0 && model()) {
+    if (m_isDragging && m_dropTargetRow >= 0 && model()) {
         m_paintingWithOffsets = !m_dragOffsets.isEmpty();
         QPainter dp(viewport());
         dp.setRenderHint(QPainter::Antialiasing);
@@ -632,6 +572,17 @@ void ListView::paintEvent(QPaintEvent* event) {
         dp.drawEllipse(QPoint(viewport()->width() - ::Spacing::Padding::ListItemHorizontal, y), circleR, circleR);
         m_paintingWithOffsets = false;
         dp.end();
+    }
+
+    // --- 3.7 拖拽浮动图层 ---
+    if (m_isDragging && !m_dragPixmap.isNull()) {
+        QPainter fp(viewport());
+        fp.setRenderHint(QPainter::Antialiasing);
+        fp.setOpacity(0.85);
+        const int pixH = qRound(m_dragPixmap.height() / m_dragPixmap.devicePixelRatio());
+        QPoint pixPos(0, m_dragCurrentPos.y() - pixH / 2);
+        fp.drawPixmap(pixPos, m_dragPixmap);
+        fp.end();
     }
 
     // --- 4. 圆角遮罩：用父背景色覆盖四角区域（抗锯齿，替代 setMask） ---
@@ -719,7 +670,80 @@ void ListView::mousePressEvent(QMouseEvent* event) {
         event->accept();
         return;  // Swallow click on section header area
     }
+    if (m_canReorderItems && event->button() == Qt::LeftButton) {
+        QModelIndex idx = indexAt(event->pos());
+        if (idx.isValid()) {
+            m_dragStartPos = event->pos();
+            m_dragSourceRow = idx.row();
+        }
+    }
     QListView::mousePressEvent(event);
+}
+
+void ListView::mouseMoveEvent(QMouseEvent* event) {
+    if (m_canReorderItems && m_dragSourceRow >= 0 && (event->buttons() & Qt::LeftButton)) {
+        if (!m_isDragging) {
+            if ((event->pos() - m_dragStartPos).manhattanLength() >= QApplication::startDragDistance()) {
+                // Grab snapshot BEFORE setting m_isDragging to avoid capturing ghost overlay
+                m_dragPixmap = renderItemPixmap(m_dragSourceRow);
+                m_isDragging = true;
+            }
+        }
+
+        if (m_isDragging) {
+            m_dragCurrentPos = event->pos();
+            int target = dropIndicatorRow(event->pos());
+            if (target != m_dropTargetRow) {
+                m_dropTargetRow = target;
+                updateDragDisplacement();
+            }
+            viewport()->update();
+            event->accept();
+            return;
+        }
+    }
+    QListView::mouseMoveEvent(event);
+}
+
+void ListView::mouseReleaseEvent(QMouseEvent* event) {
+    if (m_isDragging && event->button() == Qt::LeftButton) {
+        int src = m_dragSourceRow;
+        int dst = m_dropTargetRow;
+
+        if (dst >= 0 && src >= 0 && model()) {
+            if (src < dst) dst--;
+            if (src != dst && src < model()->rowCount()) {
+                int destRow = (src < dst) ? dst + 1 : dst;
+                bool moved = model()->moveRow(QModelIndex(), src, QModelIndex(), destRow);
+                if (!moved) {
+                    // QStandardItemModel doesn't implement moveRow — use takeRow/insertRow
+                    if (auto* sim = qobject_cast<QStandardItemModel*>(model())) {
+                        auto row = sim->takeRow(src);
+                        sim->insertRow(dst, row);
+                        moved = true;
+                    }
+                }
+                if (moved) {
+                    setCurrentIndex(model()->index(dst, 0));
+                    emit itemReordered(src, dst);
+                }
+            }
+        }
+
+        m_isDragging = false;
+        m_dragSourceRow = -1;
+        m_dropTargetRow = -1;
+        m_dragPixmap = QPixmap();
+        clearDragAnimations();
+        viewport()->update();
+        event->accept();
+        return;
+    }
+
+    if (m_canReorderItems) {
+        m_dragSourceRow = -1;
+    }
+    QListView::mouseReleaseEvent(event);
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -847,6 +871,11 @@ int ListView::horizontalOffset() const {
 QRect ListView::visualRect(const QModelIndex& index) const {
     QRect r = QListView::visualRect(index);
     if (m_paintingWithOffsets && index.isValid()) {
+        if (m_isDragging && index.row() == m_dragSourceRow) {
+            // Hide source row: move off-screen so QListView won't paint it
+            r.moveTop(-r.height() * 2);
+            return r;
+        }
         r.translate(0, qRound(m_dragOffsets.value(index.row(), 0.0)));
     }
     return r;
@@ -862,52 +891,7 @@ void ListView::startBounceBack() {
     m_bounceAnim->start();
 }
 
-void ListView::paintSectionHeaders(QPainter& p) {
-    if (!m_sectionEnabled || !m_sectionKeyFunc || !model()) return;
-
-    const auto& c = themeColors();
-    const int rowCount = model()->rowCount();
-    if (rowCount == 0) return;
-
-    p.save();
-    p.setRenderHint(QPainter::Antialiasing);
-
-    // WinUI 风格: Title 字号粗体标题 + 下方细分隔线
-    const QFont titleFont = themeFont(Typography::FontRole::Title).toQFont();
-    const QFontMetrics titleFm(titleFont);
-
-    QString prevKey;
-    for (int row = 0; row < rowCount; ++row) {
-        QString key = m_sectionKeyFunc(row);
-        if (key == prevKey) continue;
-        prevKey = key;
-
-        QRect itemRect = visualRect(model()->index(row, 0));
-        if (itemRect.isEmpty()) continue;
-
-        // Section header 区域在该行上方
-        const int textH = titleFm.height();
-        const int sectionH = textH + ::Spacing::Gap::Normal + 4; // text + gap + separator
-        const int sectionTop = itemRect.top() - sectionH;
-
-        // Only paint if visible in viewport
-        if (sectionTop + sectionH < 0 || sectionTop > viewport()->height()) continue;
-
-        const int hPad = ::Spacing::Padding::ListItemHorizontal;
-
-        // 绘制标题文字 (Title 字号, textPrimary)
-        p.setFont(titleFont);
-        p.setPen(c.textPrimary);
-        QRect textRect(hPad, sectionTop, viewport()->width() - 2 * hPad, textH);
-        p.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, key);
-
-        // 绘制分隔线 (1px, strokeDefault, 文字下方)
-        const int lineY = sectionTop + textH + 2;
-        p.setPen(QPen(c.strokeDefault, 1.0));
-        p.drawLine(hPad, lineY, viewport()->width() - hPad, lineY);
-    }
-    p.restore();
-}
+// paintSectionHeaders() removed — section headers are now painted by SectionProxyDelegate
 
 void ListView::setViewportHovered(bool hovered) {
     if (m_viewportHovered == hovered)
@@ -1073,42 +1057,36 @@ void ListView::updateDragDisplacement() {
         return;
     }
 
-    const int rowCount = model()->rowCount();
+    const int itemCount = model()->rowCount();
     const int src = m_dragSourceRow;
     const int dst = m_dropTargetRow;
 
-    // Determine affected range: rows between source and drop target shift by ±rowHeight
-    const int lo = qMin(src, dst);
-    const int hi = qMax(src, dst);
+    // Use the actual source row height for displacement amount
+    const int srcH = QListView::visualRect(model()->index(src, 0)).height();
+    if (srcH <= 0) return;
 
-    // Typical row height for displacement calculation
-    const int rowH = (rowCount > 0 && visualRect(model()->index(0, 0)).height() > 0)
-                         ? visualRect(model()->index(0, 0)).height()
-                         : 40;
-
-    for (int row = 0; row < rowCount; ++row) {
+    for (int i = 0; i < itemCount; ++i) {
         qreal target = 0.0;
-        if (row == src) {
-            // The dragged source row: no displacement (it follows the cursor via drag pixmap)
+        if (i == src) {
+            // Source item: no displacement (follows cursor via drag pixmap)
             target = 0.0;
-        } else if (src < dst && row > src && row < dst) {
-            // Source moves down: rows between (src, dst) shift up by one row height
-            target = -rowH;
-        } else if (src > dst && row >= dst && row < src) {
-            // Source moves up: rows between [dst, src) shift down by one row height
-            target = rowH;
+        } else if (src < dst && i > src && i < dst) {
+            // Source moves down: items between (src, dst) shift up
+            target = -srcH;
+        } else if (src > dst && i >= dst && i < src) {
+            // Source moves up: items between [dst, src) shift down
+            target = srcH;
         }
 
-        const qreal current = m_dragOffsets.value(row, 0.0);
-        if (qFuzzyCompare(current, target) && !m_dragAnims.contains(row)) {
-            continue; // already at target, no animation needed
+        const qreal current = m_dragOffsets.value(i, 0.0);
+        if (qFuzzyCompare(current, target) && !m_dragAnims.contains(i)) {
+            continue;
         }
 
-        // Stop existing animation for this row
-        if (auto* oldAnim = m_dragAnims.value(row)) {
+        if (auto* oldAnim = m_dragAnims.value(i)) {
             oldAnim->stop();
             oldAnim->deleteLater();
-            m_dragAnims.remove(row);
+            m_dragAnims.remove(i);
         }
 
         if (qFuzzyCompare(current, target)) {
@@ -1120,18 +1098,18 @@ void ListView::updateDragDisplacement() {
         anim->setEndValue(target);
         anim->setDuration(::Animation::Duration::Fast);
         anim->setEasingCurve(::Animation::getEasing(::Animation::EasingType::Decelerate));
-        connect(anim, &QVariantAnimation::valueChanged, this, [this, row](const QVariant& v) {
-            m_dragOffsets[row] = v.toReal();
+        connect(anim, &QVariantAnimation::valueChanged, this, [this, i](const QVariant& v) {
+            m_dragOffsets[i] = v.toReal();
             viewport()->update();
         });
-        connect(anim, &QVariantAnimation::finished, this, [this, row, target]() {
-            m_dragOffsets[row] = target;
-            if (auto* a = m_dragAnims.value(row)) {
+        connect(anim, &QVariantAnimation::finished, this, [this, i, target]() {
+            m_dragOffsets[i] = target;
+            if (auto* a = m_dragAnims.value(i)) {
                 a->deleteLater();
-                m_dragAnims.remove(row);
+                m_dragAnims.remove(i);
             }
         });
-        m_dragAnims[row] = anim;
+        m_dragAnims[i] = anim;
         anim->start(QAbstractAnimation::DeleteWhenStopped);
     }
 }
