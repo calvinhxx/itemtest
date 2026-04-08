@@ -23,7 +23,7 @@ namespace {
     constexpr int kIndicatorMargin = 12;
     constexpr int kArrowFontSize = 10;    // Chevron icon size
     constexpr int kGestureThreshold = 50;  // trackpad 累积像素阈值
-    constexpr int kWheelCooldownMs = 300;  // 鼠标滚轮翻页冷却
+    constexpr int kWheelCooldownMs = 500;  // 鼠标滚轮翻页冷却 (覆盖动画结束后的残余事件)
 }
 
 // ── 覆盖层：在子页面之上绘制导航按钮和指示器 ────────────────────────────────
@@ -531,6 +531,12 @@ void FlipView::wheelEvent(QWheelEvent* event)
 {
     if (m_pages.size() <= 1) {
         QWidget::wheelEvent(event);
+        return;
+    }
+
+    // ── Guard: 动画进行中不接受新翻页 ──
+    if (m_slideAnimation->state() == QAbstractAnimation::Running) {
+        event->accept();
         return;
     }
 
