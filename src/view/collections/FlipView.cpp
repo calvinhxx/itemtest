@@ -51,8 +51,14 @@ protected:
         outer.addRect(QRectF(rect()));
         QPainterPath inner;
         inner.addRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), r, r);
+        QColor parentBg = c.bgCanvas;
+        if (m_fv->parentWidget()) {
+            const QPalette& pp = m_fv->parentWidget()->palette();
+            if (pp.color(QPalette::Window).alpha() > 0)
+                parentBg = pp.color(QPalette::Window);
+        }
         p.setPen(Qt::NoPen);
-        p.fillPath(outer - inner, c.bgCanvas);
+        p.fillPath(outer - inner, parentBg);
 
         // 圆角边框
         p.setPen(QPen(c.strokeDefault, 1.0));
