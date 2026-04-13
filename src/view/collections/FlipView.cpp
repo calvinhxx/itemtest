@@ -542,15 +542,21 @@ void FlipView::wheelEvent(QWheelEvent* event)
     // ── Phase-based: trackpad 手势 (Begin → Update → Momentum → End) ──
     // macOS 原生 / Windows 精密触控板 (WM_POINTER) 提供完整 phase 链
     if (phase == Qt::ScrollBegin) {
-        if (m_slideAnimation->state() == QAbstractAnimation::Running) {
-            event->accept(); return;
-        }
+        // Always reset gesture state — even during animation.
+        // ScrollUpdate has its own animation guard; after animation finishes,
+        // remaining Updates from this new gesture will accumulate fresh.
+        // 修复: 不在此处设动画守卫，否则 Begin 被阻塞后 gestureConsumed
+        //       保留上一轮的 true → 新手势的 ScrollUpdate 全部被吞 → "没有响应"
         m_gestureAccum = 0;
         m_gestureConsumed = false;
         event->accept();
         return;
     }
     if (phase == Qt::ScrollMomentum || phase == Qt::ScrollEnd) {
+        // Bridge phase → NoScrollPhase debounce: Windows 精密触控板手势结束后，
+        // 惯性滚动可能以 NoScrollPhase (WM_MOUSEWHEEL) 形式到达。
+        // 启动 cooldown 使这些惯性事件被 debounce 正确拦截。
+        m_wheelCooldown.start();
         event->accept();
         return;
     }
@@ -568,6 +574,7 @@ void FlipView::wheelEvent(QWheelEvent* event)
         if (qAbs(m_gestureAccum) >= kGestureThreshold) {
             (m_gestureAccum > 0) ? goPrevious() : goNext();
             m_gestureConsumed = true;
+            m_wheelCooldown.start(); // 同步 cooldown，防止后续 NoScrollPhase 惯性事件再翻一页
         }
         event->accept();
         return;
