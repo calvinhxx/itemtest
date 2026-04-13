@@ -800,8 +800,16 @@ void ListView::wheelEvent(QWheelEvent* event) {
 
     // ── 1. Already overscrolled ──────────────────────────────────────────
     if (!qFuzzyIsNull(overscroll)) {
-        if (m_bounceAnim->state() == QAbstractAnimation::Running)
+        if (m_bounceAnim->state() == QAbstractAnimation::Running) {
+            // Bounce in progress: consume stale NoScrollPhase events (RDP / mouse wheel)
+            // to prevent interrupting the smooth bounce-back animation.
+            // Phase-based events (native touchpad ScrollUpdate) can still interrupt.
+            if (phase == Qt::NoScrollPhase) {
+                event->accept();
+                return;
+            }
             m_bounceAnim->stop();
+        }
         m_bounceTimer->stop();  
 
         // Trackpad momentum / finger-lift → bounce back immediately

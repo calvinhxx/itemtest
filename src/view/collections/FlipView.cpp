@@ -23,7 +23,10 @@ namespace {
     constexpr int kIndicatorMargin = 12;
     constexpr int kArrowFontSize = 10;    // Chevron icon size
     constexpr int kGestureThreshold = 50;  // trackpad 累积像素阈值
-    constexpr int kWheelCooldownMs = 500;  // 鼠标滚轮翻页冷却 (覆盖动画结束后的残余事件)
+    // NoScrollPhase 事件间隔 debounce：间隔小于此值的连续事件视为同一手势
+    // macOS→RDP→Windows: 触控板事件全部变为 NoScrollPhase，间隔 ~20-30ms
+    // 鼠标滚轮：离散 notch 间隔通常 >120ms
+    constexpr int kWheelDebounceMs = 100;
 }
 
 // ── 覆盖层：在子页面之上绘制导航按钮和指示器 ────────────────────────────────
@@ -534,27 +537,27 @@ void FlipView::wheelEvent(QWheelEvent* event)
         return;
     }
 
-    // ── Guard: 动画进行中不接受新翻页 ──
-    if (m_slideAnimation->state() == QAbstractAnimation::Running) {
-        event->accept();
-        return;
-    }
-
     const auto phase = event->phase();
 
     // ── Phase-based: trackpad 手势 (Begin → Update → Momentum → End) ──
+    // macOS 原生 / Windows 精密触控板 (WM_POINTER) 提供完整 phase 链
     if (phase == Qt::ScrollBegin) {
+        if (m_slideAnimation->state() == QAbstractAnimation::Running) {
+            event->accept(); return;
+        }
         m_gestureAccum = 0;
         m_gestureConsumed = false;
         event->accept();
         return;
     }
     if (phase == Qt::ScrollMomentum || phase == Qt::ScrollEnd) {
-        // 惯性/结束阶段直接忽略（参考 QQuickFlickable 逻辑）
         event->accept();
         return;
     }
     if (phase == Qt::ScrollUpdate) {
+        if (m_slideAnimation->state() == QAbstractAnimation::Running) {
+            event->accept(); return;
+        }
         if (m_gestureConsumed) { event->accept(); return; }
         int delta = !event->pixelDelta().isNull()
             ? (m_orientation == Qt::Horizontal ? event->pixelDelta().x() : event->pixelDelta().y())
@@ -564,26 +567,36 @@ void FlipView::wheelEvent(QWheelEvent* event)
         m_gestureAccum += delta;
         if (qAbs(m_gestureAccum) >= kGestureThreshold) {
             (m_gestureAccum > 0) ? goPrevious() : goNext();
-            m_gestureConsumed = true;  // 一次手势只翻一页
+            m_gestureConsumed = true;
         }
         event->accept();
         return;
     }
 
-    // ── NoScrollPhase: 普通鼠标滚轮，用冷却防抦 ──
-    if (m_wheelCooldown.isValid() && m_wheelCooldown.elapsed() < kWheelCooldownMs) {
+    // ── NoScrollPhase: 鼠标滚轮 / Mac→RDP→Windows 转发的触控板事件 ──
+    // RDP 将 Mac 触控板手势（含惯性）转译为密集 WM_MOUSEWHEEL 流，全部 NoScrollPhase。
+    // 通过事件间隔判断手势边界：间隔 < debounce 阈值视为同一手势，只翻一次。
+    const qint64 sinceLast = m_wheelCooldown.isValid() ? m_wheelCooldown.elapsed() : 10000;
+    m_wheelCooldown.start(); // 每次事件都更新（包括动画期间），保持 debounce 窗口滑动
+
+    if (m_slideAnimation->state() == QAbstractAnimation::Running) {
         event->accept();
         return;
     }
+
+    if (sinceLast < kWheelDebounceMs) {
+        event->accept();
+        return;
+    }
+
+    // 新手势（首次事件或间隔已超 debounce）→ 翻页
     int delta = (m_orientation == Qt::Horizontal)
                     ? event->angleDelta().x() + event->angleDelta().y()
                     : event->angleDelta().y();
     if (delta > 0) {
         goPrevious();
-        m_wheelCooldown.start();
     } else if (delta < 0) {
         goNext();
-        m_wheelCooldown.start();
     }
     event->accept();
 }

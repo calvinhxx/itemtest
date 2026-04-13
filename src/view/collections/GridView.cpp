@@ -403,8 +403,14 @@ void GridView::wheelEvent(QWheelEvent* event) {
                                : delta / 120.0 * 20.0;
 
     if (!qFuzzyIsNull(m_overscrollY)) {
-        if (m_bounceAnim->state() == QAbstractAnimation::Running)
+        if (m_bounceAnim->state() == QAbstractAnimation::Running) {
+            // Bounce in progress: consume stale NoScrollPhase events (RDP / mouse wheel)
+            if (phase == Qt::NoScrollPhase) {
+                event->accept();
+                return;
+            }
             m_bounceAnim->stop();
+        }
         m_bounceTimer->stop();
 
         if (phase == Qt::ScrollMomentum || phase == Qt::ScrollEnd) {
