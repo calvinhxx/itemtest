@@ -97,6 +97,14 @@ FlipView::FlipView(QWidget* parent)
     m_slideAnimation = new QPropertyAnimation(this, "slideOffset", this);
     m_slideAnimation->setDuration(themeAnimation().normal);
     m_slideAnimation->setEasingCurve(themeAnimation().decelerate);
+    connect(m_slideAnimation, &QPropertyAnimation::finished, this, [this]() {
+        if (m_pendingFlipDir != 0) {
+            int dir = m_pendingFlipDir;
+            m_pendingFlipDir = 0;
+            if (dir < 0) goPrevious(); else goNext();
+            m_wheelCooldown.start();
+        }
+    });
 
     m_overlay = new FlipViewOverlay(this);
 }
@@ -542,13 +550,10 @@ void FlipView::wheelEvent(QWheelEvent* event)
     // ── Phase-based: trackpad 手势 (Begin → Update → Momentum → End) ──
     // macOS 原生 / Windows 精密触控板 (WM_POINTER) 提供完整 phase 链
     if (phase == Qt::ScrollBegin) {
-        // Always reset gesture state — even during animation.
-        // ScrollUpdate has its own animation guard; after animation finishes,
-        // remaining Updates from this new gesture will accumulate fresh.
-        // 修复: 不在此处设动画守卫，否则 Begin 被阻塞后 gestureConsumed
-        //       保留上一轮的 true → 新手势的 ScrollUpdate 全部被吞 → "没有响应"
+        // 新手势起点：重置所有手势状态，含 pendingFlipDir（新手势方向覆盖旧排队）
         m_gestureAccum = 0;
         m_gestureConsumed = false;
+        m_pendingFlipDir = 0;
         event->accept();
         return;
     }
@@ -561,10 +566,11 @@ void FlipView::wheelEvent(QWheelEvent* event)
         return;
     }
     if (phase == Qt::ScrollUpdate) {
-        if (m_slideAnimation->state() == QAbstractAnimation::Running) {
-            event->accept(); return;
-        }
         if (m_gestureConsumed) { event->accept(); return; }
+        // 始终累积——即使动画进行中。若阈值达到时动画仍在播放，
+        // 将翻页方向存入 m_pendingFlipDir，动画结束时自动执行。
+        // 修复: Windows 快速连续滑动时 ScrollUpdate 全部落在上一次动画期间，
+        //       不再被动画守卫丢弃。
         int delta = !event->pixelDelta().isNull()
             ? (m_orientation == Qt::Horizontal ? event->pixelDelta().x() : event->pixelDelta().y())
             : (m_orientation == Qt::Horizontal
@@ -572,9 +578,13 @@ void FlipView::wheelEvent(QWheelEvent* event)
                 : event->angleDelta().y());
         m_gestureAccum += delta;
         if (qAbs(m_gestureAccum) >= kGestureThreshold) {
-            (m_gestureAccum > 0) ? goPrevious() : goNext();
             m_gestureConsumed = true;
-            m_wheelCooldown.start(); // 同步 cooldown，防止后续 NoScrollPhase 惯性事件再翻一页
+            m_wheelCooldown.start();
+            if (m_slideAnimation->state() == QAbstractAnimation::Running) {
+                m_pendingFlipDir = (m_gestureAccum > 0) ? -1 : 1;
+            } else {
+                (m_gestureAccum > 0) ? goPrevious() : goNext();
+            }
         }
         event->accept();
         return;

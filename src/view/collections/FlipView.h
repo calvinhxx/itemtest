@@ -118,6 +118,7 @@ private:
     QElapsedTimer m_wheelCooldown;
     int m_gestureAccum = 0;
     bool m_gestureConsumed = false;
+    int m_pendingFlipDir = 0;      // 动画期间排队的翻页方向 (-1=prev, 0=none, 1=next)
 };
 
 } // namespace view::collections
