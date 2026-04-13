@@ -767,6 +767,7 @@ void ListView::leaveEvent(QEvent* event) {
 
 void ListView::wheelEvent(QWheelEvent* event) {
     const bool horizontal = (flow() == LeftToRight);
+    const auto phase = event->phase();
 
     // For horizontal flow, pick the dominant axis (not sum) to avoid double-counting on diagonal swipes.
     // Trackpad users naturally swipe vertically, so Y is often the dominant axis even for horizontal lists.
@@ -774,7 +775,17 @@ void ListView::wheelEvent(QWheelEvent* event) {
         ? (qAbs(event->angleDelta().y()) >= qAbs(event->angleDelta().x())
                ? event->angleDelta().y() : event->angleDelta().x())
         : event->angleDelta().y();
-    if (delta == 0) {
+
+    qreal& overscroll = horizontal ? m_overscrollX : m_overscrollY;
+
+    // Zero-delta event (e.g. ScrollEnd on Windows touchpad with no residual)
+    if (delta == 0 && event->pixelDelta().isNull()) {
+        if (!qFuzzyIsNull(overscroll) &&
+            (phase == Qt::ScrollEnd || phase == Qt::ScrollMomentum)) {
+            startBounceBack();
+            event->accept();
+            return;
+        }
         QListView::wheelEvent(event);
         return;
     }
@@ -786,9 +797,6 @@ void ListView::wheelEvent(QWheelEvent* event) {
                      ? event->pixelDelta().y() : event->pixelDelta().x())
               : event->pixelDelta().y())
         : delta / 120.0 * 20.0;
-    const auto phase = event->phase();
-
-    qreal& overscroll = horizontal ? m_overscrollX : m_overscrollY;
 
     // ── 1. Already overscrolled ──────────────────────────────────────────
     if (!qFuzzyIsNull(overscroll)) {
@@ -820,7 +828,7 @@ void ListView::wheelEvent(QWheelEvent* event) {
 
         viewport()->update();
 
-        // Mouse wheel (no phase) → timer triggers bounce when idle
+        // NoScrollPhase (mouse wheel / Windows touchpad fallback) → timer bounce
         if (!qFuzzyIsNull(overscroll) && phase == Qt::NoScrollPhase)
             m_bounceTimer->start();
 
@@ -834,8 +842,8 @@ void ListView::wheelEvent(QWheelEvent* event) {
     const bool atEnd   = sb->value() >= sb->maximum();
 
     if ((atStart && scrollPx > 0) || (atEnd && scrollPx < 0)) {
-        // Don't start overscroll from trackpad inertia
-        if (phase == Qt::ScrollMomentum) {
+        // Don't enter overscroll from inertia or finger-lift
+        if (phase == Qt::ScrollMomentum || phase == Qt::ScrollEnd) {
             event->accept();
             return;
         }

@@ -384,7 +384,16 @@ void GridView::leaveEvent(QEvent* event) {
 
 void GridView::wheelEvent(QWheelEvent* event) {
     const int delta = event->angleDelta().y();
-    if (delta == 0) {
+    const auto phase = event->phase();
+
+    // Zero-delta event (e.g. ScrollEnd on Windows touchpad with no residual)
+    if (delta == 0 && event->pixelDelta().isNull()) {
+        if (!qFuzzyIsNull(m_overscrollY) &&
+            (phase == Qt::ScrollEnd || phase == Qt::ScrollMomentum)) {
+            startBounceBack();
+            event->accept();
+            return;
+        }
         QListView::wheelEvent(event);
         return;
     }
@@ -392,7 +401,6 @@ void GridView::wheelEvent(QWheelEvent* event) {
     const qreal scrollPx = !event->pixelDelta().isNull()
                                ? static_cast<qreal>(event->pixelDelta().y())
                                : delta / 120.0 * 20.0;
-    const auto phase = event->phase();
 
     if (!qFuzzyIsNull(m_overscrollY)) {
         if (m_bounceAnim->state() == QAbstractAnimation::Running)
@@ -420,6 +428,7 @@ void GridView::wheelEvent(QWheelEvent* event) {
 
         viewport()->update();
 
+        // NoScrollPhase (mouse wheel / Windows touchpad fallback) → timer bounce
         if (!qFuzzyIsNull(m_overscrollY) && phase == Qt::NoScrollPhase)
             m_bounceTimer->start();
 
@@ -432,7 +441,8 @@ void GridView::wheelEvent(QWheelEvent* event) {
     const bool atBottom = vsb->value() >= vsb->maximum();
 
     if ((atTop && scrollPx > 0) || (atBottom && scrollPx < 0)) {
-        if (phase == Qt::ScrollMomentum) {
+        // Don't enter overscroll from inertia or finger-lift
+        if (phase == Qt::ScrollMomentum || phase == Qt::ScrollEnd) {
             event->accept();
             return;
         }

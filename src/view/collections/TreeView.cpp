@@ -465,7 +465,17 @@ void TreeView::leaveEvent(QEvent* event) {
 
 void TreeView::wheelEvent(QWheelEvent* event) {
     const int delta = event->angleDelta().y();
-    if (delta == 0) {
+    const auto phase = event->phase();
+
+    // Zero-delta event (e.g. ScrollEnd on Windows touchpad with no residual)
+    if (delta == 0 && event->pixelDelta().isNull()) {
+        // If overscrolled and gesture ended → bounce back
+        if (!qFuzzyIsNull(m_overscrollY) &&
+            (phase == Qt::ScrollEnd || phase == Qt::ScrollMomentum)) {
+            startBounceBack();
+            event->accept();
+            return;
+        }
         QTreeView::wheelEvent(event);
         return;
     }
@@ -473,7 +483,6 @@ void TreeView::wheelEvent(QWheelEvent* event) {
     const qreal scrollPx = !event->pixelDelta().isNull()
                                ? static_cast<qreal>(event->pixelDelta().y())
                                : delta / 120.0 * 20.0;
-    const auto phase = event->phase();
 
     // ── 1. Already overscrolled ──────────────────────────────────────────
     if (!qFuzzyIsNull(m_overscrollY)) {
@@ -502,6 +511,7 @@ void TreeView::wheelEvent(QWheelEvent* event) {
 
         viewport()->update();
 
+        // NoScrollPhase (mouse wheel / Windows touchpad fallback) → timer bounce
         if (!qFuzzyIsNull(m_overscrollY) && phase == Qt::NoScrollPhase)
             m_bounceTimer->start();
 
@@ -515,7 +525,8 @@ void TreeView::wheelEvent(QWheelEvent* event) {
     const bool atEnd   = sb->value() >= sb->maximum();
 
     if ((atStart && scrollPx > 0) || (atEnd && scrollPx < 0)) {
-        if (phase == Qt::ScrollMomentum) {
+        // Don't enter overscroll from inertia or finger-lift
+        if (phase == Qt::ScrollMomentum || phase == Qt::ScrollEnd) {
             event->accept();
             return;
         }
