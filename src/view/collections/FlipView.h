@@ -116,9 +116,11 @@ private:
 
     // 滚轮/触控板
     QElapsedTimer m_wheelCooldown;
-    int m_gestureAccum = 0;
-    bool m_gestureConsumed = false;
-    int m_pendingFlipDir = 0;      // 动画期间排队的翻页方向 (-1=prev, 0=none, 1=next)
+    int m_gestureAccum = 0;         // phase-based 累积
+    bool m_gestureConsumed = false;  // phase-based 手势已消费
+    int m_pendingFlipDir = 0;       // 动画期间排队的翻页方向 (-1=prev, 0=none, 1=next)
+    int m_npAccum = 0;              // NoScrollPhase cluster 累积
+    bool m_npConsumed = false;      // NoScrollPhase 当前 cluster 已消费
 };
 
 } // namespace view::collections

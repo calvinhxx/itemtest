@@ -22,11 +22,11 @@ namespace {
     constexpr int kIndicatorSpacing = 8;
     constexpr int kIndicatorMargin = 12;
     constexpr int kArrowFontSize = 10;    // Chevron icon size
-    constexpr int kGestureThreshold = 50;  // trackpad 累积像素阈值
-    // NoScrollPhase 事件间隔 debounce：间隔小于此值的连续事件视为同一手势
-    // macOS→RDP→Windows: 触控板事件全部变为 NoScrollPhase，间隔 ~20-30ms
-    // 鼠标滚轮：离散 notch 间隔通常 >120ms
-    constexpr int kWheelDebounceMs = 100;
+    constexpr int kGestureThreshold = 50;  // trackpad 累积像素/角度阈值
+    // NoScrollPhase 事件 cluster 检测：事件间隔大于此值视为新手势(cluster)
+    // Windows 精密触控板事件间隔 ~8-16ms，手势间间隔 >100ms
+    // RDP 转发事件间隔 ~20-30ms，必须被识别为同一 cluster
+    constexpr int kClusterGapMs = 60;
 }
 
 // ── 覆盖层：在子页面之上绘制导航按钮和指示器 ────────────────────────────────
@@ -550,10 +550,12 @@ void FlipView::wheelEvent(QWheelEvent* event)
     // ── Phase-based: trackpad 手势 (Begin → Update → Momentum → End) ──
     // macOS 原生 / Windows 精密触控板 (WM_POINTER) 提供完整 phase 链
     if (phase == Qt::ScrollBegin) {
-        // 新手势起点：重置所有手势状态，含 pendingFlipDir（新手势方向覆盖旧排队）
+        // 新手势起点：重置所有状态（phase + NoScrollPhase）
         m_gestureAccum = 0;
         m_gestureConsumed = false;
         m_pendingFlipDir = 0;
+        m_npAccum = 0;
+        m_npConsumed = false;
         event->accept();
         return;
     }
@@ -579,6 +581,7 @@ void FlipView::wheelEvent(QWheelEvent* event)
         m_gestureAccum += delta;
         if (qAbs(m_gestureAccum) >= kGestureThreshold) {
             m_gestureConsumed = true;
+            m_npConsumed = true; // 桥接: 防止手势结束后 NoScrollPhase 惯性事件再翻页
             m_wheelCooldown.start();
             if (m_slideAnimation->state() == QAbstractAnimation::Running) {
                 m_pendingFlipDir = (m_gestureAccum > 0) ? -1 : 1;
@@ -590,30 +593,43 @@ void FlipView::wheelEvent(QWheelEvent* event)
         return;
     }
 
-    // ── NoScrollPhase: 鼠标滚轮 / Mac→RDP→Windows 转发的触控板事件 ──
-    // RDP 将 Mac 触控板手势（含惯性）转译为密集 WM_MOUSEWHEEL 流，全部 NoScrollPhase。
-    // 通过事件间隔判断手势边界：间隔 < debounce 阈值视为同一手势，只翻一次。
+    // ── NoScrollPhase: 鼠标滚轮 / Windows 触控板 WM_MOUSEWHEEL / RDP ──
+    // Windows 上大部分精密触控板两指滚动 → WM_MOUSEWHEEL → 全部 NoScrollPhase。
+    // 策略: 用事件间隔检测 cluster 边界（间隔 > kClusterGapMs = 新手势），
+    //       每个 cluster 累积 angleDelta，过阈值后翻页/pending，然后 consumed。
+    //       解决: 动画期间事件不再被丢弃（设 pending），debounce 不再误杀后续事件。
     const qint64 sinceLast = m_wheelCooldown.isValid() ? m_wheelCooldown.elapsed() : 10000;
-    m_wheelCooldown.start(); // 每次事件都更新（包括动画期间），保持 debounce 窗口滑动
+    m_wheelCooldown.start();
 
-    if (m_slideAnimation->state() == QAbstractAnimation::Running) {
+    // 间隔超过阈值 → 新 cluster（新手势）
+    if (sinceLast > kClusterGapMs) {
+        m_npConsumed = false;
+        m_npAccum = 0;
+    }
+
+    if (m_npConsumed) {
         event->accept();
         return;
     }
 
-    if (sinceLast < kWheelDebounceMs) {
-        event->accept();
-        return;
-    }
-
-    // 新手势（首次事件或间隔已超 debounce）→ 翻页
     int delta = (m_orientation == Qt::Horizontal)
                     ? event->angleDelta().x() + event->angleDelta().y()
                     : event->angleDelta().y();
-    if (delta > 0) {
-        goPrevious();
-    } else if (delta < 0) {
-        goNext();
+    m_npAccum += delta;
+
+    if (qAbs(m_npAccum) < kGestureThreshold) {
+        event->accept();
+        return;
+    }
+
+    // 阈值达到 → 本 cluster 翻一次页
+    m_npConsumed = true;
+    int dir = (m_npAccum > 0) ? -1 : 1;
+
+    if (m_slideAnimation->state() == QAbstractAnimation::Running) {
+        m_pendingFlipDir = dir;
+    } else {
+        if (dir < 0) goPrevious(); else goNext();
     }
     event->accept();
 }
