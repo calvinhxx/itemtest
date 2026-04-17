@@ -415,6 +415,33 @@ TEST_F(FlipViewTest, WindowsTouchpadHighFreqFlipsOnce) {
     EXPECT_EQ(fv.currentIndex(), 1);
 }
 
+TEST_F(FlipViewTest, RdpTouchpadHighFreq120FlipsOnce) {
+    // 模拟 Mac RDP → Windows：触控板事件映射为 WM_MOUSEWHEEL
+    // angleDelta=±120 per event, 高频连续到达, NoScrollPhase
+    // 一次手势应只翻一页，不能链式翻到底
+    FlipView fv;
+    fv.setFixedSize(400, 270);
+    for (int i = 0; i < 5; ++i) fv.addPage(new QWidget);
+    fv.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&fv));
+    EXPECT_EQ(fv.currentIndex(), 0);
+
+    // 发送 8 个高频 ±120 事件（模拟 Mac 触控板 RDP 传输）
+    for (int i = 0; i < 8; ++i) {
+        QWheelEvent ev(
+            QPointF(200, 135), QPointF(200, 135),
+            QPoint(0, 0), QPoint(0, -120),
+            Qt::NoButton, Qt::NoModifier,
+            Qt::NoScrollPhase, false);
+        QApplication::sendEvent(&fv, &ev);
+        QTest::qWait(10);
+    }
+    // 等动画完成（包括可能的 pending）
+    QTest::qWait(500);
+    // 应最多翻 1 页，不能翻到底（index 4）
+    EXPECT_EQ(fv.currentIndex(), 1);
+}
+
 TEST_F(FlipViewTest, AnimationPendingQueueExecutes) {
     // 动画期间收到新手势 → pending 排队，动画结束后执行
     FlipView fv;
@@ -436,7 +463,8 @@ TEST_F(FlipViewTest, AnimationPendingQueueExecutes) {
     EXPECT_EQ(fv.currentIndex(), 1);
 
     // 动画还在播放，发送第二次翻页 → 应进入 pending
-    QTest::qWait(50); // 确保还在动画中
+    // 间隔必须 > kClusterGapMs(60ms) 以形成新 cluster，否则被同 cluster consumed 拦截
+    QTest::qWait(70); // > 60ms = 新 cluster，但 < 动画时长(~300ms) = 仍在动画中
     QWheelEvent wheel2(
         QPointF(200, 135), QPointF(200, 135),
         QPoint(0, 0), QPoint(0, -120),

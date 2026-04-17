@@ -595,30 +595,16 @@ void FlipView::wheelEvent(QWheelEvent* event)
 
     // ── NoScrollPhase: 鼠标滚轮 / Windows 触控板 WM_MOUSEWHEEL / RDP ──
     // Windows 上大部分精密触控板两指滚动 → WM_MOUSEWHEEL → 全部 NoScrollPhase。
+    // Mac RDP → Windows 时，触控板也映射为 WM_MOUSEWHEEL (angleDelta=±120, 高频)。
+    // 统一走 cluster 累积路径：|angleDelta|≥kGestureThreshold 时首个事件即刻翻页，
+    // 同 cluster 内后续事件被 consumed 拦截，避免 RDP 高频事件链式翻页到底。
     const bool animating = m_slideAnimation->state() == QAbstractAnimation::Running;
 
     int delta = (m_orientation == Qt::Horizontal)
                     ? event->angleDelta().x() + event->angleDelta().y()
                     : event->angleDelta().y();
 
-    // ── 鼠标滚轮离散快速路径 ──
-    // 鼠标滚轮每格 ±120, 无 pixelDelta。直接翻页，不走 cluster 累积。
-    if (event->pixelDelta().isNull() && qAbs(delta) == 120) {
-        int dir = (delta > 0) ? -1 : 1;
-        if (animating) {
-            m_pendingFlipDir = dir;
-        } else {
-            if (dir < 0) goPrevious(); else goNext();
-        }
-        // 重置 cluster 状态，防止后续 touchpad 事件误用残留累积
-        m_npAccum = 0;
-        m_npConsumed = false;
-        m_wheelCooldown.start();
-        event->accept();
-        return;
-    }
-
-    // ── Windows 触控板 cluster 累积 ──
+    // ── cluster 累积 ──
     // 用事件间隔检测 cluster 边界（间隔 > kClusterGapMs = 新手势），
     // 每个 cluster 累积 angleDelta，过阈值后翻页/pending，然后 consumed。
     // 动画期间（cooldown）事件只更新 pending，不触发新翻页。
