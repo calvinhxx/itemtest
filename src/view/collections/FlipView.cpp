@@ -25,8 +25,9 @@ namespace {
     constexpr int kGestureThreshold = 50;  // trackpad 累积像素/角度阈值
     // NoScrollPhase 事件 cluster 检测：事件间隔大于此值视为新手势(cluster)
     // Windows 精密触控板事件间隔 ~8-16ms，手势间间隔 >100ms
-    // RDP 转发事件间隔 ~20-30ms，必须被识别为同一 cluster
-    constexpr int kClusterGapMs = 60;
+    // RDP 转发事件间隔 ~20-30ms，网络抖动下可能飙到 60-100ms
+    // 阈值 120ms：覆盖单次手势尾巴，防止 RDP 抖动被误判为新 cluster
+    constexpr int kClusterGapMs = 120;
 }
 
 // ── 覆盖层：在子页面之上绘制导航按钮和指示器 ────────────────────────────────

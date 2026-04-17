@@ -464,7 +464,7 @@ TEST_F(FlipViewTest, NoScrollPhaseNoPendingDuringAnimation) {
     EXPECT_EQ(fv.currentIndex(), 1);
 
     // 动画期间发送第二次事件（新 cluster）→ 应被消费，不设 pending
-    QTest::qWait(70); // > 60ms = 新 cluster，但仍在动画中
+    QTest::qWait(130); // > 120ms = 新 cluster，但仍在动画中
     QWheelEvent wheel2(
         QPointF(200, 135), QPointF(200, 135),
         QPoint(0, 0), QPoint(0, -120),
