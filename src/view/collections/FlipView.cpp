@@ -617,13 +617,16 @@ void FlipView::wheelEvent(QWheelEvent* event)
         m_npAccum = 0;
     }
 
-    // 动画播放中 = cooldown：新 cluster 的方向存入 pending，不立即翻页
+    // 动画播放中：只标记 consumed 防止动画结束后残余事件触发翻页，
+    // 但不设置 m_pendingFlipDir。NoScrollPhase 无法区分"新手势"和
+    // "同一手势经 RDP 延迟到达的事件"（网络延迟可造成 >kClusterGapMs 间隙，
+    // 被误判为新 cluster），若设 pending 会导致链式翻页。
+    // pending 机制仅保留给 phase-based 路径（有明确 ScrollBegin 边界）。
     if (animating) {
         if (!m_npConsumed) {
             m_npAccum += delta;
             if (qAbs(m_npAccum) >= kGestureThreshold) {
                 m_npConsumed = true;
-                m_pendingFlipDir = (m_npAccum > 0) ? -1 : 1;
             }
         }
         event->accept();

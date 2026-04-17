@@ -442,8 +442,9 @@ TEST_F(FlipViewTest, RdpTouchpadHighFreq120FlipsOnce) {
     EXPECT_EQ(fv.currentIndex(), 1);
 }
 
-TEST_F(FlipViewTest, AnimationPendingQueueExecutes) {
-    // 动画期间收到新手势 → pending 排队，动画结束后执行
+TEST_F(FlipViewTest, NoScrollPhaseNoPendingDuringAnimation) {
+    // NoScrollPhase 事件在动画期间不设置 pending（防止 RDP 链式翻页）
+    // 动画结束后用户可再次操作翻页
     FlipView fv;
     fv.setFixedSize(400, 270);
     fv.addPage(new QWidget);
@@ -462,9 +463,8 @@ TEST_F(FlipViewTest, AnimationPendingQueueExecutes) {
     QApplication::sendEvent(&fv, &wheel1);
     EXPECT_EQ(fv.currentIndex(), 1);
 
-    // 动画还在播放，发送第二次翻页 → 应进入 pending
-    // 间隔必须 > kClusterGapMs(60ms) 以形成新 cluster，否则被同 cluster consumed 拦截
-    QTest::qWait(70); // > 60ms = 新 cluster，但 < 动画时长(~300ms) = 仍在动画中
+    // 动画期间发送第二次事件（新 cluster）→ 应被消费，不设 pending
+    QTest::qWait(70); // > 60ms = 新 cluster，但仍在动画中
     QWheelEvent wheel2(
         QPointF(200, 135), QPointF(200, 135),
         QPoint(0, 0), QPoint(0, -120),
@@ -472,8 +472,17 @@ TEST_F(FlipViewTest, AnimationPendingQueueExecutes) {
         Qt::NoScrollPhase, false);
     QApplication::sendEvent(&fv, &wheel2);
 
-    // 等动画全部完成（包括 pending 的第二次翻页）
+    // 等动画完成 — 不应链式翻页
     QTest::qWait(800);
+    EXPECT_EQ(fv.currentIndex(), 1); // 停在 page 1，无 pending
+
+    // 动画结束后再操作 → 正常翻页
+    QWheelEvent wheel3(
+        QPointF(200, 135), QPointF(200, 135),
+        QPoint(0, 0), QPoint(0, -120),
+        Qt::NoButton, Qt::NoModifier,
+        Qt::NoScrollPhase, false);
+    QApplication::sendEvent(&fv, &wheel3);
     EXPECT_EQ(fv.currentIndex(), 2);
 }
 
