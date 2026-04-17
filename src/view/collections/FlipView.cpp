@@ -595,9 +595,33 @@ void FlipView::wheelEvent(QWheelEvent* event)
 
     // ── NoScrollPhase: 鼠标滚轮 / Windows 触控板 WM_MOUSEWHEEL / RDP ──
     // Windows 上大部分精密触控板两指滚动 → WM_MOUSEWHEEL → 全部 NoScrollPhase。
-    // 策略: 用事件间隔检测 cluster 边界（间隔 > kClusterGapMs = 新手势），
-    //       每个 cluster 累积 angleDelta，过阈值后翻页/pending，然后 consumed。
-    //       解决: 动画期间事件不再被丢弃（设 pending），debounce 不再误杀后续事件。
+    const bool animating = m_slideAnimation->state() == QAbstractAnimation::Running;
+
+    int delta = (m_orientation == Qt::Horizontal)
+                    ? event->angleDelta().x() + event->angleDelta().y()
+                    : event->angleDelta().y();
+
+    // ── 鼠标滚轮离散快速路径 ──
+    // 鼠标滚轮每格 ±120, 无 pixelDelta。直接翻页，不走 cluster 累积。
+    if (event->pixelDelta().isNull() && qAbs(delta) == 120) {
+        int dir = (delta > 0) ? -1 : 1;
+        if (animating) {
+            m_pendingFlipDir = dir;
+        } else {
+            if (dir < 0) goPrevious(); else goNext();
+        }
+        // 重置 cluster 状态，防止后续 touchpad 事件误用残留累积
+        m_npAccum = 0;
+        m_npConsumed = false;
+        m_wheelCooldown.start();
+        event->accept();
+        return;
+    }
+
+    // ── Windows 触控板 cluster 累积 ──
+    // 用事件间隔检测 cluster 边界（间隔 > kClusterGapMs = 新手势），
+    // 每个 cluster 累积 angleDelta，过阈值后翻页/pending，然后 consumed。
+    // 动画期间（cooldown）事件只更新 pending，不触发新翻页。
     const qint64 sinceLast = m_wheelCooldown.isValid() ? m_wheelCooldown.elapsed() : 10000;
     m_wheelCooldown.start();
 
@@ -607,14 +631,24 @@ void FlipView::wheelEvent(QWheelEvent* event)
         m_npAccum = 0;
     }
 
+    // 动画播放中 = cooldown：新 cluster 的方向存入 pending，不立即翻页
+    if (animating) {
+        if (!m_npConsumed) {
+            m_npAccum += delta;
+            if (qAbs(m_npAccum) >= kGestureThreshold) {
+                m_npConsumed = true;
+                m_pendingFlipDir = (m_npAccum > 0) ? -1 : 1;
+            }
+        }
+        event->accept();
+        return;
+    }
+
     if (m_npConsumed) {
         event->accept();
         return;
     }
 
-    int delta = (m_orientation == Qt::Horizontal)
-                    ? event->angleDelta().x() + event->angleDelta().y()
-                    : event->angleDelta().y();
     m_npAccum += delta;
 
     if (qAbs(m_npAccum) < kGestureThreshold) {
@@ -625,12 +659,7 @@ void FlipView::wheelEvent(QWheelEvent* event)
     // 阈值达到 → 本 cluster 翻一次页
     m_npConsumed = true;
     int dir = (m_npAccum > 0) ? -1 : 1;
-
-    if (m_slideAnimation->state() == QAbstractAnimation::Running) {
-        m_pendingFlipDir = dir;
-    } else {
-        if (dir < 0) goPrevious(); else goNext();
-    }
+    if (dir < 0) goPrevious(); else goNext();
     event->accept();
 }
 

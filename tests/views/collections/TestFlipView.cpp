@@ -8,6 +8,9 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QEventLoop>
+#include <QWheelEvent>
+#include <QPropertyAnimation>
+#include <QTest>
 #include "view/collections/FlipView.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/TextBlock.h"
@@ -349,6 +352,101 @@ TEST_F(FlipViewTest, RemoveBeforeCurrentAdjustsIndex) {
     fv.removePage(0);
     EXPECT_EQ(fv.currentIndex(), 1);
     EXPECT_EQ(fv.pageAt(1), p3);
+}
+
+// ── 滚轮/触控板输入 ─────────────────────────────────────────────────────────
+
+TEST_F(FlipViewTest, MouseWheelDiscreteFlipsImmediately) {
+    // 鼠标滚轮单次 angleDelta=±120 应立即翻页
+    FlipView fv;
+    fv.setFixedSize(400, 270);
+    fv.addPage(new QWidget);
+    fv.addPage(new QWidget);
+    fv.addPage(new QWidget);
+    fv.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&fv));
+    EXPECT_EQ(fv.currentIndex(), 0);
+
+    // 向下滚动一格 → goNext
+    QWheelEvent wheelDown(
+        QPointF(200, 135), QPointF(200, 135),
+        QPoint(0, 0), QPoint(0, -120),
+        Qt::NoButton, Qt::NoModifier,
+        Qt::NoScrollPhase, false);
+    QApplication::sendEvent(&fv, &wheelDown);
+    EXPECT_EQ(fv.currentIndex(), 1);
+
+    // 等动画结束
+    QTest::qWait(400);
+
+    // 向上滚动一格 → goPrevious
+    QWheelEvent wheelUp(
+        QPointF(200, 135), QPointF(200, 135),
+        QPoint(0, 0), QPoint(0, 120),
+        Qt::NoButton, Qt::NoModifier,
+        Qt::NoScrollPhase, false);
+    QApplication::sendEvent(&fv, &wheelUp);
+    EXPECT_EQ(fv.currentIndex(), 0);
+}
+
+TEST_F(FlipViewTest, WindowsTouchpadHighFreqFlipsOnce) {
+    // 模拟 Windows 触控板：高频 NoScrollPhase 事件（间隔 10ms, angleDelta=30）
+    // 整组手势应只翻一页
+    FlipView fv;
+    fv.setFixedSize(400, 270);
+    fv.addPage(new QWidget);
+    fv.addPage(new QWidget);
+    fv.addPage(new QWidget);
+    fv.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&fv));
+    EXPECT_EQ(fv.currentIndex(), 0);
+
+    // 发送 10 个高频事件，每个 angleDelta.y = -30, 总计 -300 (远超阈值 50)
+    // 应只翻一页
+    for (int i = 0; i < 10; ++i) {
+        QWheelEvent ev(
+            QPointF(200, 135), QPointF(200, 135),
+            QPoint(0, 0), QPoint(0, -30),
+            Qt::NoButton, Qt::NoModifier,
+            Qt::NoScrollPhase, false);
+        QApplication::sendEvent(&fv, &ev);
+        QTest::qWait(10); // 模拟 10ms 间隔
+    }
+    EXPECT_EQ(fv.currentIndex(), 1);
+}
+
+TEST_F(FlipViewTest, AnimationPendingQueueExecutes) {
+    // 动画期间收到新手势 → pending 排队，动画结束后执行
+    FlipView fv;
+    fv.setFixedSize(400, 270);
+    fv.addPage(new QWidget);
+    fv.addPage(new QWidget);
+    fv.addPage(new QWidget);
+    fv.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&fv));
+    EXPECT_EQ(fv.currentIndex(), 0);
+
+    // 第一次翻页 → 触发动画
+    QWheelEvent wheel1(
+        QPointF(200, 135), QPointF(200, 135),
+        QPoint(0, 0), QPoint(0, -120),
+        Qt::NoButton, Qt::NoModifier,
+        Qt::NoScrollPhase, false);
+    QApplication::sendEvent(&fv, &wheel1);
+    EXPECT_EQ(fv.currentIndex(), 1);
+
+    // 动画还在播放，发送第二次翻页 → 应进入 pending
+    QTest::qWait(50); // 确保还在动画中
+    QWheelEvent wheel2(
+        QPointF(200, 135), QPointF(200, 135),
+        QPoint(0, 0), QPoint(0, -120),
+        Qt::NoButton, Qt::NoModifier,
+        Qt::NoScrollPhase, false);
+    QApplication::sendEvent(&fv, &wheel2);
+
+    // 等动画全部完成（包括 pending 的第二次翻页）
+    QTest::qWait(800);
+    EXPECT_EQ(fv.currentIndex(), 2);
 }
 
 // ── VisualCheck ──────────────────────────────────────────────────────────────
