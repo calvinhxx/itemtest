@@ -42,7 +42,8 @@ message(STATUS "Building with Qt ${QT_VERSION_MAJOR} (${Qt${QT_VERSION_MAJOR}_VE
 #   - Qt6 官方包同样用 /MD；保持 /MD 最安全，避免 CRT 不匹配。
 # 如需 /MT 静态运行时，必须使用同样以 /MT 编译的 Qt 二进制（自行重编）。
 if(MSVC)
-	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:Debug>")
+	# 合法值：MultiThreadedDLL (Release/MD) | MultiThreadedDebugDLL (Debug/MDd)
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
 # find files recurse
