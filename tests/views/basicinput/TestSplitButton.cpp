@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QFontDatabase>
+#include <QDebug>
 #include "view/menus_toolbars/Menu.h"
 #include "view/basicinput/SplitButton.h"
 #include "view/FluentElement.h"

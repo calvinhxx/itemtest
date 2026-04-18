@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <QApplication>
+#include <QDebug>
 #include <QWidget>
 #include <QListView>
 #include <QAbstractListModel>

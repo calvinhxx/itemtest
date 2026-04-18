@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QTimer>
 #include <QFontDatabase>
+#include <QDebug>
 #include "view/menus_toolbars/Menu.h"
 #include "view/basicinput/DropDownButton.h"
 #include "view/QMLPlus.h"

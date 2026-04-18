@@ -9,6 +9,7 @@
 #include <QTreeView>
 
 #include "common/CornerRadius.h"
+#include "common/QtCompat.h"
 #include "common/Spacing.h"
 #include "common/Typography.h"
 #include "view/FluentElement.h"
@@ -295,7 +296,7 @@ bool FluentTreeItemDelegate::editorEvent(QEvent* event, QAbstractItemModel* mode
                                          const QModelIndex& index) {
     if (event->type() == QEvent::MouseButtonRelease) {
         auto* me = static_cast<QMouseEvent*>(event);
-        const QPointF pos = me->position();
+        const QPointF pos = fluentMousePos(me);
 
         // Checkbox click — cascade to children + update ancestors tri-state
         if (m_checkBoxVisible) {
