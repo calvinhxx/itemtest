@@ -363,17 +363,10 @@ void GridView::showEvent(QShowEvent* event) {
     QTimer::singleShot(0, this, &GridView::syncFluentScrollBar);
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-void GridView::enterEvent(QEnterEvent* event) {
+void GridView::enterEvent(FluentEnterEvent* event) {
     setViewportHovered(true);
     QListView::enterEvent(event);
 }
-#else
-void GridView::enterEvent(QEvent* event) {
-    setViewportHovered(true);
-    QListView::enterEvent(event);
-}
-#endif
 
 void GridView::leaveEvent(QEvent* event) {
     setViewportHovered(false);
@@ -759,7 +752,7 @@ QPixmap GridView::renderItemPixmap(int row) const {
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
     QStyleOptionViewItem opt;
-    initViewItemOption(&opt);
+    FLUENT_INIT_VIEW_ITEM_OPTION(&opt);
     opt.rect = QRect(QPoint(0, 0), rect.size());
     opt.state |= QStyle::State_Selected;
     itemDelegate()->paint(&p, opt, idx);

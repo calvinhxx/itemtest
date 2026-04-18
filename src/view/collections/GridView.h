@@ -3,10 +3,6 @@
 
 #include <QListView>
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QEnterEvent>
-#endif
-
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 
@@ -18,9 +14,6 @@ class QShowEvent;
 class QTimer;
 class QVariantAnimation;
 class QWheelEvent;
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-class QEvent;
-#endif
 
 namespace view::scrolling { class ScrollBar; }
 
@@ -144,11 +137,7 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
     void showEvent(QShowEvent* event) override;
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    void enterEvent(QEnterEvent* event) override;
-#else
-    void enterEvent(QEvent* event) override;
-#endif
+    void enterEvent(FluentEnterEvent* event) override;
     void leaveEvent(QEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     int verticalOffset() const override;

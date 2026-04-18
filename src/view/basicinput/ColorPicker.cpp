@@ -342,7 +342,7 @@ void ColorPicker::setColor(const QColor& c) {
     m_color = c;
 
     // 同步 HSV 分量
-    float h, s, v, a;
+    FluentColorComponent h, s, v, a;
     c.getHsvF(&h, &s, &v, &a);
 
     // 1. 如果新颜色是灰度 (h < 0)，保持现有色相，避免色相丢失

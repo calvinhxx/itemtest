@@ -444,17 +444,10 @@ void TreeView::showEvent(QShowEvent* event) {
     });
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-void TreeView::enterEvent(QEnterEvent* event) {
+void TreeView::enterEvent(FluentEnterEvent* event) {
     setViewportHovered(true);
     QTreeView::enterEvent(event);
 }
-#else
-void TreeView::enterEvent(QEvent* event) {
-    setViewportHovered(true);
-    QTreeView::enterEvent(event);
-}
-#endif
 
 void TreeView::leaveEvent(QEvent* event) {
     setViewportHovered(false);
@@ -733,7 +726,7 @@ QPixmap TreeView::renderRowPixmap(const QModelIndex& index) const {
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
     QStyleOptionViewItem opt;
-    initViewItemOption(&opt);
+    FLUENT_INIT_VIEW_ITEM_OPTION(&opt);
     opt.rect = QRect(0, 0, contentW, h);
     opt.state |= QStyle::State_Selected | QStyle::State_Enabled;
     opt.state &= ~QStyle::State_MouseOver;

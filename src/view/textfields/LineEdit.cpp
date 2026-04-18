@@ -110,21 +110,12 @@ void LineEdit::paintFrame(QPainter& painter) {
     }
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-void LineEdit::enterEvent(QEnterEvent* event) {
+void LineEdit::enterEvent(FluentEnterEvent* event) {
     m_isHovered = true;
     update();
     updateClearButtonVisibility();
     QLineEdit::enterEvent(event);
 }
-#else
-void LineEdit::enterEvent(QEvent* event) {
-    m_isHovered = true;
-    update();
-    updateClearButtonVisibility();
-    QLineEdit::enterEvent(event);
-}
-#endif
 
 void LineEdit::leaveEvent(QEvent* event) {
     m_isHovered = false;

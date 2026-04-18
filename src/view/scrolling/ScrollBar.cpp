@@ -213,13 +213,7 @@ void ScrollBar::paintEvent(QPaintEvent *event) {
     p.drawRoundedRect(drawRect, radius, radius);
 }
 
-void ScrollBar::enterEvent(
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    QEnterEvent *event
-#else
-    QEvent *event
-#endif
-) {
+void ScrollBar::enterEvent(FluentEnterEvent *event) {
     m_isHovered = true;
     // 只有在可滚动且启用时才触发显示动画
     if (isEnabled() && maximum() > minimum()) {

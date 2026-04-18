@@ -475,11 +475,7 @@ void ComboBox::onPopupHidden() {
 
 // ── 输入事件 ─────────────────────────────────────────────────────────────────
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-void ComboBox::enterEvent(QEnterEvent* event) {
-#else
-void ComboBox::enterEvent(QEvent* event) {
-#endif
+void ComboBox::enterEvent(FluentEnterEvent* event) {
     m_hovered = true;
     update();
     QComboBox::enterEvent(event);

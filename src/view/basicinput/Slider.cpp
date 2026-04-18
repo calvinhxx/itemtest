@@ -104,7 +104,7 @@ void Slider::mousePressEvent(QMouseEvent *event) {
     // Show ToolTip
     showToolTip();
     
-    int val = pixelPosToRangeValue(orientation() == Qt::Horizontal ? event->position().x() : event->position().y());
+    int val = pixelPosToRangeValue(orientation() == Qt::Horizontal ? fluentMousePos(event).x() : fluentMousePos(event).y());
     setSliderPosition(val);
     updateToolTipPos(); // update after value change
     
@@ -118,7 +118,7 @@ void Slider::mouseMoveEvent(QMouseEvent *event) {
         return;
     }
     event->accept();
-    int val = pixelPosToRangeValue(orientation() == Qt::Horizontal ? event->position().x() : event->position().y());
+    int val = pixelPosToRangeValue(orientation() == Qt::Horizontal ? fluentMousePos(event).x() : fluentMousePos(event).y());
     setSliderPosition(val);
     updateToolTipPos();
 

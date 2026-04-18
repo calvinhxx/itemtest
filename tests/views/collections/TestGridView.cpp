@@ -12,11 +12,7 @@
 #include <QScrollBar>
 #include <QStandardItemModel>
 #include <QStringListModel>
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QEnterEvent>
-#else
-#include <QEvent>
-#endif
+#include "common/QtCompat.h"
 #include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
 
@@ -270,11 +266,7 @@ TEST_F(GridViewTest, ViewportHoveredSignal) {
     EXPECT_FALSE(gv->viewportHovered());
 
     QSignalSpy spy(gv, &GridView::viewportHoveredChanged);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    QEnterEvent enterEv(QPointF(5, 5), QPointF(5, 5), QPointF(5, 5));
-#else
-    QEnterEvent enterEv(QPoint(5, 5), QPoint(5, 5), QPoint(5, 5));
-#endif
+    FLUENT_MAKE_ENTER_EVENT(enterEv, 5, 5);
     QApplication::sendEvent(gv, &enterEv);
     EXPECT_TRUE(gv->viewportHovered());
     EXPECT_EQ(spy.count(), 1);

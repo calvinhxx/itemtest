@@ -31,7 +31,9 @@ private:
     QString m_styleName = "Body";
 };
 
-using Label = TextBlock;
+// 注意：不要在此命名空间引入 `using Label = TextBlock;`。
+// Qt5 / Windows SDK 在某些头文件中已存在 `Label` 符号（如 X11 兼容头、MFC/ATL），
+// 会触发 MSVC `C2371: "Label": 重定义`。如需简称请在调用处局部别名。
 
 } // namespace view::textfields
 

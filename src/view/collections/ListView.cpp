@@ -478,7 +478,7 @@ QPixmap ListView::renderItemPixmap(int row) const {
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
     QStyleOptionViewItem opt;
-    initViewItemOption(&opt);
+    FLUENT_INIT_VIEW_ITEM_OPTION(&opt);
     opt.rect = QRect(0, 0, w, h);
     opt.state |= QStyle::State_Selected | QStyle::State_Enabled;
     opt.state &= ~QStyle::State_MouseOver;
@@ -746,17 +746,10 @@ void ListView::mouseReleaseEvent(QMouseEvent* event) {
     QListView::mouseReleaseEvent(event);
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-void ListView::enterEvent(QEnterEvent* event) {
+void ListView::enterEvent(FluentEnterEvent* event) {
     setViewportHovered(true);
     QListView::enterEvent(event);
 }
-#else
-void ListView::enterEvent(QEvent* event) {
-    setViewportHovered(true);
-    QListView::enterEvent(event);
-}
-#endif
 
 void ListView::leaveEvent(QEvent* event) {
     setViewportHovered(false);

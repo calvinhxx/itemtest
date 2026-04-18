@@ -10,10 +10,6 @@
 #include <QStyleOptionButton>
 #include <QPoint>
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QEnterEvent>
-#endif
-
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 #include "common/Typography.h"
@@ -126,11 +122,7 @@ protected:
     void focusInEvent(QFocusEvent* event) override { QPushButton::focusInEvent(event); update(); }
     void focusOutEvent(QFocusEvent* event) override { QPushButton::focusOutEvent(event); update(); }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    void enterEvent(QEnterEvent* event) override { QPushButton::enterEvent(event); update(); }
-#else
-    void enterEvent(QEvent* event) override { QPushButton::enterEvent(event); update(); }
-#endif
+    void enterEvent(FluentEnterEvent* event) override { QPushButton::enterEvent(event); update(); }
     void leaveEvent(QEvent* event) override { QPushButton::leaveEvent(event); update(); }
     void mousePressEvent(QMouseEvent* event) override { QPushButton::mousePressEvent(event); update(); }
     void mouseReleaseEvent(QMouseEvent* event) override { QPushButton::mouseReleaseEvent(event); update(); }

@@ -261,15 +261,9 @@ void TextEdit::paintFrame(QPainter& painter) {
     }
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-void TextEdit::enterEvent(QEnterEvent* event) {
+void TextEdit::enterEvent(FluentEnterEvent* event) {
     m_isHovered = true; update(); QWidget::enterEvent(event);
 }
-#else
-void TextEdit::enterEvent(QEvent* event) {
-    m_isHovered = true; update(); QWidget::enterEvent(event);
-}
-#endif
 
 void TextEdit::leaveEvent(QEvent* event) {
     m_isHovered = false; update(); QWidget::leaveEvent(event);

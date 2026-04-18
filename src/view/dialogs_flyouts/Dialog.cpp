@@ -239,11 +239,7 @@ void Dialog::done(int r) {
 
 void Dialog::mousePressEvent(QMouseEvent *event) {
     if (m_dragEnabled && event->button() == Qt::LeftButton) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        m_dragPosition = event->globalPosition().toPoint() - frameGeometry().topLeft();
-#else
-        m_dragPosition = event->globalPos() - frameGeometry().topLeft();
-#endif
+        m_dragPosition = fluentMouseGlobalPos(event) - frameGeometry().topLeft();
         setCursor(Qt::ClosedHandCursor);
         event->accept();
     }
@@ -252,11 +248,7 @@ void Dialog::mousePressEvent(QMouseEvent *event) {
 
 void Dialog::mouseMoveEvent(QMouseEvent *event) {
     if (cursor().shape() == Qt::ClosedHandCursor) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        move(event->globalPosition().toPoint() - m_dragPosition);
-#else
-        move(event->globalPos() - m_dragPosition);
-#endif
+        move(fluentMouseGlobalPos(event) - m_dragPosition);
         event->accept();
     }
     QDialog::mouseMoveEvent(event);

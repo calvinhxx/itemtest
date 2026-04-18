@@ -10,10 +10,6 @@
 #include <QPropertyAnimation>
 #include <QMargins>
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QEnterEvent>
-#endif
-
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 
@@ -54,11 +50,7 @@ protected:
 
     void paintEvent(QPaintEvent *event) override;
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    void enterEvent(QEnterEvent *event) override;
-#else
-    void enterEvent(QEvent *event) override;
-#endif
+    void enterEvent(FluentEnterEvent *event) override;
     void leaveEvent(QEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;

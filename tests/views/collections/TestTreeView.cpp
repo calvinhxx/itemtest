@@ -7,11 +7,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QStandardItemModel>
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QEnterEvent>
-#else
-#include <QEvent>
-#endif
+#include "common/QtCompat.h"
 #include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
 
