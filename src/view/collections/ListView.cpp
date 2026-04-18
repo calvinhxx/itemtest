@@ -5,6 +5,7 @@
 #include <QAbstractItemModel>
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QDateTime>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
@@ -26,6 +27,16 @@
 #include "view/scrolling/ScrollBar.h"
 
 namespace view::collections {
+
+namespace {
+// Cross-platform wheel input thresholds (see openspec listview-cross-platform-input/design.md).
+// kClusterGapMs:   gap (ms) that closes a NoPhaseDiscrete cluster — covers Mac RDP forwarding
+//                  jitter (typically 60-100ms between events for a single physical gesture).
+// kClusterMinPx:   min accumulated |scrollPx| within one cluster required to enter overscroll.
+//                  Suppresses spurious overscroll triggered by tiny RDP/touchpad jitter.
+constexpr int   kClusterGapMs = 120;
+constexpr qreal kClusterMinPx = 8.0;
+} // namespace
 
 // ── Section proxy delegate ────────────────────────────────────────────────────
 // Wraps the user's delegate and adds extra space + section header painting
@@ -190,6 +201,13 @@ ListView::ListView(QWidget* parent)
     syncFluentScrollBar();
     syncFluentHScrollBar();
     onThemeUpdated();
+}
+
+ListView::~ListView() {
+    // Stop bounce animation/timer before destruction so no pending tick can fire on
+    // a half-destroyed object (defensive — also helps Qt5 path stability).
+    if (m_bounceAnim) m_bounceAnim->stop();
+    if (m_bounceTimer) m_bounceTimer->stop();
 }
 
 // ── Selection mode ────────────────────────────────────────────────────────────
@@ -757,10 +775,27 @@ void ListView::leaveEvent(QEvent* event) {
 }
 
 // ── Overscroll bounce ─────────────────────────────────────────────────────────
+//
+// Cross-platform wheel input handling — see openspec listview-cross-platform-input/design.md.
+// Events are classified into three paths:
+//
+//   PhaseBased       phase != NoScrollPhase                   macOS native trackpad
+//   NoPhasePixel     phase == NoScrollPhase, pixelDelta != 0  some Win precision touchpad drivers
+//   NoPhaseDiscrete  phase == NoScrollPhase, pixelDelta == 0  mouse wheel / Mac RDP→Windows / Qt5
+//
+// PhaseBased / NoPhasePixel keep the original behavior (smooth pixel scrolling + boundary
+// overscroll). NoPhaseDiscrete is throttled by a cluster window (kClusterGapMs / kClusterMinPx)
+// to prevent RDP-forwarded high-frequency events from triggering reflexive bounce flapping.
 
 void ListView::wheelEvent(QWheelEvent* event) {
-    const bool horizontal = (flow() == LeftToRight);
+    enum class WheelKind { PhaseBased, NoPhasePixel, NoPhaseDiscrete };
     const auto phase = event->phase();
+    const bool hasPixelDelta = !event->pixelDelta().isNull();
+    const WheelKind kind = (phase != Qt::NoScrollPhase) ? WheelKind::PhaseBased
+                         : (hasPixelDelta             ? WheelKind::NoPhasePixel
+                                                      : WheelKind::NoPhaseDiscrete);
+
+    const bool horizontal = (flow() == LeftToRight);
 
     // For horizontal flow, pick the dominant axis (not sum) to avoid double-counting on diagonal swipes.
     // Trackpad users naturally swipe vertically, so Y is often the dominant axis even for horizontal lists.
@@ -772,7 +807,7 @@ void ListView::wheelEvent(QWheelEvent* event) {
     qreal& overscroll = horizontal ? m_overscrollX : m_overscrollY;
 
     // Zero-delta event (e.g. ScrollEnd on Windows touchpad with no residual)
-    if (delta == 0 && event->pixelDelta().isNull()) {
+    if (delta == 0 && !hasPixelDelta) {
         if (!qFuzzyIsNull(overscroll) &&
             (phase == Qt::ScrollEnd || phase == Qt::ScrollMomentum)) {
             startBounceBack();
@@ -784,26 +819,41 @@ void ListView::wheelEvent(QWheelEvent* event) {
     }
 
     // pixelDelta: same dominant-axis logic; apply directly like Qt does for vertical scroll — no damping
-    const qreal scrollPx = !event->pixelDelta().isNull()
+    const qreal scrollPx = hasPixelDelta
         ? static_cast<qreal>(horizontal
               ? (qAbs(event->pixelDelta().y()) >= qAbs(event->pixelDelta().x())
                      ? event->pixelDelta().y() : event->pixelDelta().x())
               : event->pixelDelta().y())
         : delta / 120.0 * 20.0;
 
+    // ── NoPhaseDiscrete cluster accumulation (mouse wheel / Mac RDP / Qt5) ──
+    // Tracked regardless of bounce state so that successive ticks within the same physical
+    // gesture continue to coalesce.
+    qreal clusterAccum = 0.0;
+    if (kind == WheelKind::NoPhaseDiscrete) {
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        if (now - m_lastNoPhaseTs > kClusterGapMs) {
+            m_clusterAccum = 0.0;
+        }
+        m_lastNoPhaseTs = now;
+        m_clusterAccum += scrollPx;
+        clusterAccum = m_clusterAccum;
+    }
+
     // ── 1. Already overscrolled ──────────────────────────────────────────
     if (!qFuzzyIsNull(overscroll)) {
-        if (m_bounceAnim->state() == QAbstractAnimation::Running) {
-            // Bounce in progress: consume stale NoScrollPhase events (RDP / mouse wheel)
-            // to prevent interrupting the smooth bounce-back animation.
-            // Phase-based events (native touchpad ScrollUpdate) can still interrupt.
-            if (phase == Qt::NoScrollPhase) {
+        if (m_bounceAnim && m_bounceAnim->state() == QAbstractAnimation::Running) {
+            // Bounce in progress: NoPhasePixel and NoPhaseDiscrete events are stale residuals
+            // (mouse wheel / RDP / Win touchpad fallback) — consume them so the bounce
+            // animation completes smoothly. Only PhaseBased (native macOS trackpad) is allowed
+            // to interrupt, matching the user's explicit finger-press intent.
+            if (kind != WheelKind::PhaseBased) {
                 event->accept();
                 return;
             }
             m_bounceAnim->stop();
         }
-        m_bounceTimer->stop();  
+        if (m_bounceTimer) m_bounceTimer->stop();
 
         // Trackpad momentum / finger-lift → bounce back immediately
         if (phase == Qt::ScrollMomentum || phase == Qt::ScrollEnd) {
@@ -829,8 +879,8 @@ void ListView::wheelEvent(QWheelEvent* event) {
 
         viewport()->update();
 
-        // NoScrollPhase (mouse wheel / Windows touchpad fallback) → timer bounce
-        if (!qFuzzyIsNull(overscroll) && phase == Qt::NoScrollPhase)
+        // NoPhaseDiscrete (mouse wheel / RDP) → timer bounce
+        if (!qFuzzyIsNull(overscroll) && kind == WheelKind::NoPhaseDiscrete && m_bounceTimer)
             m_bounceTimer->start();
 
         event->accept();
@@ -842,19 +892,36 @@ void ListView::wheelEvent(QWheelEvent* event) {
     const bool atStart = sb->value() <= sb->minimum();
     const bool atEnd   = sb->value() >= sb->maximum();
 
-    if ((atStart && scrollPx > 0) || (atEnd && scrollPx < 0)) {
+    // Enter-overscroll trigger: PhaseBased / NoPhasePixel use single-event scrollPx; NoPhaseDiscrete
+    // uses cluster-accumulated value gated by kClusterMinPx to suppress RDP/jitter false positives.
+    const qreal triggerVal = (kind == WheelKind::NoPhaseDiscrete) ? clusterAccum : scrollPx;
+    const qreal triggerThresh = (kind == WheelKind::NoPhaseDiscrete) ? kClusterMinPx : 0.0;
+
+    const bool wantsEnter =
+        (atStart && triggerVal >  triggerThresh) ||
+        (atEnd   && triggerVal < -triggerThresh);
+
+    if (wantsEnter) {
         // Don't enter overscroll from inertia or finger-lift
         if (phase == Qt::ScrollMomentum || phase == Qt::ScrollEnd) {
             event->accept();
             return;
         }
 
-        overscroll = scrollPx * 0.5;
+        overscroll = triggerVal * 0.5;
         viewport()->update();
 
-        if (phase == Qt::NoScrollPhase)
+        if (kind == WheelKind::NoPhaseDiscrete && m_bounceTimer)
             m_bounceTimer->start();
 
+        event->accept();
+        return;
+    }
+
+    // At-boundary NoPhaseDiscrete events that fail the cluster threshold: consume them
+    // to avoid Qt forwarding to parent / triggering native scrollbar artifacts.
+    if (kind == WheelKind::NoPhaseDiscrete && (atStart || atEnd) &&
+        ((atStart && scrollPx > 0) || (atEnd && scrollPx < 0))) {
         event->accept();
         return;
     }
@@ -891,6 +958,7 @@ QRect ListView::visualRect(const QModelIndex& index) const {
 }
 
 void ListView::startBounceBack() {
+    if (!m_bounceAnim) return;
     const qreal val = (flow() == LeftToRight) ? m_overscrollX : m_overscrollY;
     if (qFuzzyIsNull(val))
         return;

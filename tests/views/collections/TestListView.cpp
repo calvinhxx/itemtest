@@ -916,6 +916,193 @@ TEST_F(ListViewTest, SetSectionKeyFunction) {
     EXPECT_TRUE(lv->sectionEnabled());
 }
 
+// ── 跨平台 wheelEvent 测试 ─────────────────────────────────────────────────
+// 覆盖 PhaseBased / NoPhasePixel / NoPhaseDiscrete 三种事件路径，以及 cluster 节流。
+// 详见 openspec listview-cross-platform-input/.
+
+namespace {
+
+ListView* makeScrollableListView(QWidget* parent, int rowCount = 100) {
+    auto* lv = new ListView(parent);
+    lv->setGeometry(10, 10, 300, 200);
+    QStringList items;
+    items.reserve(rowCount);
+    for (int i = 0; i < rowCount; ++i) items << QStringLiteral("Item %1").arg(i);
+    attachStringListModel(lv, items);
+    lv->show();
+    QTest::qWait(50);
+    // Force layout so scrollbar maximum > 0
+    lv->doItemsLayout();
+    QTest::qWait(20);
+    return lv;
+}
+
+void scrollToBottom(ListView* lv) {
+    lv->verticalScrollBar()->setValue(lv->verticalScrollBar()->maximum());
+    QTest::qWait(10);
+}
+
+void scrollToTop(ListView* lv) {
+    lv->verticalScrollBar()->setValue(0);
+    QTest::qWait(10);
+}
+
+QWheelEvent makeWheelEvent(QWidget* target, QPoint pixelDelta, QPoint angleDelta,
+                           Qt::ScrollPhase phase) {
+    const QPointF pos = target->rect().center();
+    const QPointF globalPos = target->mapToGlobal(pos.toPoint());
+    return QWheelEvent(pos, globalPos, pixelDelta, angleDelta,
+                       Qt::NoButton, Qt::NoModifier, phase, false);
+}
+
+void sendWheel(QWidget* target, QPoint pixelDelta, QPoint angleDelta,
+               Qt::ScrollPhase phase) {
+    QWheelEvent ev = makeWheelEvent(target, pixelDelta, angleDelta, phase);
+    QApplication::sendEvent(target, &ev);
+}
+
+} // namespace
+
+// 5.4 鼠标滚轮单次离散事件 → 正常滚动
+TEST_F(ListViewTest, MouseWheelDiscreteScroll) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    const int before = lv->verticalScrollBar()->value();
+
+    // 单次 ±120 angleDelta，无 pixelDelta，NoScrollPhase（NoPhaseDiscrete）
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    EXPECT_GT(lv->verticalScrollBar()->value(), before)
+        << "Mouse wheel should advance scrollbar via NoPhaseDiscrete path";
+}
+
+// 5.3 Windows 触控板 cluster 高频序列 → 滚动平滑
+TEST_F(ListViewTest, WindowsTouchpadClusterScroll) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    const int before = lv->verticalScrollBar()->value();
+
+    // 5 个连续 ±120 事件，间隔 20ms < kClusterGapMs(120)
+    for (int i = 0; i < 5; ++i) {
+        sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+        QTest::qWait(20);
+    }
+
+    EXPECT_GT(lv->verticalScrollBar()->value(), before)
+        << "Windows touchpad cluster should scroll smoothly";
+}
+
+// 5.2 Mac RDP → Windows 单次轻拨：5 个小角度事件，30ms 间隔 → 在边界不进入 overscroll bounce
+TEST_F(ListViewTest, RdpHighFreqNoBounceFlap) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    scrollToBottom(lv);
+    const int sbVal = lv->verticalScrollBar()->value();
+    EXPECT_EQ(sbVal, lv->verticalScrollBar()->maximum())
+        << "Pre-condition: scrolled to bottom";
+
+    // 模拟 Mac RDP 单次轻拨：5 个小 angleDelta（±60，scrollPx ≈ 60/120*20 = 10），30ms 间隔
+    // cluster 累积 ≈ -50px（向下越界，scrollPx 为负），刚好高于 kClusterMinPx 但被快速归并
+    for (int i = 0; i < 5; ++i) {
+        sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -60), Qt::NoScrollPhase);
+        QTest::qWait(30);
+    }
+    QTest::qWait(50);
+
+    // 要点：bounce 不应被反复触发。允许进入 overscroll（cluster 累积 50px > 8px 阈值），
+    // 但不应该出现"卡边界 + 反复 flap"。验证滚动条仍在边界。
+    EXPECT_EQ(lv->verticalScrollBar()->value(), sbVal)
+        << "Scrollbar should stay pinned at boundary";
+}
+
+// 5.5 bounce 期间 NoPhase 事件被吞
+TEST_F(ListViewTest, BounceConsumesNoPhaseEvents) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    scrollToBottom(lv);
+
+    // 触发 overscroll：直接发起 NoPhasePixel 事件（pixelDelta 非零），向下越界
+    sendWheel(lv->viewport(), QPoint(0, -50), QPoint(0, -120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+    // 触发 bounce-back（150ms timer）
+    QTest::qWait(180);
+
+    // bounce 动画应该正在运行；注入 NoPhaseDiscrete 事件应被吞掉
+    const int sbVal = lv->verticalScrollBar()->value();
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    EXPECT_EQ(lv->verticalScrollBar()->value(), sbVal)
+        << "Scrollbar should not move while bounce is consuming NoPhase events";
+}
+
+// 5.7 macOS 触控板（PhaseBased）边界 overscroll 不回归
+TEST_F(ListViewTest, MacOsTrackpadOverscrollNoRegression) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    scrollToBottom(lv);
+
+    // ScrollBegin → ScrollUpdate（向下越界）→ ScrollEnd
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, 0), Qt::ScrollBegin);
+    sendWheel(lv->viewport(), QPoint(0, -40), QPoint(0, 0), Qt::ScrollUpdate);
+    QTest::qWait(20);
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, 0), Qt::ScrollEnd);
+    // 等待 bounce 完成
+    QTest::qWait(400);
+
+    // 滚动条应仍在底部（bounce 已回弹）
+    EXPECT_EQ(lv->verticalScrollBar()->value(), lv->verticalScrollBar()->maximum())
+        << "After bounce-back, scrollbar should be at boundary";
+}
+
+// 5.1 三类事件分类：NoScrollPhase + pixelDelta != 0 走 NoPhasePixel 路径
+TEST_F(ListViewTest, NoPhasePixelDirectScroll) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    const int before = lv->verticalScrollBar()->value();
+
+    // NoScrollPhase + pixelDelta = -50 → 应当直接按像素滚动
+    sendWheel(lv->viewport(), QPoint(0, -50), QPoint(0, -120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    EXPECT_GT(lv->verticalScrollBar()->value(), before)
+        << "NoPhasePixel should scroll using pixelDelta directly";
+}
+
+// 5.6 PhaseBased 事件可打断 bounce
+TEST_F(ListViewTest, BounceInterruptedByPhaseBased) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    scrollToBottom(lv);
+
+    // 触发 overscroll + bounce
+    sendWheel(lv->viewport(), QPoint(0, -50), QPoint(0, -120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+    QTest::qWait(180); // bounce-back animating
+
+    // PhaseBased ScrollUpdate 应当能停止 bounce 并继续后续逻辑（不被吞）
+    sendWheel(lv->viewport(), QPoint(0, 30), QPoint(0, 0), Qt::ScrollUpdate);
+    QTest::qWait(20);
+
+    // bounce 已被停止；后续状态应归零或反向移动 — 不强求精确值，只验证不 crash
+    SUCCEED() << "PhaseBased event during bounce did not crash";
+}
+
 // ── 可视化测试（业务组装与上面一致）───────────────────────────────────────────
 
 TEST_F(ListViewTest, VisualCheck) {

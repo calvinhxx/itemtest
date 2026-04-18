@@ -72,7 +72,7 @@ public:
     Q_PROPERTY(bool sectionEnabled READ sectionEnabled WRITE setSectionEnabled NOTIFY sectionEnabledChanged)
 
     explicit ListView(QWidget* parent = nullptr);
-    ~ListView() override = default;
+    ~ListView() override;
 
     // --- Flow ---
     using Flow = QListView::Flow;  // TopToBottom or LeftToRight
@@ -231,6 +231,10 @@ private:
     qreal m_overscrollX = 0.0;
     QVariantAnimation* m_bounceAnim = nullptr;
     QTimer* m_bounceTimer = nullptr;
+
+    // --- Cross-platform wheel input (see openspec listview-cross-platform-input) ---
+    qint64 m_lastNoPhaseTs = 0;   // timestamp of last NoPhaseDiscrete event (ms)
+    qreal  m_clusterAccum  = 0.0; // accumulated scrollPx within current cluster
 };
 
 using ListSelectionMode = ListView::ListSelectionMode;
