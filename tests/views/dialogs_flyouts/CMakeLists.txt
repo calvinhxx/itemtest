@@ -1,1 +1,2 @@
 add_qt_test_module(test_dialog TestDialog.cpp)
+add_qt_test_module(test_content_dialog TestContentDialog.cpp)
