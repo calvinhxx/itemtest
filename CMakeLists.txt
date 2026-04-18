@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 
 # CMP0091: 启用 CMAKE_MSVC_RUNTIME_LIBRARY (NEW) — 必须在 project() 之前设置
+# 同时通过 CMAKE_POLICY_DEFAULT_CMP0091 让策略穿透到子目录 (如 googletest)
+# 否则子目录里旧版 cmake_minimum_required 会把策略重置回 OLD，
+# 导致 "MultiThreadedDLLDebug not known for this CXX compiler" 报错
 if(POLICY CMP0091)
     cmake_policy(SET CMP0091 NEW)
 endif()
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
 
-project(itemstest VERSION 0.1 LANGUAGES CXX)
+project(itemstest VERSION 0.1 LANGUAGES CXX C)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
