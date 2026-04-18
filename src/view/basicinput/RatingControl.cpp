@@ -243,7 +243,7 @@ void RatingControl::paintEvent(QPaintEvent* /*event*/)
 
 // ── 鼠标交互 ─────────────────────────────────────────────────────────────────
 
-void RatingControl::enterEvent(QEnterEvent* event)
+void RatingControl::enterEvent(FluentEnterEvent* event)
 {
     m_isHovered = true;
     QWidget::enterEvent(event);

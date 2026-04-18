@@ -5,6 +5,7 @@
 #include <QFont>
 #include <QString>
 #include <QEasingCurve>
+#include "common/QtCompat.h"
 #include "common/Elevation.h"
 #include "common/Animation.h"
 #include "common/Material.h"

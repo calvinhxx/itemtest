@@ -452,7 +452,7 @@ void FlipView::resizeEvent(QResizeEvent* event)
     layoutPages();
 }
 
-void FlipView::enterEvent(QEnterEvent* event)
+void FlipView::enterEvent(FluentEnterEvent* event)
 {
     m_isHovered = true;
     update();

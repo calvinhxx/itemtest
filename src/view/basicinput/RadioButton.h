@@ -61,7 +61,7 @@ signals:
 protected:
     void paintEvent(QPaintEvent* event) override;
     void nextCheckState() override;
-    void enterEvent(QEnterEvent* event) override;
+    void enterEvent(FluentEnterEvent* event) override;
     void leaveEvent(QEvent* event) override;
 
 private:

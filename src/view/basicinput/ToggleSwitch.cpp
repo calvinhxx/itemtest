@@ -305,7 +305,7 @@ void ToggleSwitch::mouseReleaseEvent(QMouseEvent* event)
     QWidget::mouseReleaseEvent(event);
 }
 
-void ToggleSwitch::enterEvent(QEnterEvent* event)
+void ToggleSwitch::enterEvent(FluentEnterEvent* event)
 {
     if (isEnabled()) {
         m_isHovered = true;

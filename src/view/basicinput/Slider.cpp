@@ -71,7 +71,7 @@ void Slider::paintEvent(QPaintEvent*) {
     }
 }
 
-void Slider::enterEvent(QEnterEvent* event) {
+void Slider::enterEvent(FluentEnterEvent* event) {
     m_hoverAnim->stop();
     m_hoverAnim->setEndValue(1.0);
     m_hoverAnim->start();

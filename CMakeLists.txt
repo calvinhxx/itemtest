@@ -20,6 +20,15 @@ endif()
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Test Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Test Network)
 
+# Enforce minimum supported Qt versions
+if(QT_VERSION_MAJOR EQUAL 5 AND Qt5_VERSION VERSION_LESS 5.15)
+	message(FATAL_ERROR "Qt 5.15 or newer is required (found ${Qt5_VERSION})")
+endif()
+if(QT_VERSION_MAJOR EQUAL 6 AND Qt6_VERSION VERSION_LESS 6.2)
+	message(FATAL_ERROR "Qt 6.2 or newer is required (found ${Qt6_VERSION})")
+endif()
+message(STATUS "Building with Qt ${QT_VERSION_MAJOR} (${Qt${QT_VERSION_MAJOR}_VERSION})")
+
 # find files recurse
 file(GLOB_RECURSE SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 foreach(v ${SRC})

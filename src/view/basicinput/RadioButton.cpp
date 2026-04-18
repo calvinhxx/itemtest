@@ -174,7 +174,7 @@ void RadioButton::paintEvent(QPaintEvent*) {
     }
 }
 
-void RadioButton::enterEvent(QEnterEvent* event) {
+void RadioButton::enterEvent(FluentEnterEvent* event) {
     QRadioButton::enterEvent(event);
     if (isChecked() && isEnabled()) {
         m_dotScaleAnimation->stop();

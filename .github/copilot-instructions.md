@@ -120,9 +120,10 @@ cd build && ctest --verbose
 3. 实现 `paintEvent()` — 使用 `themeColors()` 等 Token 自绘，启用 `QPainter::Antialiasing`
 4. 通过 `Q_PROPERTY` 暴露 Fluent 风格属性 (如 `fluentStyle`, `fluentSize`)
 5. **禁止硬编码 Design Token 字符串** — `themeFont("Body")` 等访问 Token 的字符串参数必须抽为可配置的 `Q_PROPERTY` 成员变量（如 `m_fontRole`），在 `paintEvent()` / `onThemeUpdated()` 中通过成员变量间接访问，禁止直接写死字面量
-6. 状态驱动: Rest → Hover → Pressed → Disabled，通过 event filter 或 `enterEvent`/`leaveEvent` 驱动
-7. 创建对应测试文件 `tests/views/<category>/Test<Name>.cpp`
-8. 在对应 `CMakeLists.txt` 中使用 `add_qt_test_module(test_<name> Test<Name>.cpp [额外源文件...])` 注册
+6. **Qt5/Qt6 兼容** — 重写 `enterEvent()` 时 MUST 使用 `FluentEnterEvent`（来自 `common/QtCompat.h`），切勿直接使用 `QEnterEvent`（Qt5 不存在该类型）
+7. 状态驱动: Rest → Hover → Pressed → Disabled，通过 event filter 或 `enterEvent`/`leaveEvent` 驱动
+8. 创建对应测试文件 `tests/views/<category>/Test<Name>.cpp`
+9. 在对应 `CMakeLists.txt` 中使用 `add_qt_test_module(test_<name> Test<Name>.cpp [额外源文件...])` 注册
 
 ### 测试模式
 
