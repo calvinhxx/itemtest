@@ -13,8 +13,6 @@ option(BUILD_TESTING "Enable testing and build tests" ON)
 if(MSVC)
 	add_definitions(-DUNICODE -D_UNICODE)
 	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-	# 统一设置 MSVC 运行时库为静态链接 (MT/MTd)
-	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Test Network)
@@ -28,6 +26,15 @@ if(QT_VERSION_MAJOR EQUAL 6 AND Qt6_VERSION VERSION_LESS 6.2)
 	message(FATAL_ERROR "Qt 6.2 or newer is required (found ${Qt6_VERSION})")
 endif()
 message(STATUS "Building with Qt ${QT_VERSION_MAJOR} (${Qt${QT_VERSION_MAJOR}_VERSION})")
+
+# MSVC CRT 必须与所链接的 Qt 二进制保持一致：
+#   - Qt5 官方 Windows 预编译包使用动态 CRT (/MD, /MDd)，否则会出现
+#     `__acrt_first_block == header` 等跨 CRT heap 断言/崩溃。
+#   - Qt6 官方包同样用 /MD；保持 /MD 最安全，避免 CRT 不匹配。
+# 如需 /MT 静态运行时，必须使用同样以 /MT 编译的 Qt 二进制（自行重编）。
+if(MSVC)
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:Debug>")
+endif()
 
 # find files recurse
 file(GLOB_RECURSE SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
@@ -44,8 +51,8 @@ target_include_directories(itemstest_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # ut
 if(BUILD_TESTING)
 	enable_testing()
-	# 强制 GoogleTest 使用与项目一致的静态运行时库
-	set(gtest_force_shared_crt OFF CACHE BOOL "" FORCE)
+	# GoogleTest 跟随项目使用动态 CRT (/MD)，与 Qt 官方二进制保持一致。
+	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 	add_subdirectory(third_party/googletest)
 	add_subdirectory(tests)
 endif()
