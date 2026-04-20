@@ -4,6 +4,7 @@ namespace view::textfields {
 
 TextBlock::TextBlock(const QString& text, QWidget* parent)
     : QLabel(text, parent) {
+    setAttribute(Qt::WA_TranslucentBackground);
     onThemeUpdated();
 }
 
