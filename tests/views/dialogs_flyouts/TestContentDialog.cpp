@@ -397,6 +397,8 @@ TEST_F(ContentDialogTest, VisualCheck) {
         dialog.setTitle("Delete this file permanently?");
         auto* body = new TextBlock(
             "If you delete this file, you won't be able to recover it. "
+            "If you delete this file, you won't be able to recover it. "
+            "If you delete this file, you won't be able to recover it. "
             "Do you want to delete it?");
         body->setWordWrap(true);
         dialog.setContent(body);

@@ -2,48 +2,10 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QLayout>
-#include <QScreen>
 #include <QPointer>
-#include <memory>
 #include "common/Material.h"
 
 namespace view::dialogs_flyouts {
-
-// 进场缩放起始系数（0.90 → 1.0），与 WinUI 3 ContentDialog pop-in/out 保持一致
-static constexpr double kScaleFrom = 0.90;
-
-// ── Smoke 蒙层 ──────────────────────────────────────────────────────────────
-//
-// SmokeOverlay 通过自定义 progress (0..1) 属性 + paintEvent alpha 插值实现淡入淡出。
-// 由 Dialog::m_smokeAnim (QPropertyAnimation) 驱动该属性。
-// （顶层窗口不支持 QGraphicsOpacityEffect，因此即便 SmokeOverlay 是子控件，
-//   为保持与 Dialog 一致的实现风格，统一使用 paintEvent 自绘 alpha 的方案。）
-
-class SmokeOverlay : public QWidget {
-    Q_OBJECT
-    Q_PROPERTY(double progress READ progress WRITE setProgress)
-public:
-    explicit SmokeOverlay(QWidget* parent) : QWidget(parent) {
-        setAttribute(Qt::WA_TransparentForMouseEvents, false);
-    }
-    void setColor(const QColor& c) { m_color = c; update(); }
-    double progress() const { return m_progress; }
-    void   setProgress(double p) {
-        if (qFuzzyCompare(m_progress, p)) return;
-        m_progress = p;
-        update();
-    }
-protected:
-    void paintEvent(QPaintEvent*) override {
-        QPainter p(this);
-        QColor c = m_color;
-        c.setAlpha(int(m_color.alpha() * qBound(0.0, m_progress, 1.0)));
-        p.fillRect(rect(), c);
-    }
-private:
-    QColor m_color{0, 0, 0, 102};
-    double m_progress = 0.0;
-};
 
 Dialog::Dialog(QWidget *parent) : QDialog(parent) {
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::CustomizeWindowHint | Qt::NoDropShadowWindowHint);
@@ -95,18 +57,9 @@ Dialog::~Dialog() {
 void Dialog::setAnimationProgress(double p) {
     m_animationProgress = p;
 
-    if (m_isAnimating && !m_targetSize.isEmpty()) {
-        // 尺寸插值：kScaleFrom(0.90) → 1.0
-        const double scale = kScaleFrom + (1.0 - kScaleFrom) * p;
-        const QSize newSize(qRound(m_targetSize.width() * scale),
-                            qRound(m_targetSize.height() * scale));
-
-        const QPoint c = geometry().center();
-        resize(newSize);
-        // 用 size()（实际尺寸）计算居中，因为 setFixedSize 可能约束了 resize
-        const QSize actual = size();
-        move(c.x() - actual.width() / 2, c.y() - actual.height() / 2);
-
+    // 只做 opacity 动画。
+    // resize 会触发 layout 重排，子控件不会等比例缩放，导致动画期间 UI 错位。
+    if (m_isAnimating) {
         setWindowOpacity(p);
     }
 
@@ -163,29 +116,18 @@ void Dialog::showEvent(QShowEvent *event) {
         w->ensurePolished();
         if (auto* fe = dynamic_cast<FluentElement*>(w))
             fe->onThemeUpdated();
-    }
-    if (layout()) layout()->activate();
-    for (auto* w : findChildren<QWidget*>()) {
         if (w->layout()) w->layout()->activate();
     }
+    if (layout()) layout()->activate();
 
-    // 记录目标尺寸，临时放开 min/max 约束以允许动画期间 resize
+    // 仅 opacity 动画 —— 不再 resize，避免子控件错位
     m_targetSize   = size();
     m_savedMinSize = minimumSize();
     m_savedMaxSize = maximumSize();
-    setMinimumSize(QSize(0, 0));
-    setMaximumSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
-
-    // 缩小到起始尺寸（90%），保持中心位置不变
-    const QSize startSize(qRound(m_targetSize.width() * kScaleFrom),
-                          qRound(m_targetSize.height() * kScaleFrom));
-    const QPoint c = geometry().center();
-    resize(startSize);
-    move(c.x() - startSize.width() / 2, c.y() - startSize.height() / 2);
 
     const auto& anim = themeAnimation();
     m_animation->stop();
-    m_animation->setDuration(anim.fast);     // 入场使用 fast(150ms)，贴近 WinUI 3 GIF 节奏
+    m_animation->setDuration(anim.normal);
     m_animation->setStartValue(0.0);
     m_animation->setEndValue(1.0);
     m_animation->setEasingCurve(anim.entrance);
@@ -228,7 +170,7 @@ void Dialog::done(int r) {
     }
 
     const auto& anim = themeAnimation();
-    m_animation->setDuration(anim.fast);
+    m_animation->setDuration(anim.normal);
     m_animation->setStartValue(m_animationProgress);
     m_animation->setEndValue(0.0);
     m_animation->setEasingCurve(anim.exit);
@@ -264,20 +206,17 @@ void Dialog::mouseReleaseEvent(QMouseEvent *event) {
 void Dialog::showSmokeOverlay() {
     if (!parentWidget() || !parentWidget()->isVisible()) return;
 
-    SmokeOverlay* overlay = static_cast<SmokeOverlay*>(m_smokeOverlay);
-
     // 若 overlay 不存在则创建；若存在（可能正在淡出中）则复用并反向
-    if (!overlay) {
-        overlay = new SmokeOverlay(parentWidget());
+    if (!m_smokeOverlay) {
+        m_smokeOverlay = new SmokeOverlay(parentWidget());
         const auto& smoke = themeSmoke();
         QColor c = smoke.baseColor;
         c.setAlphaF(smoke.opacity);
-        overlay->setColor(c);
-        overlay->setGeometry(parentWidget()->rect());
-        overlay->setProgress(0.0);
-        overlay->show();
-        overlay->raise();
-        m_smokeOverlay = overlay;
+        m_smokeOverlay->setColor(c);
+        m_smokeOverlay->setGeometry(parentWidget()->rect());
+        m_smokeOverlay->setProgress(0.0);
+        m_smokeOverlay->show();
+        m_smokeOverlay->raise();
     }
 
     // 懒创建动画
@@ -286,10 +225,10 @@ void Dialog::showSmokeOverlay() {
         m_smokeAnim->setPropertyName("progress");
     }
     m_smokeAnim->stop();
-    m_smokeAnim->setTargetObject(overlay);
+    m_smokeAnim->setTargetObject(m_smokeOverlay);
     const auto& anim = themeAnimation();
-    m_smokeAnim->setDuration(anim.fast);     // 与 Dialog 主动画同步用 fast(150ms)
-    m_smokeAnim->setStartValue(overlay->progress());
+    m_smokeAnim->setDuration(anim.normal);
+    m_smokeAnim->setStartValue(m_smokeOverlay->progress());
     m_smokeAnim->setEndValue(1.0);
     m_smokeAnim->setEasingCurve(anim.entrance);
     m_smokeFadingOut = false;
@@ -297,38 +236,29 @@ void Dialog::showSmokeOverlay() {
 }
 
 void Dialog::hideSmokeOverlay() {
-    SmokeOverlay* overlay = static_cast<SmokeOverlay*>(m_smokeOverlay);
-    if (!overlay) return;
-    if (m_smokeFadingOut) return;  // 已经在淡出中
+    if (!m_smokeOverlay || m_smokeFadingOut) return;
 
     if (!m_smokeAnim) {
         m_smokeAnim = new QPropertyAnimation(this);
         m_smokeAnim->setPropertyName("progress");
     }
     m_smokeAnim->stop();
-    m_smokeAnim->setTargetObject(overlay);
+    m_smokeAnim->setTargetObject(m_smokeOverlay);
     const auto& anim = themeAnimation();
-    m_smokeAnim->setDuration(anim.fast);
-    m_smokeAnim->setStartValue(overlay->progress());
+    m_smokeAnim->setDuration(anim.normal);
+    m_smokeAnim->setStartValue(m_smokeOverlay->progress());
     m_smokeAnim->setEndValue(0.0);
     m_smokeAnim->setEasingCurve(anim.exit);
     m_smokeFadingOut = true;
 
-    // 一次性 finished 连接，淡出完成后销毁 overlay
-    QPointer<SmokeOverlay> safeOverlay(overlay);
-    auto conn = std::make_shared<QMetaObject::Connection>();
-    *conn = connect(m_smokeAnim, &QPropertyAnimation::finished, this,
-                    [this, safeOverlay, conn]() {
-        QObject::disconnect(*conn);
+    // 淡出完成后销毁 overlay
+    QPointer<SmokeOverlay> guard(m_smokeOverlay);
+    connect(m_smokeAnim, &QPropertyAnimation::finished, this, [this, guard]() {
         if (!m_smokeFadingOut) return;  // 中途被 showSmokeOverlay 反向
         m_smokeFadingOut = false;
-        if (safeOverlay) {
-            safeOverlay->hide();
-            safeOverlay->deleteLater();
-        }
-        if (m_smokeOverlay == safeOverlay.data())
-            m_smokeOverlay = nullptr;
-    });
+        if (guard) guard->deleteLater();
+        if (m_smokeOverlay == guard.data()) m_smokeOverlay = nullptr;
+    }, Qt::SingleShotConnection);
 
     m_smokeAnim->start();
 }
@@ -339,7 +269,7 @@ void Dialog::onThemeUpdated() {
         const auto& smoke = themeSmoke();
         QColor c = smoke.baseColor;
         c.setAlphaF(smoke.opacity);
-        static_cast<SmokeOverlay*>(m_smokeOverlay)->setColor(c);
+        m_smokeOverlay->setColor(c);
     }
 }
 
@@ -386,6 +316,3 @@ void Dialog::drawShadow(QPainter& painter, const QRect& contentRect) {
 }
 
 } // namespace view::dialogs_flyouts
-
-// SmokeOverlay 的 Q_OBJECT 在 .cpp 中声明，需要包含 moc 生成文件
-#include "Dialog.moc"

@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QPropertyAnimation>
+#include <QPainter>
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 #include "common/Spacing.h"
@@ -11,22 +12,42 @@ class QHideEvent;
 
 namespace view::dialogs_flyouts {
 
+// ── SmokeOverlay ──────────────────────────────────────────────────────────────
+class SmokeOverlay : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(double progress READ progress WRITE setProgress)
+public:
+    explicit SmokeOverlay(QWidget* parent) : QWidget(parent) {
+        setAttribute(Qt::WA_TransparentForMouseEvents, false);
+    }
+    void setColor(const QColor& c) { m_color = c; update(); }
+    double progress() const { return m_progress; }
+    void   setProgress(double p) {
+        if (qFuzzyCompare(m_progress, p)) return;
+        m_progress = p;
+        update();
+    }
+protected:
+    void paintEvent(QPaintEvent*) override {
+        QPainter p(this);
+        QColor c = m_color;
+        c.setAlpha(int(m_color.alpha() * qBound(0.0, m_progress, 1.0)));
+        p.fillRect(rect(), c);
+    }
+private:
+    QColor  m_color{0, 0, 0, 102};
+    double  m_progress = 0.0;
+};
 /**
  * @brief Dialog — Fluent Design 基础对话框
  *
  * 纯 view 层基础控件：圆角背景 + 阴影 + 进/出场动画 + 拖拽。
  * 不包含任何预置子控件，由派生类（如 ContentDialog）或使用方自行组装内容。
  *
- * ── 动画方案（Resize + Opacity，类似 QML Popup）─────────────────────────────
- *  进场：窗口尺寸 90%→100% + opacity 0→1，子控件始终 live，随窗口 relayout。
- *  退场：窗口尺寸 100%→90% + opacity 1→0。
- *
- *  无快照，不隐藏子控件。setWindowOpacity 控制整体透明度，resize 控制尺寸缩放。
- *  show 之前通过 setWindowOpacity(0) 防止 compositor 闪显真实内容。
- *  动画期间保持 Dialog 中心位置不变（resize + move 联动）。
- *
- *  注：顶层 QDialog (Qt::Window) 不支持 QGraphicsOpacityEffect，因此 Dialog 本体的
- *  透明度只能依赖 setWindowOpacity；Smoke 蒙层通过自定义 progress 属性 + paintEvent
+ * ── 动画方案（Opacity）────────────────────────────────────────────────────────
+ *  进场：opacity 0→1。退场：opacity 1→0。
+ *  顶层 QDialog (Qt::Window) 不支持 QGraphicsOpacityEffect，透明度通过
+ *  setWindowOpacity 控制；Smoke 蒙层通过自定义 progress 属性 + paintEvent
  *  插值 alpha 实现淡入淡出（由 m_smokeAnim 驱动）。
  */
 class Dialog : public QDialog, public FluentElement, public view::QMLPlus {
@@ -81,7 +102,7 @@ private:
     bool   m_smokeEnabled     = false;
     bool   m_dragEnabled       = true;
     QPoint m_dragPosition;
-    QWidget* m_smokeOverlay    = nullptr;
+    SmokeOverlay* m_smokeOverlay   = nullptr;
 
     bool   m_animationEnabled  = true;
     bool   m_isAnimating       = false;

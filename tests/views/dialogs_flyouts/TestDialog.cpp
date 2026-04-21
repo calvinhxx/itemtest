@@ -119,37 +119,11 @@ TEST_F(DialogTest, ThemeSwitchNoCrash) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  WinUI 3 GIF 对齐：scale pop-in/pop-out + smoke 淡入淡出
+//  入场/退场动画：仅 opacity（scale 已移除以避免子控件错位）
 // ══════════════════════════════════════════════════════════════════════════════
 
-TEST_F(DialogTest, DialogEntranceHasScalePopIn) {
-    // 入场起始帧尺寸应为 target * 0.90 (kScaleFrom)
-    Dialog dialog(window);
-    dialog.setFixedSize(400, 300);
-    const QSize target = dialog.size();
-
-    window->show();
-    QApplication::processEvents();
-    dialog.open();                  // open() 会设置 m_isAnimating=true
-    QApplication::processEvents();  // 触发 showEvent
-
-    // 强制将 progress 重置回 0（覆盖动画已推进的中间帧）
-    dialog.setAnimationProgress(0.0);
-
-    // 起始尺寸应明显小于 95%（旧 kScaleFrom 0.96 不会满足此条件）
-    EXPECT_LT(dialog.size().width(), int(target.width() * 0.95))
-        << "Entrance starting size should reflect kScaleFrom = 0.90, "
-           "but got width=" << dialog.size().width()
-        << " target=" << target.width();
-    EXPECT_NEAR(dialog.size().width(), int(target.width() * 0.90), 2);
-    EXPECT_NEAR(dialog.size().height(), int(target.height() * 0.90), 2);
-
-    dialog.setAnimationEnabled(false);
-    dialog.done(0);
-}
-
-TEST_F(DialogTest, DialogExitHasScalePopOut) {
-    // 退场末尾帧（progress=0）尺寸应为 target * 0.90
+TEST_F(DialogTest, DialogEntranceAnimatesOpacity) {
+    // 入场：progress=0 时 windowOpacity 应为 0；progress=1 时为 1
     Dialog dialog(window);
     dialog.setFixedSize(400, 300);
     const QSize target = dialog.size();
@@ -159,18 +133,39 @@ TEST_F(DialogTest, DialogExitHasScalePopOut) {
     dialog.open();
     QApplication::processEvents();
 
-    // 完成入场：直接将 progress 设为 1
-    dialog.setAnimationProgress(1.0);
-    EXPECT_NEAR(dialog.size().width(), target.width(), 2);
+    dialog.setAnimationProgress(0.0);
+    EXPECT_NEAR(dialog.windowOpacity(), 0.0, 0.01);
+    // 尺寸不应被动画修改
+    EXPECT_EQ(dialog.size(), target);
 
-    // 触发退场：done(r) 进入退场动画状态（m_isClosing=true, m_isAnimating=true）
+    dialog.setAnimationProgress(1.0);
+    EXPECT_NEAR(dialog.windowOpacity(), 1.0, 0.01);
+    EXPECT_EQ(dialog.size(), target);
+
+    dialog.setAnimationEnabled(false);
+    dialog.done(0);
+}
+
+TEST_F(DialogTest, DialogExitAnimatesOpacity) {
+    // 退场：progress=0 时 windowOpacity 应回到 0
+    Dialog dialog(window);
+    dialog.setFixedSize(400, 300);
+    const QSize target = dialog.size();
+
+    window->show();
+    QApplication::processEvents();
+    dialog.open();
+    QApplication::processEvents();
+
+    dialog.setAnimationProgress(1.0);
+    EXPECT_NEAR(dialog.windowOpacity(), 1.0, 0.01);
+
     dialog.done(0);
 
-    // 模拟退场末尾帧
     dialog.setAnimationProgress(0.0);
-    EXPECT_NEAR(dialog.size().width(), int(target.width() * 0.90), 2)
-        << "Exit ending size should reflect kScaleFrom = 0.90";
-    EXPECT_NEAR(dialog.size().height(), int(target.height() * 0.90), 2);
+    EXPECT_NEAR(dialog.windowOpacity(), 0.0, 0.01);
+    // 尺寸在退场期间也保持不变
+    EXPECT_EQ(dialog.size(), target);
 }
 
 TEST_F(DialogTest, SmokeOverlayFadesInOutDelayedDestroy) {
