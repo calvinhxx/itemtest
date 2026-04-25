@@ -36,6 +36,7 @@ namespace {
 //                  Suppresses spurious overscroll triggered by tiny RDP/touchpad jitter.
 constexpr int   kClusterGapMs = 120;
 constexpr qreal kClusterMinPx = 8.0;
+constexpr int   kScrollBarEdgeInset = ::Spacing::XSmall / 2;
 } // namespace
 
 // ── Section proxy delegate ────────────────────────────────────────────────────
@@ -1082,12 +1083,12 @@ void ListView::syncFluentScrollBar() {
     m_vScrollBar->setVisible(needScroll);
     if (!needScroll) return;
 
-    // 定位：右侧边缘，尊重 header 偏移
+    // 定位：右侧内缩，尊重 header 偏移
     const QRect r = rect();
     const int top = (m_header && m_header->isVisible())
                         ? m_header->geometry().bottom() + 2
                         : r.top() + 2;
-    const int x = r.right() - m_vScrollBar->thickness() + 1;
+    const int x = r.right() - kScrollBarEdgeInset - m_vScrollBar->thickness() + 1;
     const int h = r.bottom() - top - 2;
     m_vScrollBar->setGeometry(x, top, m_vScrollBar->thickness(), h);
     m_vScrollBar->raise();

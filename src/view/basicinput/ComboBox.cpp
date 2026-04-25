@@ -4,21 +4,27 @@
 #include <QPainterPath>
 #include <QMouseEvent>
 #include <QPropertyAnimation>
-#include <QScreen>
 #include <QApplication>
 #include <QResizeEvent>
 #include <QtMath>
 #include <QStringListModel>
 #include <QItemSelectionModel>
 #include <QProxyStyle>
+#include <QScrollBar>
 
 #include "common/CornerRadius.h"
 #include "common/Animation.h"
+#include "common/QtCompat.h"
 #include "view/collections/ListView.h"
+#include "view/scrolling/ScrollBar.h"
 #include <QVariantAnimation>
 #include "view/textfields/LineEdit.h"
 
 namespace {
+static constexpr int kPopupShadowMargin = ::Spacing::Standard;
+static constexpr int kPopupContentInset = ::Spacing::XSmall / 2;
+static constexpr int kPopupWindowMargin = 4;
+
 // Suppress QStyle's PE_PanelLineEdit native panel — ComboBox paints its own bg
 class TransparentLineEditStyle : public QProxyStyle {
 public:
@@ -83,7 +89,16 @@ void ComboBoxItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& 
         radius = m_themeHost->themeRadius();
     }
 
-    QRectF bgRect = QRectF(option.rect).adjusted(5, 3, -5, -3);
+    int itemRightInset = 5;
+    if (m_view && m_view->verticalScrollBar() &&
+        m_view->verticalScrollBar()->maximum() > m_view->verticalScrollBar()->minimum()) {
+        if (auto* listView = qobject_cast<view::collections::ListView*>(m_view)) {
+            if (auto* scrollBar = listView->verticalFluentScrollBar()) {
+                itemRightInset += scrollBar->thickness();
+            }
+        }
+    }
+    QRectF bgRect = QRectF(option.rect).adjusted(5, 3, -itemRightInset, -3);
     const int cornerR = radius.control > 0 ? radius.control : 4;
 
     const bool isSelected = option.state & QStyle::State_Selected;
@@ -152,16 +167,21 @@ QSize ComboBoxItemDelegate::sizeHint(const QStyleOptionViewItem&, const QModelIn
 // ─── ComboBoxPopup 实现 ─────────────────────────────────────────────────────
 
 ComboBox::ComboBoxPopup::ComboBoxPopup(ComboBox* comboBox)
-    : Dialog(nullptr), m_comboBox(comboBox) {
-    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground);
-    setDragEnabled(false);
+    : Flyout(comboBox), m_comboBox(comboBox) {
+    setObjectName("ComboBoxPopup");
     setAnimationEnabled(false);
+    setPlacement(view::dialogs_flyouts::Flyout::Auto);
+    setAnchorOffset(comboBox ? comboBox->popupOffset() : ::Spacing::XSmall);
+    setModal(false);
+    setDim(false);
+    setClosePolicy(ClosePolicy(CloseOnPressOutside | CloseOnEscape));
 
     m_listView = new view::collections::ListView(this);
+    m_listView->setObjectName("ComboBoxPopupListView");
     m_listView->setBorderVisible(false);
-    m_listView->setBackgroundVisible(false);
+    m_listView->setBackgroundVisible(true);
     m_listView->setSelectionMode(view::collections::ListView::ListSelectionMode::Single);
+    m_listView->setSpacing(0);
 
     m_delegate = new ComboBoxItemDelegate(comboBox, m_listView, this);
     m_listView->setItemDelegate(m_delegate);
@@ -177,6 +197,12 @@ ComboBox::ComboBoxPopup::ComboBoxPopup(ComboBox* comboBox)
         }
         m_comboBox->hidePopup();
     });
+
+    connect(this, &ComboBoxPopup::closed, this, [this]() {
+        if (m_comboBox) m_comboBox->onPopupHidden();
+    });
+
+    onThemeUpdated();
 }
 
 void ComboBox::ComboBoxPopup::showForComboBox() {
@@ -189,38 +215,31 @@ void ComboBox::ComboBoxPopup::showForComboBox() {
 
     const int itemCount = m_comboBox->count();
     const int itemH     = ::Spacing::ControlHeight::Large;
-    const int listPadY  = 4;
     const int maxVisible = qMin(itemCount, 6);
-    const int listH     = maxVisible * itemH + listPadY * 2;
-    const int sSize     = shadowSize();
-    const int totalH    = listH + sSize * 2;
-    const int totalW    = qMax(m_comboBox->width(), 120) + sSize * 2;
+    const int rowsH     = maxVisible * itemH;
+    const int sSize     = kPopupShadowMargin;
+    const int cardInset = kPopupContentInset;
+    const int cardW     = qMax(m_comboBox->width(), 120);
+    const int cardH     = rowsH + cardInset * 2;
+    const int totalH    = cardH + sSize * 2;
+    const int totalW    = cardW + sSize * 2;
 
     setFixedSize(totalW, totalH);
-    winId();
+    setAnchorOffset(m_comboBox->m_popupOffset);
+    setAnchor(m_comboBox);
 
-    QPoint comboBottomLeft = m_comboBox->mapToGlobal(QPoint(0, m_comboBox->height()));
-    int popupX = comboBottomLeft.x() - sSize;
-    int popupY = comboBottomLeft.y() + m_comboBox->m_popupOffset - sSize;
-
-    if (auto* screen = m_comboBox->screen()) {
-        QRect avail = screen->availableGeometry();
-        if (popupY + totalH > avail.bottom()) {
-            QPoint comboTopLeft = m_comboBox->mapToGlobal(QPoint(0, 0));
-            popupY = comboTopLeft.y() - totalH + sSize - m_comboBox->m_popupOffset;
-        }
-        popupX = qBound(avail.left(), popupX, avail.right() - totalW);
-        popupY = qBound(avail.top(),  popupY, avail.bottom() - totalH);
-    }
-
-    move(popupX, popupY);
-
-    m_listView->setGeometry(sSize, sSize + listPadY,
-                            totalW - sSize * 2, listH - listPadY * 2);
+    m_listView->setGeometry(sSize + cardInset, sSize + cardInset,
+                            cardW - cardInset * 2, rowsH);
     m_listView->clearMask();
     m_listView->refreshFluentScrollChrome();
 
-    show();
+    if (isOpen() || isVisible()) {
+        move(computePosition());
+        show();
+        raise();
+    } else {
+        showAt(m_comboBox);
+    }
 
     if (m_comboBox->currentIndex() >= 0) {
         m_listView->scrollTo(m_listView->model()->index(m_comboBox->currentIndex(), 0),
@@ -229,36 +248,56 @@ void ComboBox::ComboBoxPopup::showForComboBox() {
 }
 
 void ComboBox::ComboBoxPopup::onThemeUpdated() {
-    Dialog::onThemeUpdated();
+    Flyout::onThemeUpdated();
+    QPalette pal = palette();
+    pal.setColor(QPalette::Window, themeColors().bgLayer);
+    setPalette(pal);
+
     if (m_comboBox) {
         m_listView->setFont(m_comboBox->themeFont(m_comboBox->fontRole()).toQFont());
     }
+    if (m_listView && m_listView->viewport()) m_listView->viewport()->update();
 }
 
-void ComboBox::ComboBoxPopup::paintEvent(QPaintEvent*) {
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
+QPoint ComboBox::ComboBoxPopup::computePosition() const {
+    if (!m_comboBox || !m_comboBox->window()) return Flyout::computePosition();
 
-    painter.setCompositionMode(QPainter::CompositionMode_Source);
-    painter.fillRect(rect(), Qt::transparent);
-    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    QWidget* top = m_comboBox->window();
+    const int shadow = kPopupShadowMargin;
+    const int cardW = width() - shadow * 2;
+    const int cardH = height() - shadow * 2;
+    const QRect anchor(m_comboBox->mapTo(top, QPoint(0, 0)), m_comboBox->size());
 
-    const int sSize = shadowSize();
-    QRect contentRect = rect().adjusted(sSize, sSize, -sSize, -sSize);
+    const int spaceBelow = top->height() - (anchor.bottom() + 1);
+    const int spaceAbove = anchor.top();
+    const bool placeAbove = spaceBelow < cardH && spaceAbove > spaceBelow;
 
-    drawShadow(painter, contentRect);
+    QPoint cardTopLeft(anchor.left(), placeAbove
+        ? anchor.top() - anchorOffset() - cardH
+        : anchor.bottom() + 1 + anchorOffset());
 
-    const auto& colors = themeColors();
-    const int r = themeRadius().overlay;
+    if (clampToWindow()) {
+        cardTopLeft.setX(qBound(kPopupWindowMargin, cardTopLeft.x(),
+                                top->width() - cardW - kPopupWindowMargin));
+        cardTopLeft.setY(qBound(kPopupWindowMargin, cardTopLeft.y(),
+                                top->height() - cardH - kPopupWindowMargin));
+    }
 
-    painter.setBrush(colors.bgLayer);
-    painter.setPen(colors.strokeSurface);
-    painter.drawRoundedRect(contentRect, r, r);
+    return cardTopLeft - QPoint(shadow, shadow);
 }
 
-void ComboBox::ComboBoxPopup::hideEvent(QHideEvent* event) {
-    Dialog::hideEvent(event);
-    m_comboBox->onPopupHidden();
+bool ComboBox::ComboBoxPopup::eventFilter(QObject* watched, QEvent* event) {
+    if (event && event->type() == QEvent::MouseButtonPress && m_comboBox) {
+        auto* mouseEvent = static_cast<QMouseEvent*>(event);
+        const QPoint comboLocal = m_comboBox->mapFromGlobal(fluentMouseGlobalPos(mouseEvent));
+        const bool pressOnOwner = m_comboBox->rect().contains(comboLocal);
+        const bool pressInsidePopup = rect().contains(mapFromGlobal(fluentMouseGlobalPos(mouseEvent)));
+        if (pressOnOwner && !pressInsidePopup) {
+            m_comboBox->m_ignoreNextPopupPress = true;
+        }
+    }
+
+    return Flyout::eventFilter(watched, event);
 }
 
 // ─── ComboBox 主体实现 ──────────────────────────────────────────────────────
@@ -456,21 +495,21 @@ void ComboBox::showPopup() {
 void ComboBox::hidePopup() {
     if (!m_popupVisible) return;
     m_popupVisible = false;
+    m_pressed = false;
 
     if (m_popup)
-        m_popup->hide();
+        m_popup->close();
 
     update();
     QComboBox::hidePopup();
 }
 
-// Private helper called from popup's hideEvent
+// Private helper called from the popup close lifecycle.
 void ComboBox::onPopupHidden() {
-    if (m_popupVisible) {
-        m_popupVisible = false;
-        m_pressed = false;
-        update();
-    }
+    const bool needsUpdate = m_popupVisible || m_pressed;
+    m_popupVisible = false;
+    m_pressed = false;
+    if (needsUpdate) update();
 }
 
 // ── 输入事件 ─────────────────────────────────────────────────────────────────
@@ -490,6 +529,14 @@ void ComboBox::leaveEvent(QEvent* event) {
 
 void ComboBox::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
+        if (m_ignoreNextPopupPress) {
+            m_ignoreNextPopupPress = false;
+            m_pressed = false;
+            update();
+            event->accept();
+            return;
+        }
+
         m_pressed = true;
         // Fire-and-forget bounce animation (0→1, qSin gives 0→peak→0)
         m_pressAnimation->stop();

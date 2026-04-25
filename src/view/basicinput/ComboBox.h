@@ -8,7 +8,7 @@
 #include <QStyledItemDelegate>
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
-#include "view/dialogs_flyouts/Dialog.h"
+#include "view/dialogs_flyouts/Flyout.h"
 #include "common/Typography.h"
 #include "common/Spacing.h"
 
@@ -151,6 +151,7 @@ private:
     bool  m_pressed  = false;
     bool  m_chevronHovered = false;
     bool  m_popupVisible = false;
+    bool  m_ignoreNextPopupPress = false;
     qreal m_pressProgress = 0.0;
 
     QPropertyAnimation* m_pressAnimation = nullptr;
@@ -165,7 +166,7 @@ private:
 
 // ─── ComboBox 弹层窗口 ──────────────────────────────────────────────────────
 
-class ComboBox::ComboBoxPopup : public view::dialogs_flyouts::Dialog {
+class ComboBox::ComboBoxPopup : public view::dialogs_flyouts::Flyout {
 public:
     explicit ComboBoxPopup(ComboBox* comboBox);
 
@@ -173,8 +174,8 @@ public:
     void onThemeUpdated() override;
 
 protected:
-    void paintEvent(QPaintEvent* event) override;
-    void hideEvent(QHideEvent* event) override;
+    QPoint computePosition() const override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     ComboBox* m_comboBox;

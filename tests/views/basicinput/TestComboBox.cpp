@@ -10,9 +10,13 @@
 #include <QSignalSpy>
 #include <QFontDatabase>
 #include <QComboBox>
+#include <QtTest/QTest>
 
 #include "view/basicinput/ComboBox.h"
 #include "view/basicinput/Button.h"
+#include "view/collections/ListView.h"
+#include "view/dialogs_flyouts/Flyout.h"
+#include "view/scrolling/ScrollBar.h"
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 #include "common/Typography.h"
@@ -57,6 +61,22 @@ protected:
 
     ComboBoxTestWindow* window = nullptr;
 };
+
+namespace {
+view::dialogs_flyouts::Flyout* openPopupFor(ComboBox* comboBox, ComboBoxTestWindow* window) {
+    window->show();
+    comboBox->show();
+    QApplication::processEvents();
+    comboBox->showPopup();
+    QApplication::processEvents();
+    return window->findChild<view::dialogs_flyouts::Flyout*>("ComboBoxPopup");
+}
+
+QRect popupCardRect(QWidget* popup) {
+    return popup->geometry().adjusted(::Spacing::Standard, ::Spacing::Standard,
+                                      -::Spacing::Standard, -::Spacing::Standard);
+}
+}
 
 // ─── 基础功能测试 ────────────────────────────────────────────────────────────
 
@@ -210,6 +230,165 @@ TEST_F(ComboBoxTest, EditableSelectUpdatesLineEdit) {
     // Line edit should be paintable
     cb.show();
     cb.repaint();
+}
+
+// ─── Flyout 弹层行为测试 ────────────────────────────────────────────────────
+
+TEST_F(ComboBoxTest, PopupOpensAsFlyoutAndClosesThroughLifecycle) {
+    ComboBox* cb = new ComboBox(window);
+    cb->setGeometry(40, 40, 180, Spacing::ControlHeight::Standard);
+    cb->addItems({"Alpha", "Beta", "Gamma"});
+
+    auto* popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    auto* listView = popup->findChild<view::collections::ListView*>("ComboBoxPopupListView");
+    ASSERT_NE(listView, nullptr);
+    EXPECT_TRUE(popup->isOpen());
+    EXPECT_FALSE(popup->isModal());
+    EXPECT_FALSE(popup->isDim());
+    EXPECT_EQ(popup->anchor(), cb);
+    EXPECT_TRUE(listView->backgroundVisible());
+
+    cb->hidePopup();
+    QApplication::processEvents();
+    EXPECT_FALSE(popup->isOpen());
+    EXPECT_FALSE(popup->isVisible());
+}
+
+TEST_F(ComboBoxTest, SelectingPopupItemUpdatesIndexAndCloses) {
+    ComboBox* cb = new ComboBox(window);
+    cb->setGeometry(40, 40, 180, Spacing::ControlHeight::Standard);
+    cb->addItems({"Alpha", "Beta", "Gamma", "Delta"});
+    cb->setCurrentIndex(0);
+
+    auto* popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    auto* listView = popup->findChild<view::collections::ListView*>("ComboBoxPopupListView");
+    ASSERT_NE(listView, nullptr);
+    EXPECT_EQ(listView->spacing(), 0);
+
+    const QPoint rowTwoCenter(24, Spacing::ControlHeight::Large * 2 + Spacing::ControlHeight::Large / 2);
+    QTest::mouseClick(listView->viewport(), Qt::LeftButton, Qt::NoModifier, rowTwoCenter);
+    QApplication::processEvents();
+
+    EXPECT_EQ(cb->currentIndex(), 2);
+    EXPECT_EQ(cb->currentText(), "Gamma");
+    EXPECT_FALSE(popup->isOpen());
+}
+
+TEST_F(ComboBoxTest, EditableSelectionMirrorsLineEditText) {
+    ComboBox* cb = new ComboBox(window);
+    cb->setGeometry(40, 40, 180, Spacing::ControlHeight::Standard);
+    cb->addItems({"Alpha", "Beta", "Gamma"});
+    cb->setEditable(true);
+    cb->setCurrentIndex(0);
+
+    auto* lineEdit = cb->findChild<view::textfields::LineEdit*>();
+    ASSERT_NE(lineEdit, nullptr);
+
+    auto* popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    auto* listView = popup->findChild<view::collections::ListView*>("ComboBoxPopupListView");
+    ASSERT_NE(listView, nullptr);
+
+    const QPoint rowOneCenter(24, Spacing::ControlHeight::Large + Spacing::ControlHeight::Large / 2);
+    QTest::mouseClick(listView->viewport(), Qt::LeftButton, Qt::NoModifier, rowOneCenter);
+    QApplication::processEvents();
+
+    EXPECT_EQ(cb->currentIndex(), 1);
+    EXPECT_EQ(lineEdit->text(), "Beta");
+    EXPECT_FALSE(popup->isOpen());
+}
+
+TEST_F(ComboBoxTest, PopupAlignsBelowWithComboBoxWidth) {
+    window->resize(420, 360);
+    ComboBox* cb = new ComboBox(window);
+    cb->setGeometry(40, 40, 184, Spacing::ControlHeight::Standard);
+    cb->addItems({"Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"});
+
+    auto* popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    const QRect card = popupCardRect(popup);
+
+    EXPECT_EQ(card.left(), cb->geometry().left());
+    EXPECT_GE(card.width(), cb->width());
+    EXPECT_EQ(card.top(), cb->geometry().bottom() + 1 + cb->popupOffset());
+
+    auto* listView = popup->findChild<view::collections::ListView*>("ComboBoxPopupListView");
+    ASSERT_NE(listView, nullptr);
+    const int popupContentInset = Spacing::XSmall / 2;
+    const QRect listGeometry = listView->geometry();
+    EXPECT_EQ(listGeometry.left(), Spacing::Standard + popupContentInset);
+    EXPECT_EQ(listGeometry.right(), popup->rect().right() - Spacing::Standard - popupContentInset);
+    EXPECT_EQ(listGeometry.top(), Spacing::Standard + popupContentInset);
+    EXPECT_EQ(listGeometry.bottom(), popup->rect().bottom() - Spacing::Standard - popupContentInset);
+
+    auto* scrollBar = listView->verticalFluentScrollBar();
+    ASSERT_NE(scrollBar, nullptr);
+    ASSERT_TRUE(scrollBar->isVisible());
+    EXPECT_EQ(scrollBar->geometry().right(), listView->rect().right() - popupContentInset);
+    const int scrollBarRightInPopup = listGeometry.left() + scrollBar->geometry().right();
+    EXPECT_EQ(popup->rect().right() - Spacing::Standard - scrollBarRightInPopup, Spacing::XSmall);
+}
+
+TEST_F(ComboBoxTest, PopupFlipsAboveNearBottomEdge) {
+    window->resize(420, 320);
+    ComboBox* cb = new ComboBox(window);
+    cb->setGeometry(40, 270, 184, Spacing::ControlHeight::Standard);
+    cb->addItems({"One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"});
+
+    auto* popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    const QRect card = popupCardRect(popup);
+
+    EXPECT_EQ(card.left(), cb->geometry().left());
+    EXPECT_LT(card.bottom(), cb->geometry().top());
+}
+
+TEST_F(ComboBoxTest, PopupClampsNearRightEdge) {
+    window->resize(300, 240);
+    ComboBox* cb = new ComboBox(window);
+    cb->setGeometry(230, 40, 120, Spacing::ControlHeight::Standard);
+    cb->addItems({"One", "Two", "Three"});
+
+    auto* popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    const QRect card = popupCardRect(popup);
+
+    EXPECT_LE(card.right(), window->width() - 4);
+    EXPECT_NE(card.left(), cb->geometry().left());
+}
+
+TEST_F(ComboBoxTest, EscapeAndOutsidePressDismissPopup) {
+    ComboBox* cb = new ComboBox(window);
+    cb->setGeometry(80, 80, 180, Spacing::ControlHeight::Standard);
+    cb->addItems({"Alpha", "Beta", "Gamma"});
+
+    auto* popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    QTest::keyClick(popup, Qt::Key_Escape);
+    QApplication::processEvents();
+    EXPECT_FALSE(popup->isOpen());
+
+    popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, QPoint(8, 8));
+    QApplication::processEvents();
+    EXPECT_FALSE(popup->isOpen());
+}
+
+TEST_F(ComboBoxTest, OwnerPressDismissesWithoutImmediateReopen) {
+    ComboBox* cb = new ComboBox(window);
+    cb->setGeometry(80, 80, 180, Spacing::ControlHeight::Standard);
+    cb->addItems({"Alpha", "Beta", "Gamma"});
+
+    auto* popup = openPopupFor(cb, window);
+    ASSERT_NE(popup, nullptr);
+    ASSERT_TRUE(popup->isOpen());
+
+    QTest::mouseClick(cb, Qt::LeftButton, Qt::NoModifier, QPoint(8, 8));
+    QApplication::processEvents();
+    EXPECT_FALSE(popup->isOpen());
 }
 
 // ─── VisualCheck ─────────────────────────────────────────────────────────────
