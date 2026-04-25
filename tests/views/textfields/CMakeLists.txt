@@ -1,3 +1,4 @@
 add_qt_test_module(test_text_block TestTextBlock.cpp)
 add_qt_test_module(test_line_edit TestLineEdit.cpp)
 add_qt_test_module(test_text_edit TestTextEdit.cpp)
+add_qt_test_module(test_auto_suggest_box TestAutoSuggestBox.cpp)
