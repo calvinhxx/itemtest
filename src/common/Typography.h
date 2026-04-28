@@ -116,6 +116,8 @@ namespace Typography {
         const QString Save            = QString::fromUtf16(u"\uE74E");
         const QString SaveAs          = QString::fromUtf16(u"\uE792");
         const QString Search          = QString::fromUtf16(u"\uE721");
+        const QString View            = QString::fromUtf16(u"\uE890");
+        const QString Hide            = QString::fromUtf16(u"\uED1A");
         const QString Settings        = QString::fromUtf16(u"\uE713");
         const QString Edit            = QString::fromUtf16(u"\uE70F");
         const QString Refresh         = QString::fromUtf16(u"\uE72C");
@@ -207,6 +209,9 @@ namespace Typography {
         const QString Shield          = QString::fromUtf16(u"\uEA18");
         const QString Lock            = QString::fromUtf16(u"\uE72E");
         const QString Unlock          = QString::fromUtf16(u"\uE785");
+        const QString PasswordKeyShow = QString::fromUtf16(u"\uE9A8");
+        const QString PasswordKeyHide = QString::fromUtf16(u"\uE9A9");
+        const QString RevealPasswordMedium = QString::fromUtf16(u"\uF78D");
         const QString Heart           = QString::fromUtf16(u"\uEB51");
         const QString HeartFill       = QString::fromUtf16(u"\uEB52");
         const QString Star            = QString::fromUtf16(u"\uE74C");
