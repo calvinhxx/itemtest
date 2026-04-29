@@ -5,7 +5,7 @@
 #include <QPropertyAnimation>
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
-#include "common/Spacing.h"
+#include "design/Spacing.h"
 
 class QPainter;
 class QStyleOptionSlider;

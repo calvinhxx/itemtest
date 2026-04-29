@@ -3,8 +3,8 @@
 
 #include "Button.h"
 #include <QMenu>
-#include "common/Typography.h"
-#include "common/Spacing.h"
+#include "design/Typography.h"
+#include "design/Spacing.h"
 
 class QPropertyAnimation;
 

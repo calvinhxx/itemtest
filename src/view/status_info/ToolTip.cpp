@@ -1,6 +1,6 @@
 #include "ToolTip.h"
 #include "view/textfields/TextBlock.h"
-#include "common/Typography.h"
+#include "design/Typography.h"
 #include <QVBoxLayout>
 #include <QPainter>
 

@@ -5,10 +5,10 @@
 #include <QFont>
 #include <QString>
 #include <QEasingCurve>
-#include "common/QtCompat.h"
-#include "common/Elevation.h"
-#include "common/Animation.h"
-#include "common/Material.h"
+#include "compatibility/QtCompat.h"
+#include "design/Elevation.h"
+#include "design/Animation.h"
+#include "design/Material.h"
 
 class FluentElementPrivate;
 

@@ -6,7 +6,7 @@
 #include <QItemSelectionModel>
 #include <QStyle>
 
-#include "common/Spacing.h"
+#include "design/Spacing.h"
 #include "view/FluentElement.h"
 #include <QVariantAnimation>
 

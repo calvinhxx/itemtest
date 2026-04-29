@@ -9,7 +9,7 @@
 #include <QPropertyAnimation>
 #include <algorithm>
 
-#include "common/Typography.h"
+#include "design/Typography.h"
 
 namespace view::basicinput {
 

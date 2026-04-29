@@ -1,7 +1,7 @@
 #include "RatingControl.h"
 #include <QPainter>
 #include <QMouseEvent>
-#include "common/Typography.h"
+#include "design/Typography.h"
 
 namespace view::basicinput {
 

@@ -6,8 +6,8 @@
 #include <QMouseEvent>
 #include <QGraphicsOpacityEffect>
 #include <QApplication>
-#include "common/Spacing.h"
-#include "common/QtCompat.h"
+#include "design/Spacing.h"
+#include "compatibility/QtCompat.h"
 
 namespace view::dialogs_flyouts {
 

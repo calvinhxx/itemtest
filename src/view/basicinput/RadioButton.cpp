@@ -1,7 +1,7 @@
 #include "RadioButton.h"
 #include <QPainter>
 #include <QPropertyAnimation>
-#include "common/Typography.h"
+#include "design/Typography.h"
 
 namespace view::basicinput {
 

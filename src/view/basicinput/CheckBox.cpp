@@ -1,8 +1,8 @@
 #include "CheckBox.h"
 #include <QPainter>
 #include <QPropertyAnimation>
-#include "common/Typography.h"
-#include "common/CornerRadius.h"
+#include "design/Typography.h"
+#include "design/CornerRadius.h"
 
 namespace view::basicinput {
 

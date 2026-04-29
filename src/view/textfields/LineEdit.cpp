@@ -6,7 +6,7 @@
 #include <QResizeEvent>
 #include <QValidator>
 #include "view/basicinput/Button.h"
-#include "common/Typography.h"
+#include "design/Typography.h"
 
 namespace view::textfields {
 

@@ -8,8 +8,8 @@
 #include <QPaintEvent>
 #include <QResizeEvent>
 
-#include "common/Spacing.h"
-#include "common/Typography.h"
+#include "design/Spacing.h"
+#include "design/Typography.h"
 #include "view/basicinput/Button.h"
 
 namespace view::textfields {

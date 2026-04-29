@@ -6,8 +6,8 @@
 #include <QString>
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
-#include "common/Spacing.h"
-#include "common/Typography.h"
+#include "design/Spacing.h"
+#include "design/Typography.h"
 
 class QTextEdit;
 class QPainter;

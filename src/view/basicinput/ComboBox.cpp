@@ -12,9 +12,9 @@
 #include <QProxyStyle>
 #include <QScrollBar>
 
-#include "common/CornerRadius.h"
-#include "common/Animation.h"
-#include "common/QtCompat.h"
+#include "design/CornerRadius.h"
+#include "design/Animation.h"
+#include "compatibility/QtCompat.h"
 #include "view/collections/ListView.h"
 #include "view/scrolling/ScrollBar.h"
 #include <QVariantAnimation>

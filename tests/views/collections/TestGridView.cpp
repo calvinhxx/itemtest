@@ -12,7 +12,7 @@
 #include <QScrollBar>
 #include <QStandardItemModel>
 #include <QStringListModel>
-#include "common/QtCompat.h"
+#include "compatibility/QtCompat.h"
 #include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
 
@@ -22,8 +22,8 @@
 #include "view/scrolling/ScrollBar.h"
 #include "view/textfields/TextBlock.h"
 #include "view/QMLPlus.h"
-#include "common/Spacing.h"
-#include "common/Typography.h"
+#include "design/Spacing.h"
+#include "design/Typography.h"
 
 using namespace view::collections;
 using namespace view::textfields;

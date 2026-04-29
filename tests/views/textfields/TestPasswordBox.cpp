@@ -8,7 +8,7 @@
 #include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
 
-#include "common/Typography.h"
+#include "design/Typography.h"
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/PasswordBox.h"

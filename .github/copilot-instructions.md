@@ -44,7 +44,7 @@ basicinput/       — Button, CheckBox, RadioButton, Slider, ComboBox, ColorPick
                     ToggleSwitch, ToggleButton, SplitButton, ToggleSplitButton,
                     DropDownButton, HyperlinkButton, RepeatButton, RatingControl
 textfields/       — LineEdit, TextEdit, TextBlock
-dialogs_flyouts/  — Dialog
+dialogs_flyouts/  — Dialog, Popup
 menus_toolbars/   — Menu, MenuBar
 status_info/      — ToolTip
 scrolling/        — ScrollBar

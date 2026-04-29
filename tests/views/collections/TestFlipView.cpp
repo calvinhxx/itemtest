@@ -16,7 +16,7 @@
 #include "view/textfields/TextBlock.h"
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
-#include "common/Typography.h"
+#include "design/Typography.h"
 
 using namespace view::collections;
 

@@ -8,10 +8,10 @@
 #include <QStyle>
 #include <QTreeView>
 
-#include "common/CornerRadius.h"
-#include "common/QtCompat.h"
-#include "common/Spacing.h"
-#include "common/Typography.h"
+#include "design/CornerRadius.h"
+#include "compatibility/QtCompat.h"
+#include "design/Spacing.h"
+#include "design/Typography.h"
 #include "view/FluentElement.h"
 #include "view/collections/TreeView.h"
 #include <QVariantAnimation>

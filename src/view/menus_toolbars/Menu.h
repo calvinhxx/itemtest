@@ -5,7 +5,7 @@
 #include <QWidgetAction>
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
-#include "common/Spacing.h"
+#include "design/Spacing.h"
 
 namespace view::menus_toolbars {
 

@@ -14,10 +14,10 @@
 #include <QVariantAnimation>
 #include <QWheelEvent>
 
-#include "common/Animation.h"
-#include "common/CornerRadius.h"
-#include "common/Spacing.h"
-#include "common/Typography.h"
+#include "design/Animation.h"
+#include "design/CornerRadius.h"
+#include "design/Spacing.h"
+#include "design/Typography.h"
 #include "view/scrolling/ScrollBar.h"
 
 namespace view::collections {

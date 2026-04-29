@@ -1,7 +1,7 @@
 #include "Flyout.h"
 
 #include <QApplication>
-#include "common/Spacing.h"
+#include "design/Spacing.h"
 
 namespace view::dialogs_flyouts {
 

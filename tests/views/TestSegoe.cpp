@@ -18,7 +18,7 @@
 #include "view/FluentElement.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/TextBlock.h"
-#include "common/Typography.h"
+#include "design/Typography.h"
 
 using namespace view;
 using namespace view::basicinput;

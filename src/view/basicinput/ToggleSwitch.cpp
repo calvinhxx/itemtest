@@ -4,8 +4,8 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QPropertyAnimation>
-#include "common/Typography.h"
-#include "common/Spacing.h"
+#include "design/Typography.h"
+#include "design/Spacing.h"
 
 namespace view::basicinput {
 

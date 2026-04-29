@@ -4,8 +4,8 @@
 #include <QFontDatabase>
 #include <QtTest/QSignalSpy>
 #include "view/textfields/LineEdit.h"
-#include "common/Spacing.h"
-#include "common/Typography.h"
+#include "design/Spacing.h"
+#include "design/Typography.h"
 #include "view/textfields/TextBlock.h"
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"

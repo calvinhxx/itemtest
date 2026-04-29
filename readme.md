@@ -14,7 +14,7 @@ cmake -B build-qt5 -DCMAKE_PREFIX_PATH=/path/to/qt5 && cmake --build build-qt5
 ```
 
 CMake 会强制版本下限：Qt 5 < 5.15 或 Qt 6 < 6.2 时配置失败。
-新组件重写 `enterEvent` 时 MUST 使用 `FluentEnterEvent`（来自 `common/QtCompat.h`），切勿直接使用 `QEnterEvent`。
+新组件重写 `enterEvent` 时 MUST 使用 `FluentEnterEvent`（来自 `compatibility/QtCompat.h`），切勿直接使用 `QEnterEvent`。
 
 # todo
 1️⃣ lisence问题

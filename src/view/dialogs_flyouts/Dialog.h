@@ -6,7 +6,7 @@
 #include <QPainter>
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
-#include "common/Spacing.h"
+#include "design/Spacing.h"
 
 class QHideEvent;
 

@@ -7,15 +7,15 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QStandardItemModel>
-#include "common/QtCompat.h"
+#include "compatibility/QtCompat.h"
 #include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
 
 #include "FluentTreeItemDelegate.h"
 #include "view/collections/TreeView.h"
 #include "view/QMLPlus.h"
-#include "common/Spacing.h"
-#include "common/Typography.h"
+#include "design/Spacing.h"
+#include "design/Typography.h"
 
 #include "view/basicinput/Button.h"
 #include "view/scrolling/ScrollBar.h"

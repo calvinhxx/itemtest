@@ -5,9 +5,9 @@
 #include <QListView>
 #include <QStyle>
 
-#include "common/CornerRadius.h"
-#include "common/Spacing.h"
-#include "common/Typography.h"
+#include "design/CornerRadius.h"
+#include "design/Spacing.h"
+#include "design/Typography.h"
 #include "view/FluentElement.h"
 
 namespace gridview_test {

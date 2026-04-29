@@ -8,8 +8,8 @@
 #include <QResizeEvent>
 #include <QWidget>
 
-#include "common/QtCompat.h"
-#include "common/Spacing.h"
+#include "compatibility/QtCompat.h"
+#include "design/Spacing.h"
 
 namespace view::dialogs_flyouts {
 

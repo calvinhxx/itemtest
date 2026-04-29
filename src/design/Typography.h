@@ -108,6 +108,11 @@ namespace Typography {
         const QString BackToWindow    = QString::fromUtf16(u"\uE73F");
         const QString More            = QString::fromUtf16(u"\uE712");
         const QString AllApps         = QString::fromUtf16(u"\uE71D");
+        const QString TitleBarBack    = QString::fromUtf16(u"\uE830");
+        const QString ChromeMinimize  = QString::fromUtf16(u"\uE921");
+        const QString ChromeMaximize  = QString::fromUtf16(u"\uE922");
+        const QString ChromeRestore   = QString::fromUtf16(u"\uE923");
+        const QString ChromeClose     = QString::fromUtf16(u"\uE8BB");
 
         // Common Actions & Editing
         const QString Add             = QString::fromUtf16(u"\uE710");
@@ -192,6 +197,7 @@ namespace Typography {
         const QString Laptop          = QString::fromUtf16(u"\uE7F8");
         const QString Mobile          = QString::fromUtf16(u"\uE8EA");
         const QString Desktop         = QString::fromUtf16(u"\uE9EE");
+        const QString AppIconDefault  = QString::fromUtf16(u"\uEA3A");
         const QString Mouse           = QString::fromUtf16(u"\uE962");
         const QString Keyboard        = QString::fromUtf16(u"\uE92E");
         const QString Controller      = QString::fromUtf16(u"\uE7FC");

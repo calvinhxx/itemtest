@@ -2,7 +2,7 @@
 #include <QApplication>
 #include <QWidget>
 #include "view/FluentElement.h"
-#include "common/CornerRadius.h"
+#include "design/CornerRadius.h"
 
 // 模拟一个继承自 FluentElement 的组件
 class MockComponent : public QWidget, public FluentElement {
@@ -92,7 +92,7 @@ private:
     QColor  m_color = Qt::transparent;
 };
 
-// 一个全功能的设计元素预览组件，用于测试 src/common 中的所有 Token
+// 一个全功能的设计元素预览组件，用于测试 src/design 中的所有 Token
 class VisualMockComponent : public QWidget, public FluentElement {
     Q_OBJECT
 public:

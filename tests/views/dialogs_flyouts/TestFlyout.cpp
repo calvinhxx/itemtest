@@ -10,7 +10,7 @@
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/TextBlock.h"
-#include "common/Spacing.h"
+#include "design/Spacing.h"
 
 using namespace view::dialogs_flyouts;
 using view::AnchorLayout;

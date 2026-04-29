@@ -3,7 +3,7 @@
 #include <QMouseEvent>
 #include <QLayout>
 #include <QPointer>
-#include "common/Material.h"
+#include "design/Material.h"
 
 namespace view::dialogs_flyouts {
 

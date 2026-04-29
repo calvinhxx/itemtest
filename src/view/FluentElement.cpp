@@ -1,13 +1,13 @@
 #include "FluentElement.h"
 #include "FluentElement_p.h"
-#include "common/ThemeColors.h"
-#include "common/Typography.h"
-#include "common/Spacing.h"
-#include "common/CornerRadius.h"
-#include "common/Elevation.h"
-#include "common/Animation.h"
-#include "common/Material.h"
-#include "common/Breakpoints.h"
+#include "design/ThemeColors.h"
+#include "design/Typography.h"
+#include "design/Spacing.h"
+#include "design/CornerRadius.h"
+#include "design/Elevation.h"
+#include "design/Animation.h"
+#include "design/Material.h"
+#include "design/Breakpoints.h"
 
 // --- FluentElement 生命周期管理 ---
 

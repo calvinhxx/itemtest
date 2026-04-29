@@ -7,8 +7,8 @@
 #include "view/textfields/TextBlock.h"
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
-#include "common/Typography.h"
-#include "common/Spacing.h"
+#include "design/Typography.h"
+#include "design/Spacing.h"
 
 using namespace view::basicinput;
 

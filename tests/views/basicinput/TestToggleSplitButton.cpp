@@ -7,7 +7,7 @@
 #include "view/menus_toolbars/Menu.h"
 #include "view/basicinput/ToggleSplitButton.h"
 #include "view/FluentElement.h"
-#include "common/Typography.h"
+#include "design/Typography.h"
 
 using namespace view;
 using namespace view::basicinput;

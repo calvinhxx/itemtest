@@ -6,7 +6,7 @@
 #include <QKeyEvent>
 #include <QPropertyAnimation>
 #include <QResizeEvent>
-#include "common/Typography.h"
+#include "design/Typography.h"
 
 namespace view::collections {
 

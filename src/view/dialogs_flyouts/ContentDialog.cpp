@@ -2,8 +2,8 @@
 #include "view/basicinput/Button.h"
 #include "view/textfields/TextBlock.h"
 #include "view/QMLPlus.h"
-#include "common/Spacing.h"
-#include "common/CornerRadius.h"
+#include "design/Spacing.h"
+#include "design/CornerRadius.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QHBoxLayout>
