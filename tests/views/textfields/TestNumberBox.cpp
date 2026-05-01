@@ -233,6 +233,60 @@ TEST_F(NumberBoxTest, KeyboardAndSpinnerStep) {
     EXPECT_TRUE(box->hasFocus());
 }
 
+TEST_F(NumberBoxTest, SpinButtonsDisableAtRangeEdges) {
+    auto* box = new NumberBox(window);
+    box->resize(240, box->sizeHint().height());
+    box->setRange(0, 2);
+    box->setSpinButtonPlacementMode(NumberBox::SpinButtonPlacementMode::Inline);
+    layout->addWidget(box);
+
+    auto* upButton = box->findChild<RepeatButton*>("NumberBoxSpinUpButton");
+    auto* downButton = box->findChild<RepeatButton*>("NumberBoxSpinDownButton");
+    ASSERT_NE(upButton, nullptr);
+    ASSERT_NE(downButton, nullptr);
+
+    box->setValue(0);
+    EXPECT_TRUE(upButton->isEnabled());
+    EXPECT_FALSE(downButton->isEnabled());
+
+    upButton->click();
+    EXPECT_DOUBLE_EQ(box->value(), 1);
+    EXPECT_TRUE(upButton->isEnabled());
+    EXPECT_TRUE(downButton->isEnabled());
+
+    upButton->click();
+    EXPECT_DOUBLE_EQ(box->value(), 2);
+    EXPECT_FALSE(upButton->isEnabled());
+    EXPECT_TRUE(downButton->isEnabled());
+
+    downButton->click();
+    EXPECT_DOUBLE_EQ(box->value(), 1);
+    EXPECT_TRUE(upButton->isEnabled());
+    EXPECT_TRUE(downButton->isEnabled());
+
+    box->setRange(0, 1);
+    EXPECT_FALSE(upButton->isEnabled());
+    EXPECT_TRUE(downButton->isEnabled());
+
+    box->setRange(1, 1);
+    EXPECT_FALSE(upButton->isEnabled());
+    EXPECT_FALSE(downButton->isEnabled());
+
+    box->setValue(std::numeric_limits<double>::quiet_NaN());
+    EXPECT_TRUE(upButton->isEnabled());
+    EXPECT_TRUE(downButton->isEnabled());
+
+    box->setRange(0, 2);
+    box->setSpinButtonPlacementMode(NumberBox::SpinButtonPlacementMode::Compact);
+    box->setValue(2);
+    EXPECT_FALSE(upButton->isEnabled());
+    EXPECT_TRUE(downButton->isEnabled());
+
+    box->setValue(0);
+    EXPECT_TRUE(upButton->isEnabled());
+    EXPECT_FALSE(downButton->isEnabled());
+}
+
 TEST_F(NumberBoxTest, NaNStepStartUsesZeroOrNearestBoundary) {
     NumberBox box(window);
     box.setSpinButtonPlacementMode(NumberBox::SpinButtonPlacementMode::Inline);

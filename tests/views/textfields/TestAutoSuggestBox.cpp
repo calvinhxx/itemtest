@@ -2,11 +2,14 @@
 
 #include <QApplication>
 #include <QFontDatabase>
+#include <QListView>
 #include <QTimer>
 #include <QtTest/QSignalSpy>
 #include <QtTest/QTest>
 
+#include "design/Spacing.h"
 #include "design/Typography.h"
+#include "view/dialogs_flyouts/Flyout.h"
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/AutoSuggestBox.h"
@@ -68,15 +71,23 @@ TEST_F(AutoSuggestBoxTest, DefaultsAndButtons) {
     EXPECT_TRUE(box.header().isEmpty());
     EXPECT_TRUE(box.isQueryIconVisible());
     EXPECT_EQ(box.queryIconGlyph(), Typography::Icons::Search);
+    EXPECT_EQ(box.inputHeight(), 32);
+    EXPECT_EQ(box.queryButtonSize(), 24);
+    EXPECT_EQ(box.clearButtonSize(), 24);
+    EXPECT_EQ(box.suggestionFontRole(), Typography::FontRole::Body);
+    EXPECT_EQ(box.suggestionItemHeight(), 40);
     EXPECT_FALSE(box.isSuggestionListOpen());
     EXPECT_EQ(box.sizeHint().height(), 32);
 
     auto* queryButton = box.findChild<Button*>("AutoSuggestBoxQueryButton");
     auto* clearButton = box.findChild<Button*>("AutoSuggestBoxClearButton");
+    auto* popup = box.findChild<view::dialogs_flyouts::Flyout*>("AutoSuggestBoxSuggestionPopup");
     ASSERT_NE(queryButton, nullptr);
     ASSERT_NE(clearButton, nullptr);
+    ASSERT_NE(popup, nullptr);
     EXPECT_FALSE(queryButton->isHidden());
     EXPECT_TRUE(clearButton->isHidden());
+    EXPECT_EQ(popup->anchorOffset(), Spacing::XSmall);
 }
 
 TEST_F(AutoSuggestBoxTest, PropertySettersEmitSignals) {
@@ -85,32 +96,95 @@ TEST_F(AutoSuggestBoxTest, PropertySettersEmitSignals) {
     QSignalSpy headerSpy(&box, &AutoSuggestBox::headerChanged);
     QSignalSpy iconSpy(&box, &AutoSuggestBox::queryIconGlyphChanged);
     QSignalSpy iconVisibleSpy(&box, &AutoSuggestBox::queryIconVisibleChanged);
+    QSignalSpy inputHeightSpy(&box, &AutoSuggestBox::inputHeightChanged);
+    QSignalSpy queryButtonSizeSpy(&box, &AutoSuggestBox::queryButtonSizeChanged);
+    QSignalSpy clearButtonSizeSpy(&box, &AutoSuggestBox::clearButtonSizeChanged);
+    QSignalSpy suggestionFontSpy(&box, &AutoSuggestBox::suggestionFontRoleChanged);
+    QSignalSpy suggestionItemHeightSpy(&box, &AutoSuggestBox::suggestionItemHeightChanged);
 
     const QStringList items{"Alpha", "Beta"};
     box.setSuggestions(items);
     box.setHeader("Search files");
     box.setQueryIconGlyph(Typography::Icons::Filter);
     box.setQueryIconVisible(false);
+    box.setInputHeight(24);
+    box.setQueryButtonSize(18);
+    box.setClearButtonSize(16);
+    box.setSuggestionFontRole(Typography::FontRole::Caption);
+    box.setSuggestionItemHeight(24);
 
     EXPECT_EQ(box.suggestions(), items);
     EXPECT_EQ(box.header(), "Search files");
     EXPECT_EQ(box.queryIconGlyph(), Typography::Icons::Filter);
     EXPECT_FALSE(box.isQueryIconVisible());
+    EXPECT_EQ(box.inputHeight(), 24);
+    EXPECT_EQ(box.queryButtonSize(), 18);
+    EXPECT_EQ(box.clearButtonSize(), 16);
+    EXPECT_EQ(box.suggestionFontRole(), Typography::FontRole::Caption);
+    EXPECT_EQ(box.suggestionItemHeight(), 24);
+    EXPECT_EQ(box.sizeHint().height(), 48);
     EXPECT_GT(box.sizeHint().height(), 32);
 
     EXPECT_EQ(suggestionsSpy.count(), 1);
     EXPECT_EQ(headerSpy.count(), 1);
     EXPECT_EQ(iconSpy.count(), 1);
     EXPECT_EQ(iconVisibleSpy.count(), 1);
+    EXPECT_EQ(inputHeightSpy.count(), 1);
+    EXPECT_EQ(queryButtonSizeSpy.count(), 1);
+    EXPECT_EQ(clearButtonSizeSpy.count(), 1);
+    EXPECT_EQ(suggestionFontSpy.count(), 1);
+    EXPECT_EQ(suggestionItemHeightSpy.count(), 1);
 
     box.setSuggestions(items);
     box.setHeader("Search files");
     box.setQueryIconGlyph(Typography::Icons::Filter);
     box.setQueryIconVisible(false);
+    box.setInputHeight(24);
+    box.setQueryButtonSize(18);
+    box.setClearButtonSize(16);
+    box.setSuggestionFontRole(Typography::FontRole::Caption);
+    box.setSuggestionItemHeight(24);
     EXPECT_EQ(suggestionsSpy.count(), 1);
     EXPECT_EQ(headerSpy.count(), 1);
     EXPECT_EQ(iconSpy.count(), 1);
     EXPECT_EQ(iconVisibleSpy.count(), 1);
+    EXPECT_EQ(inputHeightSpy.count(), 1);
+    EXPECT_EQ(queryButtonSizeSpy.count(), 1);
+    EXPECT_EQ(clearButtonSizeSpy.count(), 1);
+    EXPECT_EQ(suggestionFontSpy.count(), 1);
+    EXPECT_EQ(suggestionItemHeightSpy.count(), 1);
+}
+
+TEST_F(AutoSuggestBoxTest, CompactInputAndButtonSizes) {
+    AutoSuggestBox box(window);
+    box.setFontRole(Typography::FontRole::Caption);
+    box.setSuggestionFontRole(Typography::FontRole::Caption);
+    box.setSuggestionItemHeight(24);
+    box.setInputHeight(24);
+    box.setQueryButtonSize(18);
+    box.setClearButtonSize(16);
+    box.resize(220, box.sizeHint().height());
+
+    auto* queryButton = box.findChild<Button*>("AutoSuggestBoxQueryButton");
+    auto* clearButton = box.findChild<Button*>("AutoSuggestBoxClearButton");
+    ASSERT_NE(queryButton, nullptr);
+    ASSERT_NE(clearButton, nullptr);
+
+    EXPECT_EQ(box.sizeHint().height(), 24);
+    EXPECT_EQ(box.font().pixelSize(), Typography::FontSize::Caption);
+    EXPECT_EQ(queryButton->size(), QSize(18, 18));
+
+    box.setSuggestions({"Alpha", "Beta"});
+    auto* listView = box.findChild<QListView*>("AutoSuggestBoxSuggestionList");
+    ASSERT_NE(listView, nullptr);
+    EXPECT_EQ(listView->sizeHintForRow(0), 24);
+
+    box.setText("compact");
+    QApplication::processEvents();
+    EXPECT_EQ(clearButton->size(), QSize(16, 16));
+    EXPECT_EQ(queryButton->geometry().center().y(), box.rect().center().y());
+    EXPECT_EQ(clearButton->geometry().center().y(), box.rect().center().y());
+    EXPECT_LT(clearButton->geometry().right(), queryButton->geometry().left());
 }
 
 TEST_F(AutoSuggestBoxTest, ProgrammaticAndUserTextReasons) {

@@ -23,6 +23,11 @@ class AutoSuggestBox : public LineEdit {
     Q_PROPERTY(QString header READ header WRITE setHeader NOTIFY headerChanged)
     Q_PROPERTY(QString queryIconGlyph READ queryIconGlyph WRITE setQueryIconGlyph NOTIFY queryIconGlyphChanged)
     Q_PROPERTY(bool queryIconVisible READ isQueryIconVisible WRITE setQueryIconVisible NOTIFY queryIconVisibleChanged)
+    Q_PROPERTY(int inputHeight READ inputHeight WRITE setInputHeight NOTIFY inputHeightChanged)
+    Q_PROPERTY(int queryButtonSize READ queryButtonSize WRITE setQueryButtonSize NOTIFY queryButtonSizeChanged)
+    Q_PROPERTY(int clearButtonSize READ clearButtonSize WRITE setClearButtonSize NOTIFY clearButtonSizeChanged)
+    Q_PROPERTY(QString suggestionFontRole READ suggestionFontRole WRITE setSuggestionFontRole NOTIFY suggestionFontRoleChanged)
+    Q_PROPERTY(int suggestionItemHeight READ suggestionItemHeight WRITE setSuggestionItemHeight NOTIFY suggestionItemHeightChanged)
     Q_PROPERTY(bool isSuggestionListOpen READ isSuggestionListOpen NOTIFY suggestionListOpenChanged)
 
 public:
@@ -40,11 +45,21 @@ public:
     QString header() const { return m_header; }
     QString queryIconGlyph() const { return m_queryIconGlyph; }
     bool isQueryIconVisible() const { return m_queryIconVisible; }
+    int inputHeight() const { return m_inputHeight; }
+    int queryButtonSize() const { return m_queryButtonSize; }
+    int clearButtonSize() const { return m_clearButtonSize; }
+    QString suggestionFontRole() const { return m_suggestionFontRole; }
+    int suggestionItemHeight() const { return m_suggestionItemHeight; }
     bool isSuggestionListOpen() const;
 
     void setHeader(const QString& header);
     void setQueryIconGlyph(const QString& glyph);
     void setQueryIconVisible(bool visible);
+    void setInputHeight(int height);
+    void setQueryButtonSize(int size);
+    void setClearButtonSize(int size);
+    void setSuggestionFontRole(const QString& role);
+    void setSuggestionItemHeight(int height);
 
     QSize sizeHint() const override;
     QSize minimumSizeHint() const override;
@@ -63,6 +78,10 @@ signals:
     void headerChanged();
     void queryIconGlyphChanged();
     void queryIconVisibleChanged();
+    void inputHeightChanged();
+    void queryButtonSizeChanged();
+    void suggestionFontRoleChanged();
+    void suggestionItemHeightChanged();
     void suggestionListOpenChanged(bool open);
 
 protected:
@@ -77,15 +96,24 @@ protected:
     void changeEvent(QEvent* event) override;
 
 private:
+    static constexpr int kDefaultInputHeight = 32;
+    static constexpr int kDefaultSuggestionItemHeight = 40;
+    static constexpr int kHeaderHeight = 20;
+    static constexpr int kHeaderGap = 4;
+    static constexpr int kButtonRightMargin = 4;
+    static constexpr int kTextButtonGap = 2;
+
     QRect inputRect() const;
     int inputTop() const;
     int totalPreferredHeight() const;
+    int inputTextVerticalPadding() const;
 
     void initializeButtons();
     void updateButtonGeometry();
     void updateButtonState();
     void updateTextMargins();
     void updateHeaderTextMargins();
+    void updateSuggestionMetrics();
     void handleTextChanged(const QString& text);
 
     void openSuggestionList();
@@ -113,13 +141,11 @@ private:
     bool m_hovered = false;
     bool m_focused = false;
 
-    static constexpr int kInputHeight = 32;
-    static constexpr int kHeaderHeight = 20;
-    static constexpr int kHeaderGap = 4;
-    static constexpr int kButtonWidth = 24;
-    static constexpr int kButtonHeight = 24;
-    static constexpr int kButtonRightMargin = 4;
-    static constexpr int kTextButtonGap = 2;
+    int m_inputHeight = kDefaultInputHeight;
+    int m_queryButtonSize = 24;
+    int m_clearButtonSize = 24;
+    QString m_suggestionFontRole = Typography::FontRole::Body;
+    int m_suggestionItemHeight = kDefaultSuggestionItemHeight;
 };
 
 } // namespace view::textfields

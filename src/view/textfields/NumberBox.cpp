@@ -219,6 +219,7 @@ void NumberBox::setRange(double minimum, double maximum) {
     const bool maximumChangedNow = !numbersEqual(oldMaximum, m_maximum);
 
     if (!minimumChangedNow && !maximumChangedNow && !valueChangedNow) return;
+    updateSpinnerState();
     if (minimumChangedNow) emit minimumChanged(m_minimum);
     if (maximumChangedNow) emit maximumChanged(m_maximum);
 }
@@ -575,13 +576,15 @@ void NumberBox::updateSpinnerState() {
 
     const bool visible = hasSpinnerButtonsVisible();
     const bool enabled = visible && isEnabled() && !isReadOnly();
+    const bool atMinimum = !isNan(m_value) && (m_value <= m_minimum || numbersEqual(m_value, m_minimum));
+    const bool atMaximum = !isNan(m_value) && (m_value >= m_maximum || numbersEqual(m_value, m_maximum));
     if (m_spinUpButton) {
         m_spinUpButton->setVisible(visible);
-        m_spinUpButton->setEnabled(enabled);
+        m_spinUpButton->setEnabled(enabled && !atMaximum);
     }
     if (m_spinDownButton) {
         m_spinDownButton->setVisible(visible);
-        m_spinDownButton->setEnabled(enabled);
+        m_spinDownButton->setEnabled(enabled && !atMinimum);
     }
     updateChildGeometry();
 }
@@ -626,6 +629,7 @@ void NumberBox::setInvalidValueFromText() {
     const double nan = std::numeric_limits<double>::quiet_NaN();
     if (numbersEqual(m_value, nan)) return;
     m_value = nan;
+    updateSpinnerState();
     emit valueChanged(m_value);
 }
 
@@ -681,6 +685,7 @@ bool NumberBox::setValueInternal(double value, bool updateText, bool keepUserTex
     m_value = normalized;
 
     if (updateText && !(keepUserTextWhenNaN && isNan(m_value))) setText(formatValue(m_value));
+    if (changed) updateSpinnerState();
     if (changed) emit valueChanged(m_value);
     return changed;
 }

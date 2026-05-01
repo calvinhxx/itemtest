@@ -3,6 +3,7 @@
 #include <QAbstractItemView>
 #include <QEvent>
 #include <QFocusEvent>
+#include <QFontMetrics>
 #include <QFrame>
 #include <QItemSelectionModel>
 #include <QKeyEvent>
@@ -35,6 +36,10 @@ bool isEditableKey(QKeyEvent* event) {
     if (event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier | Qt::AltModifier)) return false;
     return !event->text().isEmpty() && event->text().at(0).isPrint();
 }
+
+int normalizedPositiveSize(int size) {
+    return qMax(1, size);
+}
 }
 
 class AutoSuggestItemDelegate : public QStyledItemDelegate {
@@ -43,7 +48,17 @@ public:
         : QStyledItemDelegate(parent), m_themeHost(themeHost) {}
 
     QSize sizeHint(const QStyleOptionViewItem&, const QModelIndex&) const override {
-        return QSize(0, ::Spacing::ControlHeight::Large);
+        return QSize(0, m_itemHeight);
+    }
+
+    void setFontRole(const QString& role) {
+        if (m_fontRole == role)
+            return;
+        m_fontRole = role;
+    }
+
+    void setItemHeight(int height) {
+        m_itemHeight = normalizedPositiveSize(height);
     }
 
     void paint(QPainter* painter, const QStyleOptionViewItem& option,
@@ -70,10 +85,10 @@ public:
             painter->drawRoundedRect(bgRect, 4, 4);
         }
 
-        painter->setFont(m_themeHost->themeFont(Typography::FontRole::Body).toQFont());
+        painter->setFont(m_themeHost->themeFont(m_fontRole).toQFont());
         painter->setPen(textColor);
 
-        const QRectF textRect = QRectF(option.rect).adjusted(16, 0, -8, 0);
+        const QRectF textRect = QRectF(option.rect).adjusted(12, 0, -8, 0);
         const QString display = index.data(Qt::DisplayRole).toString();
         painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
                           painter->fontMetrics().elidedText(display, Qt::ElideRight, int(textRect.width())));
@@ -83,6 +98,8 @@ public:
 
 private:
     const FluentElement* m_themeHost = nullptr;
+    QString m_fontRole = Typography::FontRole::Body;
+    int m_itemHeight = ::Spacing::ControlHeight::Large;
 };
 
 class SuggestionListPopup : public view::dialogs_flyouts::Flyout {
@@ -94,7 +111,7 @@ public:
         setObjectName("AutoSuggestBoxSuggestionPopup");
         setAnimationEnabled(false);
         setPlacement(view::dialogs_flyouts::Flyout::Auto);
-        setAnchorOffset(1);
+        setAnchorOffset(::Spacing::XSmall);
         setModal(false);
         setDim(false);
         setClosePolicy(ClosePolicy(CloseOnPressOutside | CloseOnEscape));
@@ -103,7 +120,8 @@ public:
         m_listView = new QListView(this);
         m_listView->setObjectName("AutoSuggestBoxSuggestionList");
         m_listView->setModel(m_model);
-        m_listView->setItemDelegate(new AutoSuggestItemDelegate(this, m_listView));
+        m_itemDelegate = new AutoSuggestItemDelegate(this, m_listView);
+        m_listView->setItemDelegate(m_itemDelegate);
         m_listView->setFrameShape(QFrame::NoFrame);
         m_listView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_listView->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -126,6 +144,18 @@ public:
 
     void setSuggestions(const QStringList& suggestions) {
         m_model->setStringList(suggestions);
+    }
+
+    void setSuggestionMetrics(const QString& fontRole, int itemHeight) {
+        m_itemHeight = normalizedPositiveSize(itemHeight);
+        if (m_itemDelegate) {
+            m_itemDelegate->setFontRole(fontRole);
+            m_itemDelegate->setItemHeight(m_itemHeight);
+        }
+        if (m_listView) {
+            if (m_listView->viewport()) m_listView->viewport()->update();
+        }
+        if (isOpen()) showForOwner();
     }
 
     int currentRow() const {
@@ -158,7 +188,7 @@ public:
         const int shadow = ::Spacing::Standard;
         const int visibleRows = qMin(m_model->rowCount(), 6);
         const int listPadY = 2;
-        const int listHeight = visibleRows * ::Spacing::ControlHeight::Large + listPadY * 2;
+        const int listHeight = visibleRows * m_itemHeight + listPadY * 2;
         const int contentWidth = qMax(m_owner->width(), 120);
 
         resize(contentWidth + shadow * 2, listHeight + shadow * 2);
@@ -183,8 +213,10 @@ public:
 private:
     AutoSuggestBox* m_owner = nullptr;
     QListView* m_listView = nullptr;
+    AutoSuggestItemDelegate* m_itemDelegate = nullptr;
     QStringListModel* m_model = nullptr;
     SuggestionClickedHandler m_suggestionClickedHandler;
+    int m_itemHeight = ::Spacing::ControlHeight::Large;
 };
 
 AutoSuggestBox::AutoSuggestBox(QWidget* parent)
@@ -192,11 +224,13 @@ AutoSuggestBox::AutoSuggestBox(QWidget* parent)
     setAttribute(Qt::WA_Hover);
     setClearButtonEnabled(false);
     setFrameVisible(false);
+    m_inputHeight = kDefaultInputHeight;
     setFixedHeight(totalPreferredHeight());
 
     initializeButtons();
 
     m_suggestionPopup = new SuggestionListPopup(this);
+    updateSuggestionMetrics();
     m_suggestionPopup->setSuggestionClickedHandler([this](int row) {
         chooseSuggestion(row);
     });
@@ -256,6 +290,65 @@ void AutoSuggestBox::setQueryIconVisible(bool visible) {
     updateTextMargins();
     updateButtonGeometry();
     emit queryIconVisibleChanged();
+}
+
+void AutoSuggestBox::setInputHeight(int height) {
+    const int normalized = normalizedPositiveSize(height);
+    if (m_inputHeight == normalized)
+        return;
+
+    m_inputHeight = normalized;
+    setFixedHeight(totalPreferredHeight());
+    updateHeaderTextMargins();
+    updateTextMargins();
+    updateButtonGeometry();
+    updateGeometry();
+    update();
+    if (isSuggestionListOpen()) m_suggestionPopup->showForOwner();
+    emit inputHeightChanged();
+}
+
+void AutoSuggestBox::setQueryButtonSize(int size) {
+    const int normalized = normalizedPositiveSize(size);
+    if (m_queryButtonSize == normalized)
+        return;
+
+    m_queryButtonSize = normalized;
+    updateButtonGeometry();
+    updateTextMargins();
+    update();
+    emit queryButtonSizeChanged();
+}
+
+void AutoSuggestBox::setClearButtonSize(int size) {
+    const int normalized = normalizedPositiveSize(size);
+    if (m_clearButtonSize == normalized)
+        return;
+
+    m_clearButtonSize = normalized;
+    updateButtonGeometry();
+    updateTextMargins();
+    update();
+    emit clearButtonSizeChanged();
+}
+
+void AutoSuggestBox::setSuggestionFontRole(const QString& role) {
+    if (m_suggestionFontRole == role)
+        return;
+
+    m_suggestionFontRole = role;
+    updateSuggestionMetrics();
+    emit suggestionFontRoleChanged();
+}
+
+void AutoSuggestBox::setSuggestionItemHeight(int height) {
+    const int normalized = normalizedPositiveSize(height);
+    if (m_suggestionItemHeight == normalized)
+        return;
+
+    m_suggestionItemHeight = normalized;
+    updateSuggestionMetrics();
+    emit suggestionItemHeightChanged();
 }
 
 QSize AutoSuggestBox::sizeHint() const {
@@ -394,14 +487,19 @@ void AutoSuggestBox::leaveEvent(QEvent* event) {
 
 void AutoSuggestBox::changeEvent(QEvent* event) {
     LineEdit::changeEvent(event);
-    if (event && (event->type() == QEvent::EnabledChange || event->type() == QEvent::ReadOnlyChange)) {
+    if (!event)
+        return;
+
+    if (event->type() == QEvent::EnabledChange || event->type() == QEvent::ReadOnlyChange) {
         updateButtonState();
         update();
+    } else if (event->type() == QEvent::FontChange) {
+        updateTextMargins();
     }
 }
 
 QRect AutoSuggestBox::inputRect() const {
-    return QRect(0, inputTop(), width(), kInputHeight);
+    return QRect(0, inputTop(), width(), m_inputHeight);
 }
 
 int AutoSuggestBox::inputTop() const {
@@ -409,7 +507,14 @@ int AutoSuggestBox::inputTop() const {
 }
 
 int AutoSuggestBox::totalPreferredHeight() const {
-    return inputTop() + kInputHeight;
+    return inputTop() + m_inputHeight;
+}
+
+int AutoSuggestBox::inputTextVerticalPadding() const {
+    const QFont inputFont = themeFont(fontRole()).toQFont();
+    const int textHeight = QFontMetrics(inputFont).height();
+    const int centeredPadding = qMax(0, (m_inputHeight - textHeight) / 2);
+    return qMin(::Spacing::Padding::TextFieldVertical, centeredPadding);
 }
 
 void AutoSuggestBox::initializeButtons() {
@@ -421,7 +526,7 @@ void AutoSuggestBox::initializeButtons() {
     m_queryButton->setFluentLayout(::view::basicinput::Button::IconOnly);
     m_queryButton->setFluentSize(::view::basicinput::Button::Small);
     m_queryButton->setFocusPolicy(Qt::NoFocus);
-    m_queryButton->setFixedSize(kButtonWidth, kButtonHeight);
+    m_queryButton->setFixedSize(m_queryButtonSize, m_queryButtonSize);
     m_queryButton->setIconGlyph(m_queryIconGlyph, Typography::FontSize::Body,
                                 Typography::FontFamily::SegoeFluentIcons);
     m_buttonLayout->addWidget(m_queryButton);
@@ -437,7 +542,7 @@ void AutoSuggestBox::initializeButtons() {
     m_clearButton->setFluentLayout(::view::basicinput::Button::IconOnly);
     m_clearButton->setFluentSize(::view::basicinput::Button::Small);
     m_clearButton->setFocusPolicy(Qt::NoFocus);
-    m_clearButton->setFixedSize(kButtonWidth, kButtonHeight);
+    m_clearButton->setFixedSize(m_clearButtonSize, m_clearButtonSize);
     m_clearButton->setIconGlyph(Typography::Icons::Cancel, Typography::FontSize::Body,
                                 Typography::FontFamily::SegoeFluentIcons);
     m_buttonLayout->addWidget(m_clearButton);
@@ -456,14 +561,14 @@ void AutoSuggestBox::updateButtonGeometry() {
     const int centerOffset = inputTop() / 2;
 
     if (m_queryButton) {
-        m_queryButton->setFixedSize(kButtonWidth, kButtonHeight);
+        m_queryButton->setFixedSize(m_queryButtonSize, m_queryButtonSize);
         m_queryButton->anchors()->right = {this, Edge::Right, -kButtonRightMargin};
         m_queryButton->anchors()->verticalCenter = {this, Edge::VCenter, centerOffset};
     }
 
     if (m_clearButton) {
         const bool queryVisible = m_queryIconVisible;
-        m_clearButton->setFixedSize(kButtonWidth, kButtonHeight);
+        m_clearButton->setFixedSize(m_clearButtonSize, m_clearButtonSize);
         m_clearButton->anchors()->right = queryVisible
             ? ::view::AnchorLayout::Anchor(m_queryButton, Edge::Left, -1)
             : ::view::AnchorLayout::Anchor(this, Edge::Right, -kButtonRightMargin);
@@ -491,19 +596,26 @@ void AutoSuggestBox::updateButtonState() {
 
 void AutoSuggestBox::updateTextMargins() {
     int rightMargin = ::Spacing::Padding::TextFieldHorizontal;
-    if (m_queryIconVisible) rightMargin += kButtonRightMargin + kButtonWidth + kTextButtonGap;
-    if (!text().isEmpty() && isEnabled() && !isReadOnly()) rightMargin += kButtonWidth;
+    if (m_queryIconVisible) rightMargin += kButtonRightMargin + m_queryButtonSize + kTextButtonGap;
+    if (!text().isEmpty() && isEnabled() && !isReadOnly()) rightMargin += m_clearButtonSize;
 
     QMargins margins = contentMargins();
+    const int verticalPadding = inputTextVerticalPadding();
     margins.setLeft(::Spacing::Padding::TextFieldHorizontal);
     margins.setRight(rightMargin);
-    margins.setTop(::Spacing::Padding::TextFieldVertical);
-    margins.setBottom(::Spacing::Padding::TextFieldVertical);
+    margins.setTop(verticalPadding);
+    margins.setBottom(verticalPadding);
     setContentMargins(margins);
 }
 
 void AutoSuggestBox::updateHeaderTextMargins() {
     setTextMargins(0, inputTop(), 0, 0);
+}
+
+void AutoSuggestBox::updateSuggestionMetrics() {
+    if (m_suggestionPopup) {
+        m_suggestionPopup->setSuggestionMetrics(m_suggestionFontRole, m_suggestionItemHeight);
+    }
 }
 
 void AutoSuggestBox::handleTextChanged(const QString& changedText) {
