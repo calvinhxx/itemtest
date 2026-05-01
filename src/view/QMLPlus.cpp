@@ -36,6 +36,7 @@ QSize AnchorLayout::minimumSize() const { return QSize(0, 0); }
 void AnchorLayout::addAnchoredWidget(QWidget* w, const Anchors& anchors) {
     if (!w) return;
     if (parentWidget() && w->parent() != parentWidget()) w->setParent(parentWidget());
+    if (auto* qp = dynamic_cast<QMLPlus*>(w)) *(qp->anchors()) = anchors;
     for (Item& it : m_items) {
         if (it.item->widget() == w) { it.anchors = anchors; invalidate(); return; }
     }
