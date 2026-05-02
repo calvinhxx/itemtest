@@ -922,6 +922,12 @@ TEST_F(ListViewTest, SetSectionKeyFunction) {
 
 namespace {
 
+class InspectableListView : public ListView {
+public:
+    using ListView::ListView;
+    int exposedVerticalOffset() const { return verticalOffset(); }
+};
+
 ListView* makeScrollableListView(QWidget* parent, int rowCount = 100) {
     auto* lv = new ListView(parent);
     lv->setGeometry(10, 10, 300, 200);
@@ -932,6 +938,20 @@ ListView* makeScrollableListView(QWidget* parent, int rowCount = 100) {
     lv->show();
     QTest::qWait(50);
     // Force layout so scrollbar maximum > 0
+    lv->doItemsLayout();
+    QTest::qWait(20);
+    return lv;
+}
+
+InspectableListView* makeInspectableScrollableListView(QWidget* parent, int rowCount = 100) {
+    auto* lv = new InspectableListView(parent);
+    lv->setGeometry(10, 10, 300, 200);
+    QStringList items;
+    items.reserve(rowCount);
+    for (int i = 0; i < rowCount; ++i) items << QStringLiteral("Item %1").arg(i);
+    attachStringListModel(lv, items);
+    lv->show();
+    QTest::qWait(50);
     lv->doItemsLayout();
     QTest::qWait(20);
     return lv;
@@ -996,6 +1016,22 @@ TEST_F(ListViewTest, MouseWheelDiscreteScroll) {
 
     EXPECT_GT(lv->verticalScrollBar()->value(), before)
         << "Mouse wheel should advance scrollbar via NoPhaseDiscrete path";
+    EXPECT_GE(lv->verticalScrollBar()->value() - before, Spacing::ControlHeight::Standard)
+        << "A standard mouse wheel notch should move by a usable pixel step";
+}
+
+TEST_F(ListViewTest, MouseWheelHalfTickStillScrolls) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    const int before = lv->verticalScrollBar()->value();
+
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -60), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    EXPECT_GT(lv->verticalScrollBar()->value(), before)
+        << "High-resolution Windows wheel/touchpad fallback ticks should not feel inert";
 }
 
 // 5.3 Windows 触控板 cluster 高频序列 → 滚动平滑
@@ -1016,7 +1052,7 @@ TEST_F(ListViewTest, WindowsTouchpadClusterScroll) {
         << "Windows touchpad cluster should scroll smoothly";
 }
 
-// 5.2 Mac RDP → Windows 单次轻拨：5 个小角度事件，30ms 间隔 → 在边界不进入 overscroll bounce
+// 5.2 Mac RDP → Windows 单次轻拨：5 个小角度事件，30ms 间隔 → 边界不反复 flap
 TEST_F(ListViewTest, RdpHighFreqNoBounceFlap) {
     auto* lv = makeScrollableListView(window);
     if (lv->verticalScrollBar()->maximum() <= 0) {
@@ -1028,7 +1064,7 @@ TEST_F(ListViewTest, RdpHighFreqNoBounceFlap) {
         << "Pre-condition: scrolled to bottom";
 
     // 模拟 Mac RDP 单次轻拨：5 个小 angleDelta（±60，scrollPx ≈ 60/120*20 = 10），30ms 间隔
-    // 同向越界尾部应在边界被消费，而不是进入/延长 overscroll bounce。
+    // 同向越界尾部可触发一次短回弹，但不能反复叠加或污染滚动条。
     for (int i = 0; i < 5; ++i) {
         sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -60), Qt::NoScrollPhase);
         QTest::qWait(30);
@@ -1038,6 +1074,26 @@ TEST_F(ListViewTest, RdpHighFreqNoBounceFlap) {
     // 要点：bounce 不应被反复触发；滚动条保持在边界且后续反向输入仍可恢复。
     EXPECT_EQ(lv->verticalScrollBar()->value(), sbVal)
         << "Scrollbar should stay pinned at boundary";
+}
+
+TEST_F(ListViewTest, NoPhaseDiscreteBoundaryTailStartsBounceAndSettles) {
+    auto* lv = makeInspectableScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    scrollToBottom(lv);
+    const int beforeOffset = lv->exposedVerticalOffset();
+
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    EXPECT_GT(lv->exposedVerticalOffset(), beforeOffset)
+        << "Windows NoPhaseDiscrete boundary input should still show a bounded bounce";
+
+    QTest::qWait(500);
+
+    EXPECT_EQ(lv->exposedVerticalOffset(), beforeOffset)
+        << "The one-shot boundary bounce should settle back to the native offset";
 }
 
 TEST_F(ListViewTest, NoPhaseDiscreteBoundaryTailAllowsReverseRecovery) {

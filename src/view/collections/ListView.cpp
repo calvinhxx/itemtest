@@ -33,6 +33,9 @@ namespace {
 // kClusterGapMs:   gap (ms) that closes a NoPhaseDiscrete cluster — covers Mac RDP forwarding
 //                  jitter (typically 60-100ms between events for a single physical gesture).
 constexpr int   kClusterGapMs = 120;
+constexpr qreal kDiscreteWheelStepPx = ::Spacing::ControlHeight::Large;
+constexpr qreal kDiscreteBoundaryOverscrollMinPx = 12.0;
+constexpr qreal kDiscreteBoundaryOverscrollMaxPx = 48.0;
 constexpr int   kScrollBarEdgeInset = ::Spacing::XSmall / 2;
 
 int scrollSign(qreal value) {
@@ -158,6 +161,7 @@ ListView::ListView(QWidget* parent)
     QListView::setSelectionMode(QAbstractItemView::SingleSelection);
     setSelectionBehavior(QAbstractItemView::SelectRows);
     setEditTriggers(QAbstractItemView::NoEditTriggers);
+    setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
 
     connect(this, &QAbstractItemView::clicked, this, [this](const QModelIndex& idx) {
         emit itemClicked(idx.row());
@@ -791,8 +795,8 @@ void ListView::leaveEvent(QEvent* event) {
 //   NoPhaseDiscrete  phase == NoScrollPhase, pixelDelta == 0  mouse wheel / Mac RDP→Windows / Qt5
 //
 // PhaseBased / NoPhasePixel keep the original behavior (smooth pixel scrolling + boundary
-// overscroll). NoPhaseDiscrete uses native scrolling first and consumes same-direction
-// boundary tails to prevent RDP-forwarded high-frequency events from triggering bounce flapping.
+// overscroll). NoPhaseDiscrete uses pixel scrolling first, then starts a bounded one-shot
+// boundary bounce while consuming same-direction tails to prevent RDP flap.
 
 void ListView::wheelEvent(QWheelEvent* event) {
     enum class WheelKind { PhaseBased, NoPhasePixel, NoPhaseDiscrete };
@@ -831,11 +835,22 @@ void ListView::wheelEvent(QWheelEvent* event) {
               ? (qAbs(event->pixelDelta().y()) >= qAbs(event->pixelDelta().x())
                      ? event->pixelDelta().y() : event->pixelDelta().x())
               : event->pixelDelta().y())
-        : delta / 120.0 * 20.0;
+        : delta / 120.0 * kDiscreteWheelStepPx;
 
     auto syncFluentScrollBars = [this]() {
         syncFluentScrollBar();
         syncFluentHScrollBar();
+    };
+
+    auto startNoPhaseBoundaryBounce = [&]() {
+        const qreal amount = qBound(kDiscreteBoundaryOverscrollMinPx,
+                                    qAbs(scrollPx) * 0.5,
+                                    kDiscreteBoundaryOverscrollMaxPx);
+        overscroll = (scrollPx > 0.0) ? amount : -amount;
+        viewport()->update();
+        resetNoPhaseCluster();
+        if (m_bounceTimer)
+            m_bounceTimer->start();
     };
 
     // ── NoPhaseDiscrete (mouse wheel / Mac RDP / Qt5) ─────────────────────
@@ -880,16 +895,14 @@ void ListView::wheelEvent(QWheelEvent* event) {
             (atEnd   && scrollPx < 0.0);
 
         if (boundaryTail) {
+            if (qFuzzyIsNull(overscroll))
+                startNoPhaseBoundaryBounce();
             syncFluentScrollBars();
             event->accept();
             return;
         }
 
-        if (horizontal) {
-            sb->setValue(before - qRound(scrollPx));
-        } else {
-            QListView::wheelEvent(event);
-        }
+        sb->setValue(before - qRound(scrollPx));
         if (sb->value() != before)
             resetNoPhaseCluster();
         syncFluentScrollBars();
