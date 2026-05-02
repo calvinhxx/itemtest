@@ -32,11 +32,14 @@ namespace {
 // Cross-platform wheel input thresholds (see openspec listview-cross-platform-input/design.md).
 // kClusterGapMs:   gap (ms) that closes a NoPhaseDiscrete cluster — covers Mac RDP forwarding
 //                  jitter (typically 60-100ms between events for a single physical gesture).
-// kClusterMinPx:   min accumulated |scrollPx| within one cluster required to enter overscroll.
-//                  Suppresses spurious overscroll triggered by tiny RDP/touchpad jitter.
 constexpr int   kClusterGapMs = 120;
-constexpr qreal kClusterMinPx = 8.0;
 constexpr int   kScrollBarEdgeInset = ::Spacing::XSmall / 2;
+
+int scrollSign(qreal value) {
+    if (value > 0.0) return 1;
+    if (value < 0.0) return -1;
+    return 0;
+}
 } // namespace
 
 // ── Section proxy delegate ────────────────────────────────────────────────────
@@ -192,6 +195,9 @@ ListView::ListView(QWidget* parent)
         else
             m_overscrollY = v.toReal();
         viewport()->update();
+    });
+    connect(m_bounceAnim, &QVariantAnimation::finished, this, [this]() {
+        resetNoPhaseCluster();
     });
 
     m_bounceTimer = new QTimer(this);
@@ -785,8 +791,8 @@ void ListView::leaveEvent(QEvent* event) {
 //   NoPhaseDiscrete  phase == NoScrollPhase, pixelDelta == 0  mouse wheel / Mac RDP→Windows / Qt5
 //
 // PhaseBased / NoPhasePixel keep the original behavior (smooth pixel scrolling + boundary
-// overscroll). NoPhaseDiscrete is throttled by a cluster window (kClusterGapMs / kClusterMinPx)
-// to prevent RDP-forwarded high-frequency events from triggering reflexive bounce flapping.
+// overscroll). NoPhaseDiscrete uses native scrolling first and consumes same-direction
+// boundary tails to prevent RDP-forwarded high-frequency events from triggering bounce flapping.
 
 void ListView::wheelEvent(QWheelEvent* event) {
     enum class WheelKind { PhaseBased, NoPhasePixel, NoPhaseDiscrete };
@@ -827,27 +833,77 @@ void ListView::wheelEvent(QWheelEvent* event) {
               : event->pixelDelta().y())
         : delta / 120.0 * 20.0;
 
-    // ── NoPhaseDiscrete cluster accumulation (mouse wheel / Mac RDP / Qt5) ──
-    // Tracked regardless of bounce state so that successive ticks within the same physical
-    // gesture continue to coalesce.
-    qreal clusterAccum = 0.0;
+    auto syncFluentScrollBars = [this]() {
+        syncFluentScrollBar();
+        syncFluentHScrollBar();
+    };
+
+    // ── NoPhaseDiscrete (mouse wheel / Mac RDP / Qt5) ─────────────────────
+    // Windows-style NoScrollPhase + angleDelta input must scroll content first.
+    // Only events that are already pushing beyond the current boundary are consumed as tails.
     if (kind == WheelKind::NoPhaseDiscrete) {
         const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        if (now - m_lastNoPhaseTs > kClusterGapMs) {
-            m_clusterAccum = 0.0;
+        const int dir = scrollSign(scrollPx);
+        if (m_lastNoPhaseTs == 0 || now - m_lastNoPhaseTs > kClusterGapMs ||
+            (m_clusterDir != 0 && dir != 0 && m_clusterDir != dir)) {
+            resetNoPhaseCluster();
         }
         m_lastNoPhaseTs = now;
+        if (dir != 0)
+            m_clusterDir = dir;
         m_clusterAccum += scrollPx;
-        clusterAccum = m_clusterAccum;
+
+        if (!qFuzzyIsNull(overscroll)) {
+            const bool sameBoundaryDirection =
+                (overscroll > 0.0 && scrollPx > 0.0) ||
+                (overscroll < 0.0 && scrollPx < 0.0);
+            if (sameBoundaryDirection) {
+                syncFluentScrollBars();
+                event->accept();
+                return;
+            }
+
+            if (m_bounceAnim && m_bounceAnim->state() == QAbstractAnimation::Running)
+                m_bounceAnim->stop();
+            if (m_bounceTimer)
+                m_bounceTimer->stop();
+            overscroll = 0.0;
+            viewport()->update();
+        }
+
+        QScrollBar* sb = horizontal ? horizontalScrollBar() : verticalScrollBar();
+        const int before = sb->value();
+        const bool atStart = before <= sb->minimum();
+        const bool atEnd   = before >= sb->maximum();
+        const bool boundaryTail =
+            (atStart && scrollPx > 0.0) ||
+            (atEnd   && scrollPx < 0.0);
+
+        if (boundaryTail) {
+            syncFluentScrollBars();
+            event->accept();
+            return;
+        }
+
+        if (horizontal) {
+            sb->setValue(before - qRound(scrollPx));
+        } else {
+            QListView::wheelEvent(event);
+        }
+        if (sb->value() != before)
+            resetNoPhaseCluster();
+        syncFluentScrollBars();
+        event->accept();
+        return;
     }
 
     // ── 1. Already overscrolled ──────────────────────────────────────────
     if (!qFuzzyIsNull(overscroll)) {
         if (m_bounceAnim && m_bounceAnim->state() == QAbstractAnimation::Running) {
-            // Bounce in progress: NoPhasePixel and NoPhaseDiscrete events are stale residuals
-            // (mouse wheel / RDP / Win touchpad fallback) — consume them so the bounce
-            // animation completes smoothly. Only PhaseBased (native macOS trackpad) is allowed
-            // to interrupt, matching the user's explicit finger-press intent.
+            // Bounce in progress: NoPhasePixel events are stale residuals — consume them so
+            // the bounce animation completes smoothly. NoPhaseDiscrete reverse recovery is
+            // handled by the normal-scroll-first path above. Only PhaseBased (native macOS
+            // trackpad) is allowed to interrupt, matching the user's explicit finger-press intent.
             if (kind != WheelKind::PhaseBased) {
                 event->accept();
                 return;
@@ -880,10 +936,6 @@ void ListView::wheelEvent(QWheelEvent* event) {
 
         viewport()->update();
 
-        // NoPhaseDiscrete (mouse wheel / RDP) → timer bounce
-        if (!qFuzzyIsNull(overscroll) && kind == WheelKind::NoPhaseDiscrete && m_bounceTimer)
-            m_bounceTimer->start();
-
         event->accept();
         return;
     }
@@ -893,14 +945,9 @@ void ListView::wheelEvent(QWheelEvent* event) {
     const bool atStart = sb->value() <= sb->minimum();
     const bool atEnd   = sb->value() >= sb->maximum();
 
-    // Enter-overscroll trigger: PhaseBased / NoPhasePixel use single-event scrollPx; NoPhaseDiscrete
-    // uses cluster-accumulated value gated by kClusterMinPx to suppress RDP/jitter false positives.
-    const qreal triggerVal = (kind == WheelKind::NoPhaseDiscrete) ? clusterAccum : scrollPx;
-    const qreal triggerThresh = (kind == WheelKind::NoPhaseDiscrete) ? kClusterMinPx : 0.0;
-
     const bool wantsEnter =
-        (atStart && triggerVal >  triggerThresh) ||
-        (atEnd   && triggerVal < -triggerThresh);
+        (atStart && scrollPx > 0.0) ||
+        (atEnd   && scrollPx < 0.0);
 
     if (wantsEnter) {
         // Don't enter overscroll from inertia or finger-lift
@@ -909,20 +956,9 @@ void ListView::wheelEvent(QWheelEvent* event) {
             return;
         }
 
-        overscroll = triggerVal * 0.5;
+        overscroll = scrollPx * 0.5;
         viewport()->update();
 
-        if (kind == WheelKind::NoPhaseDiscrete && m_bounceTimer)
-            m_bounceTimer->start();
-
-        event->accept();
-        return;
-    }
-
-    // At-boundary NoPhaseDiscrete events that fail the cluster threshold: consume them
-    // to avoid Qt forwarding to parent / triggering native scrollbar artifacts.
-    if (kind == WheelKind::NoPhaseDiscrete && (atStart || atEnd) &&
-        ((atStart && scrollPx > 0) || (atEnd && scrollPx < 0))) {
         event->accept();
         return;
     }
@@ -934,7 +970,9 @@ void ListView::wheelEvent(QWheelEvent* event) {
         event->accept();
     } else {
         QListView::wheelEvent(event);
+        event->accept();
     }
+    syncFluentScrollBars();
 }
 
 int ListView::verticalOffset() const {
@@ -958,11 +996,18 @@ QRect ListView::visualRect(const QModelIndex& index) const {
     return r;
 }
 
+void ListView::resetNoPhaseCluster() {
+    m_lastNoPhaseTs = 0;
+    m_clusterAccum = 0.0;
+    m_clusterDir = 0;
+}
+
 void ListView::startBounceBack() {
     if (!m_bounceAnim) return;
     const qreal val = (flow() == LeftToRight) ? m_overscrollX : m_overscrollY;
     if (qFuzzyIsNull(val))
         return;
+    resetNoPhaseCluster();
     m_bounceAnim->stop();
     m_bounceAnim->setStartValue(val);
     m_bounceAnim->setEndValue(0.0);

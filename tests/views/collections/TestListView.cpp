@@ -937,6 +937,25 @@ ListView* makeScrollableListView(QWidget* parent, int rowCount = 100) {
     return lv;
 }
 
+ListView* makeHorizontalScrollableListView(QWidget* parent, int rowCount = 40) {
+    auto* lv = new ListView(parent);
+    lv->setGeometry(10, 10, 180, 100);
+    lv->setFlow(QListView::LeftToRight);
+    lv->setWrapping(false);
+
+    QStringList items;
+    items.reserve(rowCount);
+    for (int i = 0; i < rowCount; ++i)
+        items << QStringLiteral("Wide Item %1").arg(i);
+    attachStringListModel(lv, items);
+
+    lv->show();
+    QTest::qWait(50);
+    lv->doItemsLayout();
+    QTest::qWait(20);
+    return lv;
+}
+
 void scrollToBottom(ListView* lv) {
     lv->verticalScrollBar()->setValue(lv->verticalScrollBar()->maximum());
     QTest::qWait(10);
@@ -1009,17 +1028,62 @@ TEST_F(ListViewTest, RdpHighFreqNoBounceFlap) {
         << "Pre-condition: scrolled to bottom";
 
     // 模拟 Mac RDP 单次轻拨：5 个小 angleDelta（±60，scrollPx ≈ 60/120*20 = 10），30ms 间隔
-    // cluster 累积 ≈ -50px（向下越界，scrollPx 为负），刚好高于 kClusterMinPx 但被快速归并
+    // 同向越界尾部应在边界被消费，而不是进入/延长 overscroll bounce。
     for (int i = 0; i < 5; ++i) {
         sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -60), Qt::NoScrollPhase);
         QTest::qWait(30);
     }
     QTest::qWait(50);
 
-    // 要点：bounce 不应被反复触发。允许进入 overscroll（cluster 累积 50px > 8px 阈值），
-    // 但不应该出现"卡边界 + 反复 flap"。验证滚动条仍在边界。
+    // 要点：bounce 不应被反复触发；滚动条保持在边界且后续反向输入仍可恢复。
     EXPECT_EQ(lv->verticalScrollBar()->value(), sbVal)
         << "Scrollbar should stay pinned at boundary";
+}
+
+TEST_F(ListViewTest, NoPhaseDiscreteBoundaryTailAllowsReverseRecovery) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    scrollToBottom(lv);
+    const int maxValue = lv->verticalScrollBar()->maximum();
+
+    for (int i = 0; i < 4; ++i) {
+        sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -60), Qt::NoScrollPhase);
+        QTest::qWait(30);
+    }
+
+    EXPECT_EQ(lv->verticalScrollBar()->value(), maxValue)
+        << "Same-direction NoPhaseDiscrete boundary tails should be consumed at the edge";
+
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, 120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    EXPECT_LT(lv->verticalScrollBar()->value(), maxValue)
+        << "Reverse NoPhaseDiscrete input should immediately scroll back into content";
+}
+
+TEST_F(ListViewTest, RdpClusterReachingBoundaryRecoversOnReverseTick) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    const int maxValue = lv->verticalScrollBar()->maximum();
+    lv->verticalScrollBar()->setValue(qMax(lv->verticalScrollBar()->minimum(), maxValue - 1));
+    QTest::qWait(10);
+
+    for (int i = 0; i < 4; ++i) {
+        sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+        QTest::qWait(20);
+    }
+    EXPECT_EQ(lv->verticalScrollBar()->value(), maxValue)
+        << "High-frequency NoPhaseDiscrete cluster should pin at the bottom boundary";
+
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, 120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    EXPECT_LT(lv->verticalScrollBar()->value(), maxValue)
+        << "A reverse tick after the boundary cluster should not be swallowed by stale state";
 }
 
 // 5.5 bounce 期间 NoPhase 事件被吞
@@ -1101,6 +1165,40 @@ TEST_F(ListViewTest, BounceInterruptedByPhaseBased) {
 
     // bounce 已被停止；后续状态应归零或反向移动 — 不强求精确值，只验证不 crash
     SUCCEED() << "PhaseBased event during bounce did not crash";
+}
+
+TEST_F(ListViewTest, HorizontalNoPhaseDiscreteUsesDominantAxis) {
+    auto* lv = makeHorizontalScrollableListView(window);
+    if (lv->horizontalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not horizontally scrollable in this environment";
+    }
+    const int before = lv->horizontalScrollBar()->value();
+
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    EXPECT_GT(lv->horizontalScrollBar()->value(), before)
+        << "LeftToRight ListView should scroll horizontally from dominant Y-axis NoPhaseDiscrete input";
+}
+
+TEST_F(ListViewTest, KeyboardSelectionWorksAfterNoPhaseDiscreteWheel) {
+    auto* lv = makeScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    lv->setFocusPolicy(Qt::StrongFocus);
+    lv->setSelectedIndex(0);
+    lv->setCurrentIndex(lv->model()->index(0, 0));
+
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+    QTest::qWait(20);
+
+    lv->setFocus();
+    QTest::keyClick(lv, Qt::Key_Down);
+    QTest::qWait(20);
+
+    EXPECT_EQ(lv->selectedIndex(), 1)
+        << "Keyboard navigation and selection should remain governed by the selection model";
 }
 
 // ── 可视化测试（业务组装与上面一致）───────────────────────────────────────────

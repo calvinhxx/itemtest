@@ -189,6 +189,7 @@ private:
     void updateDragDisplacement();
     void clearDragAnimations();
     QPixmap renderItemPixmap(int row) const;
+    void resetNoPhaseCluster();
 
     ListSelectionMode m_selectionMode = ListSelectionMode::Single;
     QString m_fontRole;
@@ -235,6 +236,7 @@ private:
     // --- Cross-platform wheel input (see openspec listview-cross-platform-input) ---
     qint64 m_lastNoPhaseTs = 0;   // timestamp of last NoPhaseDiscrete event (ms)
     qreal  m_clusterAccum  = 0.0; // accumulated scrollPx within current cluster
+    int    m_clusterDir    = 0;   // dominant scrollPx direction for current cluster
 };
 
 using ListSelectionMode = ListView::ListSelectionMode;
