@@ -4,7 +4,7 @@
 #include "Dialog.h"
 
 namespace view::basicinput { class Button; }
-namespace view::textfields { class TextBlock; }
+namespace view::textfields { class Label; }
 
 namespace view::dialogs_flyouts {
 
@@ -77,7 +77,7 @@ private:
     void updateButtonBar();
     void updateContentAnchors();
 
-    view::textfields::TextBlock* m_titleLabel   = nullptr;
+    view::textfields::Label* m_titleLabel   = nullptr;
     QWidget*                     m_contentWidget = nullptr;
     QWidget*                     m_buttonBar     = nullptr;
 

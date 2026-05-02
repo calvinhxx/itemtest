@@ -12,7 +12,7 @@
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/PasswordBox.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 
 using namespace view;
 using namespace view::basicinput;
@@ -227,7 +227,7 @@ TEST_F(PasswordBoxTest, VisualCheck) {
     using Edge = AnchorLayout::Edge;
     window->setFixedSize(560, 520);
 
-    auto* title = new TextBlock("PasswordBox", window);
+    auto* title = new Label("PasswordBox", window);
     title->setFluentTypography(Typography::FontRole::Subtitle);
     title->anchors()->top = {window, Edge::Top, 28};
     title->anchors()->left = {window, Edge::Left, 40};

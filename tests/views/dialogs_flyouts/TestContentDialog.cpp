@@ -7,7 +7,7 @@
 #include "view/dialogs_flyouts/ContentDialog.h"
 #include "view/basicinput/Button.h"
 #include "view/basicinput/CheckBox.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/QMLPlus.h"
 #include "view/FluentElement.h"
 
@@ -23,7 +23,7 @@ public:
     using QWidget::QWidget;
     void onThemeUpdated() override {
         // 注意：不能用 setStyleSheet("background-color: ...")，因为 QSS 会沿父子链
-        // 传播到所有子孙控件（包括弹出的 ContentDialog 内的 TextBlock / CheckBox），
+        // 传播到所有子孙控件（包括弹出的 ContentDialog 内的 Label / CheckBox），
         // 导致 dialog 内容区被错误地染成 bgCanvas 颜色。
         // 改用 QPalette + autoFillBackground，仅作用于自身。
         const auto& c = themeColors();
@@ -140,11 +140,11 @@ TEST_F(ContentDialogTest, DefaultButtonEnum) {
 TEST_F(ContentDialogTest, SetContent) {
     ContentDialog dialog(window);
 
-    auto* label = new TextBlock("Hello content");
+    auto* label = new Label("Hello content");
     dialog.setContent(label);
     EXPECT_EQ(dialog.content(), label);
 
-    auto* label2 = new TextBlock("New content");
+    auto* label2 = new Label("New content");
     dialog.setContent(label2);
     EXPECT_EQ(dialog.content(), label2);
 
@@ -249,7 +249,7 @@ TEST_F(ContentDialogTest, FullContentDialogSetup) {
     dialog.setCloseButtonText("Cancel");
     dialog.setDefaultButton(ContentDialog::Primary);
 
-    auto* body = new TextBlock("Your changes will be lost if you don't save.");
+    auto* body = new Label("Your changes will be lost if you don't save.");
     dialog.setContent(body);
 
     EXPECT_EQ(dialog.title(), "Save your work?");
@@ -367,7 +367,7 @@ TEST_F(ContentDialogTest, VisualCheck) {
         vbox->setContentsMargins(0, 0, 0, 0);
         vbox->setSpacing(8);
 
-        auto* body = new TextBlock("Lorem ipsum dolor sit amet, adipisicing elit.");
+        auto* body = new Label("Lorem ipsum dolor sit amet, adipisicing elit.");
         body->setWordWrap(true);
         vbox->addWidget(body);
 
@@ -395,7 +395,7 @@ TEST_F(ContentDialogTest, VisualCheck) {
         ContentDialog dialog(window);
         dialog.setFixedSize(480, 260);
         dialog.setTitle("Delete this file permanently?");
-        auto* body = new TextBlock(
+        auto* body = new Label(
             "If you delete this file, you won't be able to recover it. "
             "If you delete this file, you won't be able to recover it. "
             "If you delete this file, you won't be able to recover it. "
@@ -420,7 +420,7 @@ TEST_F(ContentDialogTest, VisualCheck) {
         ContentDialog dialog(window);
         dialog.setFixedSize(352, 232);
         dialog.setTitle("Title");
-        auto* body = new TextBlock("Windows 11 is faster and more intuitive.");
+        auto* body = new Label("Windows 11 is faster and more intuitive.");
         body->setWordWrap(true);
         dialog.setContent(body);
         dialog.setPrimaryButtonText("OK");

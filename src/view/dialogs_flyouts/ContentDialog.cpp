@@ -1,6 +1,6 @@
 #include "ContentDialog.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/QMLPlus.h"
 #include "design/Spacing.h"
 #include "design/CornerRadius.h"
@@ -36,7 +36,7 @@ void ContentDialog::setupInternalLayout() {
     auto* anchorLayout = new AnchorLayout(this);
 
     // --- Title ---
-    m_titleLabel = new view::textfields::TextBlock(this);
+    m_titleLabel = new view::textfields::Label(this);
     m_titleLabel->setFluentTypography("Subtitle");
     m_titleLabel->setWordWrap(true);
     m_titleLabel->setVisible(false);

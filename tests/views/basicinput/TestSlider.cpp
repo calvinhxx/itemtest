@@ -10,7 +10,7 @@
 
 #include "view/basicinput/Slider.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/QMLPlus.h"
 #include "view/FluentElement.h"
 
@@ -80,7 +80,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     using Edge = AnchorLayout::Edge;
 
     auto createLabel = [&](const QString& text, QWidget* anchor, int topMargin = 30) {
-        TextBlock* l = new TextBlock(text, window);
+        Label* l = new Label(text, window);
         l->anchors()->top = {anchor, Edge::Bottom, topMargin};
         l->anchors()->left = {window, Edge::Left, 40};
         layout->addWidget(l);
@@ -88,12 +88,12 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     };
 
     // 顶部标题 + 描述（参考 WinUI 3 Gallery）
-    TextBlock* pageTitle = new TextBlock("Slider", window);
+    Label* pageTitle = new Label("Slider", window);
     pageTitle->anchors()->top = {window, Edge::Top, 16};
     pageTitle->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(pageTitle);
 
-    TextBlock* pageDesc = new TextBlock(
+    Label* pageDesc = new Label(
         "Use a Slider when you want your users to be able to set defined, contiguous values "
         "(such as volume or brightness) or a range of discrete values (such as screen resolution settings).",
         window);
@@ -104,7 +104,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     layout->addWidget(pageDesc);
 
     // --- 1. Simple Slider ---
-    TextBlock* title1 = new TextBlock("A simple Slider.", window);
+    Label* title1 = new Label("A simple Slider.", window);
     title1->anchors()->top = {pageDesc, Edge::Bottom, 24};
     title1->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(title1);
@@ -117,7 +117,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     simpleSlider->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(simpleSlider);
 
-    TextBlock* simpleOutputLabel = new TextBlock("Output: 32", window);
+    Label* simpleOutputLabel = new Label("Output: 32", window);
     simpleOutputLabel->anchors()->verticalCenter = {simpleSlider, Edge::VCenter, 0};
     simpleOutputLabel->anchors()->left = {simpleSlider, Edge::Right, 30};
     layout->addWidget(simpleOutputLabel);
@@ -127,7 +127,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     });
 
     // --- 2. Slider with range and steps specified ---
-    TextBlock* title2 = createLabel("A Slider with range and steps specified.", simpleSlider);
+    Label* title2 = createLabel("A Slider with range and steps specified.", simpleSlider);
 
     Slider* rangeSlider = new Slider(Qt::Horizontal, window);
     rangeSlider->setRange(500, 1000);
@@ -139,7 +139,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     rangeSlider->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(rangeSlider);
 
-    TextBlock* rangeOutputLabel = new TextBlock("Output: 800", window);
+    Label* rangeOutputLabel = new Label("Output: 800", window);
     rangeOutputLabel->anchors()->verticalCenter = {rangeSlider, Edge::VCenter, 0};
     rangeOutputLabel->anchors()->left = {rangeSlider, Edge::Right, 30};
     layout->addWidget(rangeOutputLabel);
@@ -152,7 +152,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     const int panelLeft = 420;
 
     auto createSpinRow = [&](const QString& text, int value, int rowIndex) {
-        TextBlock* lbl = new TextBlock(text, window);
+        Label* lbl = new Label(text, window);
         lbl->anchors()->top = {title2, Edge::Bottom, 10 + rowIndex * 36};
         lbl->anchors()->left = {window, Edge::Left, panelLeft};
         layout->addWidget(lbl);
@@ -183,7 +183,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
 
     // --- 3. Slider with tick marks ---
     // Fix: Anchor to smallSpin because the property panel on the right is taller than the slider itself
-    TextBlock* title3 = createLabel("A Slider with tick marks.", smallSpin);
+    Label* title3 = createLabel("A Slider with tick marks.", smallSpin);
 
     Slider* tickSlider = new Slider(Qt::Horizontal, window);
     tickSlider->setRange(0, 10);
@@ -194,7 +194,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     tickSlider->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(tickSlider);
 
-    TextBlock* tickOutputLabel = new TextBlock("Output: 0", window);
+    Label* tickOutputLabel = new Label("Output: 0", window);
     tickOutputLabel->anchors()->verticalCenter = {tickSlider, Edge::VCenter, 0};
     tickOutputLabel->anchors()->left = {tickSlider, Edge::Right, 30};
     layout->addWidget(tickOutputLabel);
@@ -204,7 +204,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     });
 
     // Snaps to：StepValues / Ticks
-    TextBlock* snapsLabel = new TextBlock("Snaps to:", window);
+    Label* snapsLabel = new Label("Snaps to:", window);
     snapsLabel->anchors()->top = {tickSlider, Edge::Top, 0};
     snapsLabel->anchors()->left = {tickSlider, Edge::Right, 80};
     layout->addWidget(snapsLabel);
@@ -240,7 +240,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     });
 
     // --- 4. Vertical Slider 示例 ---
-    TextBlock* title4 = createLabel("Vertical Slider", tickSlider);
+    Label* title4 = createLabel("Vertical Slider", tickSlider);
 
     Slider* verticalSlider = new Slider(Qt::Vertical, window);
     verticalSlider->setRange(0, 100);
@@ -250,7 +250,7 @@ TEST_F(SliderTest, VisualSliderGalleryLike) {
     verticalSlider->anchors()->left = {window, Edge::Left, 80};
     layout->addWidget(verticalSlider);
 
-    TextBlock* verticalOutputLabel = new TextBlock("Output: 25", window);
+    Label* verticalOutputLabel = new Label("Output: 25", window);
     verticalOutputLabel->anchors()->top = {verticalSlider, Edge::Top, 0};
     verticalOutputLabel->anchors()->left = {verticalSlider, Edge::Right, 40};
     layout->addWidget(verticalOutputLabel);

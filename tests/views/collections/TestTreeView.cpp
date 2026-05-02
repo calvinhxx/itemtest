@@ -19,12 +19,12 @@
 
 #include "view/basicinput/Button.h"
 #include "view/scrolling/ScrollBar.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 
 using namespace view::collections;
 using namespace view;
 using view::basicinput::Button;
-using view::textfields::TextBlock;
+using view::textfields::Label;
 
 namespace {
 
@@ -1332,7 +1332,7 @@ TEST_F(TreeViewTest, VisualCheck) {
     innerLayout->addWidget(tv1);
 
     // ── TreeView 2: Multi-selection with CheckBox ────────────────────────
-    TextBlock* header2 = new TextBlock("A TreeView with Multi-selection enabled.", content);
+    Label* header2 = new Label("A TreeView with Multi-selection enabled.", content);
     header2->setFluentTypography("BodyStrong");
     header2->anchors()->top  = {tv1, Edge::Bottom, 16};
     header2->anchors()->left = {content, Edge::Left, 20};
@@ -1359,7 +1359,7 @@ TEST_F(TreeViewTest, VisualCheck) {
     innerLayout->addWidget(tv2);
 
     // ── TreeView 3: DataBinding using ItemSource ─────────────────────────
-    TextBlock* header3 = new TextBlock("A TreeView with DataBinding Using ItemSource.", content);
+    Label* header3 = new Label("A TreeView with DataBinding Using ItemSource.", content);
     header3->setFluentTypography("BodyStrong");
     header3->anchors()->top  = {tv2, Edge::Bottom, 16};
     header3->anchors()->left = {content, Edge::Left, 20};
@@ -1406,7 +1406,7 @@ TEST_F(TreeViewTest, VisualCheck) {
     innerLayout->addWidget(tv3);
 
     // ── TreeView 4: ItemTemplateSelector (folder/document icons) ─────────
-    TextBlock* header4 = new TextBlock("A TreeView with ItemTemplateSelector.", content);
+    Label* header4 = new Label("A TreeView with ItemTemplateSelector.", content);
     header4->setFluentTypography("BodyStrong");
     header4->anchors()->top  = {tv3, Edge::Bottom, 16};
     header4->anchors()->left = {content, Edge::Left, 20};

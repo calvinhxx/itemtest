@@ -1,5 +1,5 @@
 #include "Slider.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/status_info/ToolTip.h"
 
 #include <QPainter>

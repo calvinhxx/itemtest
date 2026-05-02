@@ -47,7 +47,9 @@ if(MSVC)
 endif()
 
 # find files recurse
-file(GLOB_RECURSE SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
+	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 foreach(v ${SRC})
 	message(STATUS ${v})
 endforeach()

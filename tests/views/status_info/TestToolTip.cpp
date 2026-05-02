@@ -5,7 +5,7 @@
 #include <QFontDatabase>
 #include "view/status_info/ToolTip.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h" // For AnchorLayout
 
@@ -111,7 +111,7 @@ TEST_F(ToolTipTest, VisualGallery) {
     using Edge = AnchorLayout::Edge;
 
     // --- Title ---
-    TextBlock* title = new TextBlock("ToolTip Gallery", container);
+    Label* title = new Label("ToolTip Gallery", container);
     QFont f = title->font();
     f.setPixelSize(20);
     f.setBold(true);
@@ -121,7 +121,7 @@ TEST_F(ToolTipTest, VisualGallery) {
     layout->addWidget(title);
 
     // --- 1. Simple ToolTip ---
-    TextBlock* section1 = new TextBlock("1. Button with a simple ToolTip", container);
+    Label* section1 = new Label("1. Button with a simple ToolTip", container);
     section1->anchors()->top = {title, Edge::Bottom, 30};
     section1->anchors()->left = {container, Edge::Left, 40};
     layout->addWidget(section1);
@@ -138,7 +138,7 @@ TEST_F(ToolTipTest, VisualGallery) {
     new ToolTipBehavior(btn1, tip1);
 
     // --- 2. Custom Config ToolTip ---
-    TextBlock* section2 = new TextBlock("2. Custom Config (Margins, Font)", container);
+    Label* section2 = new Label("2. Custom Config (Margins, Font)", container);
     section2->anchors()->top = {btn1, Edge::Bottom, 60};
     section2->anchors()->left = {container, Edge::Left, 40};
     layout->addWidget(section2);

@@ -11,12 +11,12 @@
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
 #include "view/dialogs_flyouts/TeachingTip.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 
 using namespace view::dialogs_flyouts;
 using view::AnchorLayout;
 using view::basicinput::Button;
-using view::textfields::TextBlock;
+using view::textfields::Label;
 
 class FluentTestWindow : public QWidget, public FluentElement {
 public:
@@ -290,13 +290,13 @@ TEST_F(TeachingTipTest, VisualCheck) {
         auto* hostLayout = new AnchorLayout(host);
         host->setLayout(hostLayout);
 
-        auto* title = new TextBlock("Simple tip", host);
+        auto* title = new Label("Simple tip", host);
         title->setFluentTypography("BodyStrong");
         title->anchors()->top  = {host, Edge::Top,  16};
         title->anchors()->left = {host, Edge::Left, 16};
         hostLayout->addWidget(title);
 
-        auto* body = new TextBlock("Content assembled in test code — no fixed schema.", host);
+        auto* body = new Label("Content assembled in test code — no fixed schema.", host);
         body->setFluentTypography("Body");
         body->setWordWrap(true);
         body->anchors()->top   = {title, Edge::Bottom, 4};
@@ -330,14 +330,14 @@ TEST_F(TeachingTipTest, VisualCheck) {
         auto* hostLayout = new AnchorLayout(host);
         host->setLayout(hostLayout);
 
-        auto* title = new TextBlock("Actionable tip", host);
+        auto* title = new Label("Actionable tip", host);
         title->setFluentTypography("BodyStrong");
         title->anchors()->top   = {host, Edge::Top,   16};
         title->anchors()->left  = {host, Edge::Left,  16};
         title->anchors()->right = {host, Edge::Right, -48};
         hostLayout->addWidget(title);
 
-        auto* body = new TextBlock("Buttons assembled by the caller via AnchorLayout.", host);
+        auto* body = new Label("Buttons assembled by the caller via AnchorLayout.", host);
         body->setFluentTypography("Body");
         body->setWordWrap(true);
         body->anchors()->top   = {title, Edge::Bottom, 4};
@@ -385,7 +385,7 @@ TEST_F(TeachingTipTest, VisualCheck) {
         auto* hostLayout = new AnchorLayout(host);
         host->setLayout(hostLayout);
 
-        auto* label = new TextBlock("Top placement — tail points down.", host);
+        auto* label = new Label("Top placement — tail points down.", host);
         label->setFluentTypography("Body");
         label->setWordWrap(true);
         label->anchors()->top   = {host, Edge::Top,   16};
@@ -407,7 +407,7 @@ TEST_F(TeachingTipTest, VisualCheck) {
         auto* hostLayout = new AnchorLayout(host);
         host->setLayout(hostLayout);
 
-        auto* label = new TextBlock("RightTop: tail aligns to target's upper edge.", host);
+        auto* label = new Label("RightTop: tail aligns to target's upper edge.", host);
         label->setFluentTypography("Body");
         label->setWordWrap(true);
         label->anchors()->top   = {host, Edge::Top,   16};

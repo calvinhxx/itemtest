@@ -16,7 +16,7 @@
 #include "view/basicinput/Button.h"
 #include "view/basicinput/RepeatButton.h"
 #include "view/textfields/NumberBox.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 
 using namespace view;
 using namespace view::basicinput;
@@ -494,7 +494,7 @@ TEST_F(NumberBoxTest, VisualCheck) {
     using Edge = AnchorLayout::Edge;
     window->setFixedSize(620, 560);
 
-    auto* title = new TextBlock("NumberBox", window);
+    auto* title = new Label("NumberBox", window);
     title->setFluentTypography(Typography::FontRole::Subtitle);
     title->anchors()->top = {window, Edge::Top, 28};
     title->anchors()->left = {window, Edge::Left, 40};

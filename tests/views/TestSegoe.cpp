@@ -17,7 +17,7 @@
 #include <functional>
 #include "view/FluentElement.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "design/Typography.h"
 
 using namespace view;
@@ -245,7 +245,7 @@ private:
         };
 
         for (const auto& style : styles) {
-            auto* label = new TextBlock(style.sampleText, widget);
+            auto* label = new Label(style.sampleText, widget);
             label->setFluentTypography(style.styleName);
             layout->addWidget(label);
 

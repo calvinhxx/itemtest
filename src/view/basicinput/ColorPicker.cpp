@@ -1,6 +1,6 @@
 #include "ColorPicker.h"
 
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/textfields/LineEdit.h"
 #include "view/basicinput/Slider.h"
 #include <QIntValidator>
@@ -200,7 +200,7 @@ void ColorPicker::initUi() {
         auto* row = new QHBoxLayout();
         row->setContentsMargins(0, 0, 0, 0);
         row->setSpacing(spacing.gap.tight);
-        auto* label = new view::textfields::TextBlock(labelText, inputsPanel);
+        auto* label = new view::textfields::Label(labelText, inputsPanel);
         label->setFixedWidth(48);
         row->addWidget(label);
         edit = new view::textfields::LineEdit(inputsPanel);
@@ -217,7 +217,7 @@ void ColorPicker::initUi() {
     auto* alphaInputRow = new QHBoxLayout(m_alphaInputRowWidget);
     alphaInputRow->setContentsMargins(0, 0, 0, 0);
     alphaInputRow->setSpacing(spacing.gap.tight);
-    auto* alphaInputLabel = new view::textfields::TextBlock("Alpha:", m_alphaInputRowWidget);
+    auto* alphaInputLabel = new view::textfields::Label("Alpha:", m_alphaInputRowWidget);
     alphaInputLabel->setFixedWidth(48);
     m_aEdit = new view::textfields::LineEdit(m_alphaInputRowWidget);
     m_aEdit->setClearButtonEnabled(false);
@@ -248,7 +248,7 @@ void ColorPicker::initUi() {
     auto* valueRow = new QHBoxLayout();
     valueRow->setContentsMargins(0, 0, 0, 0);
     valueRow->setSpacing(spacing.gap.tight);
-    auto* valueLabel = new view::textfields::TextBlock("Value:", slidersPanel);
+    auto* valueLabel = new view::textfields::Label("Value:", slidersPanel);
     valueLabel->setFixedWidth(48);
     m_valueSlider = new Slider(Qt::Horizontal, slidersPanel);
     m_valueSlider->setMinimum(0);
@@ -263,7 +263,7 @@ void ColorPicker::initUi() {
     auto* alphaRow = new QHBoxLayout(m_alphaRowWidget);
     alphaRow->setContentsMargins(0, 0, 0, 0);
     alphaRow->setSpacing(spacing.gap.tight);
-    auto* alphaLabel = new view::textfields::TextBlock("Alpha:", m_alphaRowWidget);
+    auto* alphaLabel = new view::textfields::Label("Alpha:", m_alphaRowWidget);
     alphaLabel->setFixedWidth(48);
     m_alphaSlider = new Slider(Qt::Horizontal, m_alphaRowWidget);
     m_alphaSlider->setMinimum(0);
@@ -319,7 +319,7 @@ void ColorPicker::onThemeUpdated() {
     QFont f = fs.toQFont();
 
     // 1. 更新可能无法自动处理父级字体更改的内部主题感知子控件
-    const auto labels = findChildren<view::textfields::TextBlock*>();
+    const auto labels = findChildren<view::textfields::Label*>();
     for (auto* label : labels) {
         label->onThemeUpdated();
     }

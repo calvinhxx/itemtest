@@ -3,7 +3,7 @@
 #include <QFontDatabase>
 #include <QtTest/QSignalSpy>
 #include "view/textfields/TextEdit.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
 #include "design/Spacing.h"
@@ -165,7 +165,7 @@ TEST_F(TextEditTest, VisualCheck) {
 
     using Edge = AnchorLayout::Edge;
 
-    TextBlock* header = new TextBlock("TextEdit - 自适应行高 + 垂直居中:", window);
+    Label* header = new Label("TextEdit - 自适应行高 + 垂直居中:", window);
     header->anchors()->top  = {window, Edge::Top,  30};
     header->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(header);
@@ -178,7 +178,7 @@ TEST_F(TextEditTest, VisualCheck) {
     edit1->anchors()->right = {window, Edge::Right, -40};
     layout->addWidget(edit1);
 
-    TextBlock* header2 = new TextBlock("预填 2 行（高度 = 64px）:", window);
+    Label* header2 = new Label("预填 2 行（高度 = 64px）:", window);
     header2->anchors()->top  = {edit1, Edge::Bottom, 12};
     header2->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(header2);

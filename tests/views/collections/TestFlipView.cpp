@@ -13,7 +13,7 @@
 #include <QTest>
 #include "view/collections/FlipView.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 #include "design/Typography.h"
@@ -100,7 +100,7 @@ static QWidget* makeColorPage(const QColor& color, const QString& text, QWidget*
     pal.setColor(QPalette::Window, color);
     page->setPalette(pal);
 
-    auto* label = new view::textfields::TextBlock(text, page);
+    auto* label = new view::textfields::Label(text, page);
     label->setFluentTypography("Subtitle");
     label->setAlignment(Qt::AlignCenter);
     return page;
@@ -498,7 +498,7 @@ TEST_F(FlipViewTest, VisualCheck) {
     window->setFixedSize(560, 680);
 
     // ── 1. A simple FlipView with image items ──
-    auto* title1 = new view::textfields::TextBlock("A simple FlipView with inline items.", window);
+    auto* title1 = new view::textfields::Label("A simple FlipView with inline items.", window);
     title1->setFluentTypography("Body");
     title1->anchors()->top = {window, Edge::Top, 24};
     title1->anchors()->left = {window, Edge::Left, 30};
@@ -525,7 +525,7 @@ TEST_F(FlipViewTest, VisualCheck) {
     fv1->anchors()->left = {window, Edge::Left, 30};
     layout->addWidget(fv1);
 
-    auto* indexLabel = new view::textfields::TextBlock("1 / 5", window);
+    auto* indexLabel = new view::textfields::Label("1 / 5", window);
     indexLabel->setFluentTypography("Caption");
     indexLabel->anchors()->top = {fv1, Edge::Bottom, 6};
     indexLabel->anchors()->left = {window, Edge::Left, 30};
@@ -535,7 +535,7 @@ TEST_F(FlipViewTest, VisualCheck) {
     });
 
     // ── 2. Vertical FlipView ──
-    auto* title2 = new view::textfields::TextBlock("A vertical FlipView.", window);
+    auto* title2 = new view::textfields::Label("A vertical FlipView.", window);
     title2->setFluentTypography("Body");
     title2->anchors()->top = {indexLabel, Edge::Bottom, 24};
     title2->anchors()->left = {window, Edge::Left, 30};
@@ -558,7 +558,7 @@ TEST_F(FlipViewTest, VisualCheck) {
     layout->addWidget(fv2);
 
     // ── 3. No navigation buttons ──
-    auto* title3 = new view::textfields::TextBlock("No navigation buttons (swipe only).", window);
+    auto* title3 = new view::textfields::Label("No navigation buttons (swipe only).", window);
     title3->setFluentTypography("Body");
     title3->anchors()->top = {title2, Edge::Bottom, 10};
     title3->anchors()->left = {fv2, Edge::Right, 30};

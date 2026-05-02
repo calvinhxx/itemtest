@@ -5,7 +5,7 @@
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 
-namespace view::textfields { class TextBlock; }
+namespace view::textfields { class Label; }
 
 namespace view::status_info {
 
@@ -39,7 +39,7 @@ protected:
     void paintEvent(QPaintEvent* event) override;
 
 private:
-    view::textfields::TextBlock* m_textBlock;
+    view::textfields::Label* m_textBlock;
     QMargins m_margins;
 
     QColor m_bgColor;

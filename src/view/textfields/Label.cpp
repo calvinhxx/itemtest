@@ -1,25 +1,25 @@
-#include "TextBlock.h"
+#include "Label.h"
 
 namespace view::textfields {
 
-TextBlock::TextBlock(const QString& text, QWidget* parent)
+Label::Label(const QString& text, QWidget* parent)
     : QLabel(text, parent) {
     setAttribute(Qt::WA_TranslucentBackground);
     onThemeUpdated();
 }
 
-TextBlock::TextBlock(QWidget* parent)
-    : TextBlock("", parent) {
+Label::Label(QWidget* parent)
+    : Label("", parent) {
 }
 
-void TextBlock::setFluentTypography(const QString& styleName) {
+void Label::setFluentTypography(const QString& styleName) {
     if (m_styleName == styleName) return;
     m_styleName = styleName;
     setFont(themeFont(m_styleName).toQFont());
     emit typographyChanged();
 }
 
-void TextBlock::onThemeUpdated() {
+void Label::onThemeUpdated() {
     // 1. 使用保存的样式名更新字体 (解决切换主题后字体统一的问题)
     setFont(themeFont(m_styleName).toQFont());
 

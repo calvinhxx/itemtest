@@ -9,12 +9,12 @@
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 
 using namespace view::dialogs_flyouts;
 using view::AnchorLayout;
 using view::basicinput::Button;
-using view::textfields::TextBlock;
+using view::textfields::Label;
 
 // ── FluentTestWindow ─────────────────────────────────────────────────────────
 class FluentTestWindow : public QWidget, public FluentElement {
@@ -338,19 +338,19 @@ TEST_F(PopupTest, VisualCheck) {
         auto* pl = new AnchorLayout(p);
         p->setLayout(pl);
 
-        auto* title = new TextBlock("Information", p);
+        auto* title = new Label("Information", p);
         title->setFluentTypography("Subtitle");
         title->anchors()->top  = {p, Edge::Top,  24};
         title->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(title);
 
-        auto* caption = new TextBlock("Last updated: just now", p);
+        auto* caption = new Label("Last updated: just now", p);
         caption->setFluentTypography("Caption");
         caption->anchors()->top  = {title, Edge::Bottom, 4};
         caption->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(caption);
 
-        auto* body = new TextBlock(
+        auto* body = new Label(
             "This popup demonstrates x/y positioning.\n"
             "It appears at a fixed location relative\n"
             "to the parent window.", p);
@@ -382,13 +382,13 @@ TEST_F(PopupTest, VisualCheck) {
         auto* pl = new AnchorLayout(p);
         p->setLayout(pl);
 
-        auto* title = new TextBlock("Quick Actions", p);
+        auto* title = new Label("Quick Actions", p);
         title->setFluentTypography("Subtitle");
         title->anchors()->top  = {p, Edge::Top,  24};
         title->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(title);
 
-        auto* desc = new TextBlock("Choose an action to perform:", p);
+        auto* desc = new Label("Choose an action to perform:", p);
         desc->anchors()->top  = {title, Edge::Bottom, 8};
         desc->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(desc);
@@ -405,7 +405,7 @@ TEST_F(PopupTest, VisualCheck) {
         actionB->anchors()->left = {actionA, Edge::Right, 8};
         pl->addWidget(actionB);
 
-        auto* hint = new TextBlock("Press Escape to dismiss", p);
+        auto* hint = new Label("Press Escape to dismiss", p);
         hint->setFluentTypography("Caption");
         hint->anchors()->top  = {actionA, Edge::Bottom, 12};
         hint->anchors()->left = {p, Edge::Left, 28};
@@ -431,13 +431,13 @@ TEST_F(PopupTest, VisualCheck) {
         auto* pl = new AnchorLayout(p);
         p->setLayout(pl);
 
-        auto* title = new TextBlock("Confirm Delete", p);
+        auto* title = new Label("Confirm Delete", p);
         title->setFluentTypography("Subtitle");
         title->anchors()->top  = {p, Edge::Top,  24};
         title->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(title);
 
-        auto* body = new TextBlock(
+        auto* body = new Label(
             "Are you sure you want to delete this item?\n"
             "This action cannot be undone.", p);
         body->anchors()->top  = {title, Edge::Bottom, 12};
@@ -475,20 +475,20 @@ TEST_F(PopupTest, VisualCheck) {
         auto* pl = new AnchorLayout(p);
         p->setLayout(pl);
 
-        auto* title = new TextBlock("New Messages", p);
+        auto* title = new Label("New Messages", p);
         title->setFluentTypography("BodyStrong");
         title->anchors()->top  = {p, Edge::Top,  24};
         title->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(title);
 
-        auto* body = new TextBlock(
+        auto* body = new Label(
             "You have 3 unread messages\n"
             "from your team members.", p);
         body->anchors()->top  = {title, Edge::Bottom, 8};
         body->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(body);
 
-        auto* timestamp = new TextBlock("2 minutes ago", p);
+        auto* timestamp = new Label("2 minutes ago", p);
         timestamp->setFluentTypography("Caption");
         timestamp->anchors()->top  = {body, Edge::Bottom, 8};
         timestamp->anchors()->left = {p, Edge::Left, 28};
@@ -519,13 +519,13 @@ TEST_F(PopupTest, VisualCheck) {
         auto* pl = new AnchorLayout(p);
         p->setLayout(pl);
 
-        auto* title = new TextBlock("Sticky Note", p);
+        auto* title = new Label("Sticky Note", p);
         title->setFluentTypography("Subtitle");
         title->anchors()->top  = {p, Edge::Top,  24};
         title->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(title);
 
-        auto* body = new TextBlock(
+        auto* body = new Label(
             "This popup won't close on outside\n"
             "click or Escape key press.\n"
             "You must click Close explicitly.", p);
@@ -559,13 +559,13 @@ TEST_F(PopupTest, VisualCheck) {
         auto* pl = new AnchorLayout(p);
         p->setLayout(pl);
 
-        auto* title = new TextBlock("Relative Position", p);
+        auto* title = new Label("Relative Position", p);
         title->setFluentTypography("BodyStrong");
         title->anchors()->top  = {p, Edge::Top,  24};
         title->anchors()->left = {p, Edge::Left, 28};
         pl->addWidget(title);
 
-        auto* body = new TextBlock(
+        auto* body = new Label(
             "This popup is positioned\n"
             "relative to its trigger button\n"
             "via setPosition(widget, localPos).", p);

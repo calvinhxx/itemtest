@@ -12,7 +12,7 @@
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
 #include "view/FluentElement.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "design/Typography.h"
 
 using namespace view::basicinput;
@@ -81,7 +81,7 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     using Edge = AnchorLayout::Edge;
 
     auto createLabel = [&](const QString& text, QWidget* anchor, int topMargin = 30) {
-        TextBlock* l = new TextBlock(text, window);
+        Label* l = new Label(text, window);
         l->anchors()->top = {anchor, Edge::Bottom, topMargin};
         l->anchors()->left = {window, Edge::Left, 40};
         layout->addWidget(l);
@@ -89,7 +89,7 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     };
 
     // --- 1. Style Test (Standard, Accent, Subtle) ---
-    TextBlock* lblStyle = new TextBlock("1. Button Styles:", window);
+    Label* lblStyle = new Label("1. Button Styles:", window);
     lblStyle->anchors()->top = {window, Edge::Top, 20};
     lblStyle->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(lblStyle);
@@ -116,7 +116,7 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     layout->addWidget(btnSubtle);
 
     // --- 2. Size Test (Small, Standard, Large) ---
-    TextBlock* lblSize = createLabel("2. Button Sizes:", btnStd);
+    Label* lblSize = createLabel("2. Button Sizes:", btnStd);
     
     Button* btnSmall = new Button("Small", window);
     btnSmall->setFluentSize(Button::Small);
@@ -137,7 +137,7 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     layout->addWidget(btnLarge);
 
     // --- 3. Layout Test (TextOnly, IconBefore, IconOnly, IconAfter) ---
-    TextBlock* lblLayout = createLabel("3. Content Layouts (with IconFont):", btnLarge);
+    Label* lblLayout = createLabel("3. Content Layouts (with IconFont):", btnLarge);
 
     Button* l1 = new Button("Text Only", window);
     l1->setFluentLayout(Button::TextOnly);
@@ -192,7 +192,7 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     layout->addWidget(l5);
 
     // --- 3.5. Layout Test with Regular Icons (对比 iconfont) ---
-    TextBlock* lblRegularIcons = createLabel("3.5. Content Layouts (with Regular Icons - for comparison):", l5, 40);
+    Label* lblRegularIcons = createLabel("3.5. Content Layouts (with Regular Icons - for comparison):", l5, 40);
 
     // 创建一些简单的图标用于对比
     auto createSimpleIcon = [](const QColor& color, int size = 16) -> QIcon {
@@ -288,7 +288,7 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     layout->addWidget(r5);
 
     // --- 4. Interaction States (Forced) ---
-    TextBlock* lblStates = createLabel("4. Forced Interaction States:", r3, 40);
+    Label* lblStates = createLabel("4. Forced Interaction States:", r3, 40);
 
     Button* sRest = new Button("Rest", window);
     sRest->setInteractionState(Button::Rest);
@@ -315,7 +315,7 @@ TEST_F(ButtonTest, VisualPropertyVerification) {
     layout->addWidget(sDisabled);
 
     // --- 5. Focus Visual & Dynamic State ---
-    TextBlock* lblFocus = createLabel("5. Focus Visual & State Transition:", sRest, 40);
+    Label* lblFocus = createLabel("5. Focus Visual & State Transition:", sRest, 40);
 
     Button* focusBtn = new Button("Forced Focus Visual", window);
     focusBtn->setFocusVisual(true);

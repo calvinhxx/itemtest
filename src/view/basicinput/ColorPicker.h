@@ -6,7 +6,7 @@
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 
-namespace view::textfields { class TextBlock; class LineEdit; }
+namespace view::textfields { class Label; class LineEdit; }
 
 namespace view::basicinput {
 
@@ -22,7 +22,7 @@ class Slider;
 class ColorPicker : public QWidget, public FluentElement, public view::QMLPlus {
     Q_OBJECT
 
-    using TextBlock = view::textfields::TextBlock;
+    using Label = view::textfields::Label;
     using LineEdit  = view::textfields::LineEdit;
 
     /** @brief 当前颜色 */

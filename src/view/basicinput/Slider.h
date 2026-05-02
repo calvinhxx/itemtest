@@ -10,7 +10,7 @@
 class QPainter;
 class QStyleOptionSlider;
 
-namespace view::textfields { class TextBlock; }
+namespace view::textfields { class Label; }
 namespace view::status_info { class ToolTip; }
 
 namespace view::basicinput {

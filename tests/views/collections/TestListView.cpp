@@ -18,7 +18,7 @@
 #include "utils/DebugOverlay.h"
 #include "FluentListItemDelegate.h"
 #include "view/collections/ListView.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
 #include "design/Spacing.h"
@@ -1163,7 +1163,7 @@ TEST_F(ListViewTest, VisualCheck) {
     innerLayout->addWidget(lv1);
 
     // --- ListView 2: 多选模式，无 border ---
-    TextBlock* header2 = new TextBlock("Multiple Selection (no border):", content);
+    Label* header2 = new Label("Multiple Selection (no border):", content);
     header2->anchors()->top  = {lv1, Edge::Bottom, 16};
     header2->anchors()->left = {content, Edge::Left, 20};
     innerLayout->addWidget(header2);
@@ -1179,7 +1179,7 @@ TEST_F(ListViewTest, VisualCheck) {
     innerLayout->addWidget(lv2);
 
     // --- ListView 3: 空列表，显示 placeholder ---
-    TextBlock* header3 = new TextBlock("Empty list with placeholder:", content);
+    Label* header3 = new Label("Empty list with placeholder:", content);
     header3->anchors()->top  = {lv2, Edge::Bottom, 16};
     header3->anchors()->left = {content, Edge::Left, 20};
     innerLayout->addWidget(header3);
@@ -1196,7 +1196,7 @@ TEST_F(ListViewTest, VisualCheck) {
     innerLayout->addWidget(lv3);
 
     // --- ListView 4: 水平方向列表 ---
-    TextBlock* header4 = new TextBlock("Horizontal Flow (LeftToRight):", content);
+    Label* header4 = new Label("Horizontal Flow (LeftToRight):", content);
     header4->anchors()->top  = {lv3, Edge::Bottom, 16};
     header4->anchors()->left = {content, Edge::Left, 20};
     innerLayout->addWidget(header4);
@@ -1216,7 +1216,7 @@ TEST_F(ListViewTest, VisualCheck) {
     innerLayout->addWidget(lv4);
 
     // --- ListView 5: 水平方向 + 多选 ---
-    TextBlock* header5 = new TextBlock("Horizontal Multiple Selection:", content);
+    Label* header5 = new Label("Horizontal Multiple Selection:", content);
     header5->anchors()->top  = {lv4, Edge::Bottom, 16};
     header5->anchors()->left = {content, Edge::Left, 20};
     innerLayout->addWidget(header5);
@@ -1235,7 +1235,7 @@ TEST_F(ListViewTest, VisualCheck) {
     innerLayout->addWidget(lv5);
 
     // --- ListView 6: Custom Header + Footer widgets ---
-    TextBlock* header6 = new TextBlock("Custom Header + Footer Widgets:", content);
+    Label* header6 = new Label("Custom Header + Footer Widgets:", content);
     header6->anchors()->top  = {lv5, Edge::Bottom, 16};
     header6->anchors()->left = {content, Edge::Left, 20};
     innerLayout->addWidget(header6);
@@ -1283,7 +1283,7 @@ TEST_F(ListViewTest, VisualCheck) {
     innerLayout->addWidget(lv6);
 
     // --- ListView 7: Drag reorder ---
-    TextBlock* header7 = new TextBlock("Drag to Reorder:", content);
+    Label* header7 = new Label("Drag to Reorder:", content);
     header7->anchors()->top  = {lv6, Edge::Bottom, 16};
     header7->anchors()->left = {content, Edge::Left, 20};
     innerLayout->addWidget(header7);
@@ -1300,7 +1300,7 @@ TEST_F(ListViewTest, VisualCheck) {
     innerLayout->addWidget(lv7);
 
     // --- ListView 8: Section grouping ---
-    TextBlock* header8 = new TextBlock("Section Grouping:", content);
+    Label* header8 = new Label("Section Grouping:", content);
     header8->anchors()->top  = {lv7, Edge::Bottom, 16};
     header8->anchors()->left = {content, Edge::Left, 20};
     innerLayout->addWidget(header8);

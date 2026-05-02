@@ -4,7 +4,7 @@
 #include <QFontDatabase>
 #include "view/basicinput/ToggleSwitch.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 #include "design/Typography.h"
@@ -231,7 +231,7 @@ TEST_F(ToggleSwitchTest, VisualCheck) {
     auto* layout = new view::AnchorLayout(window);
 
     // 1. 简单开关
-    auto* lbl1 = new view::textfields::TextBlock("1. Simple ToggleSwitch:", window);
+    auto* lbl1 = new view::textfields::Label("1. Simple ToggleSwitch:", window);
     lbl1->setFluentTypography("Body");
     lbl1->anchors()->top = {window, Edge::Top, 30};
     lbl1->anchors()->left = {window, Edge::Left, 40};
@@ -242,7 +242,7 @@ TEST_F(ToggleSwitchTest, VisualCheck) {
     ts1->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(ts1);
 
-    auto* stateLabel = new view::textfields::TextBlock("State: Off", window);
+    auto* stateLabel = new view::textfields::Label("State: Off", window);
     stateLabel->setFluentTypography("Caption");
     stateLabel->anchors()->top = {ts1, Edge::Bottom, 4};
     stateLabel->anchors()->left = {window, Edge::Left, 40};
@@ -252,7 +252,7 @@ TEST_F(ToggleSwitchTest, VisualCheck) {
     });
 
     // 2. 带 Header + 自定义 Content
-    auto* lbl2 = new view::textfields::TextBlock("2. With header & custom content:", window);
+    auto* lbl2 = new view::textfields::Label("2. With header & custom content:", window);
     lbl2->setFluentTypography("Body");
     lbl2->anchors()->top = {stateLabel, Edge::Bottom, 20};
     lbl2->anchors()->left = {window, Edge::Left, 40};
@@ -268,7 +268,7 @@ TEST_F(ToggleSwitchTest, VisualCheck) {
     layout->addWidget(ts2);
 
     // 3. 默认 On
-    auto* lbl3 = new view::textfields::TextBlock("3. IsOn = true:", window);
+    auto* lbl3 = new view::textfields::Label("3. IsOn = true:", window);
     lbl3->setFluentTypography("Body");
     lbl3->anchors()->top = {ts2, Edge::Bottom, 20};
     lbl3->anchors()->left = {window, Edge::Left, 40};
@@ -281,7 +281,7 @@ TEST_F(ToggleSwitchTest, VisualCheck) {
     layout->addWidget(ts3);
 
     // 4. Disabled (Off)
-    auto* lbl4 = new view::textfields::TextBlock("4. Disabled (Off):", window);
+    auto* lbl4 = new view::textfields::Label("4. Disabled (Off):", window);
     lbl4->setFluentTypography("Body");
     lbl4->anchors()->top = {ts3, Edge::Bottom, 20};
     lbl4->anchors()->left = {window, Edge::Left, 40};
@@ -294,7 +294,7 @@ TEST_F(ToggleSwitchTest, VisualCheck) {
     layout->addWidget(ts4);
 
     // 5. Disabled (On)
-    auto* lbl5 = new view::textfields::TextBlock("5. Disabled (On):", window);
+    auto* lbl5 = new view::textfields::Label("5. Disabled (On):", window);
     lbl5->setFluentTypography("Body");
     lbl5->anchors()->top = {ts4, Edge::Bottom, 20};
     lbl5->anchors()->left = {window, Edge::Left, 40};

@@ -1,5 +1,5 @@
 #include "ToolTip.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "design/Typography.h"
 #include <QVBoxLayout>
 #include <QPainter>
@@ -13,7 +13,7 @@ ToolTip::ToolTip(QWidget* parent) : QWidget(parent) {
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_ShowWithoutActivating);
     
-    m_textBlock = new TextBlock(this);
+    m_textBlock = new Label(this);
     // 确保标签背景透明，以便由 ToolTip 的 paintEvent 处理背景绘制
     m_textBlock->setAttribute(Qt::WA_TranslucentBackground);
     m_textBlock->setStyleSheet("background-color: transparent;");

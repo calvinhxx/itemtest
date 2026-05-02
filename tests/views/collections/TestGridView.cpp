@@ -20,7 +20,7 @@
 #include "view/collections/GridView.h"
 #include "view/basicinput/Button.h"
 #include "view/scrolling/ScrollBar.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/QMLPlus.h"
 #include "design/Spacing.h"
 #include "design/Typography.h"
@@ -1143,7 +1143,7 @@ TEST_F(GridViewTest, VisualCheck) {
     innerLayout->addWidget(gv1);
 
     // ── GridView 2: 多选 + 图片 + check 浮层 (对应 WinUI Content inside of a GridView) ──
-    TextBlock* header2 = new TextBlock("Content inside of a GridView.", content);
+    Label* header2 = new Label("Content inside of a GridView.", content);
     header2->setFluentTypography("BodyStrong");
     header2->anchors()->top  = {gv1, Edge::Bottom, 16};
     header2->anchors()->left = {content, Edge::Left, 20};
@@ -1194,7 +1194,7 @@ TEST_F(GridViewTest, VisualCheck) {
     innerLayout->addWidget(gv3);
 
     // ── GridView 4: 拖拽重排 (对应 WinUI CanReorderItems) ──
-    TextBlock* header4 = new TextBlock("Drag to reorder items.", content);
+    Label* header4 = new Label("Drag to reorder items.", content);
     header4->setFluentTypography("BodyStrong");
     header4->anchors()->top  = {gv3, Edge::Bottom, 16};
     header4->anchors()->left = {content, Edge::Left, 20};
@@ -1226,7 +1226,7 @@ TEST_F(GridViewTest, VisualCheck) {
     innerLayout->addWidget(gv4);
 
     // ── Section 5: Selection Mode Comparison (None / Single / Multiple / Extended) ──
-    TextBlock* header5 = new TextBlock("Selection Mode Comparison", content);
+    Label* header5 = new Label("Selection Mode Comparison", content);
     header5->setFluentTypography("BodyStrong");
     header5->anchors()->top  = {gv4, Edge::Bottom, 24};
     header5->anchors()->left = {content, Edge::Left, 20};
@@ -1305,7 +1305,7 @@ TEST_F(GridViewTest, VisualCheck) {
     }
 
     // ── Section 6: Drag Reorder × Selection Mode ──
-    TextBlock* header6 = new TextBlock("Drag Reorder \u00d7 Selection Mode", content);
+    Label* header6 = new Label("Drag Reorder \u00d7 Selection Mode", content);
     header6->setFluentTypography("BodyStrong");
     header6->anchors()->top  = {modeRow2, Edge::Bottom, 24};
     header6->anchors()->left = {content, Edge::Left, 20};

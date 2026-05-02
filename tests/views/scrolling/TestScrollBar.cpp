@@ -9,7 +9,7 @@
 #include "view/scrolling/ScrollBar.h"
 #include "view/QMLPlus.h"
 #include "view/FluentElement.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/basicinput/Button.h" 
 
 using namespace view::scrolling;
@@ -65,7 +65,7 @@ TEST_F(ScrollBarTest, VisualPropertyVerification) {
 
     // Helper to create section labels
     auto createLabel = [&](const QString& text, QObject* anchorTop, int topMargin = 20) {
-        TextBlock* l = new TextBlock(text, window);
+        Label* l = new Label(text, window);
         if (anchorTop == window) {
              l->anchors()->top = {window, Edge::Top, topMargin};
         } else {
@@ -79,7 +79,7 @@ TEST_F(ScrollBarTest, VisualPropertyVerification) {
     };
 
     // --- 1. Horizontal ScrollBars ---
-    TextBlock* lblHoriz = new TextBlock("1. Horizontal ScrollBars (Various Thickness):", window);
+    Label* lblHoriz = new Label("1. Horizontal ScrollBars (Various Thickness):", window);
     lblHoriz->anchors()->top = {window, Edge::Top, 20};
     lblHoriz->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(lblHoriz);
@@ -108,7 +108,7 @@ TEST_F(ScrollBarTest, VisualPropertyVerification) {
     layout->addWidget(sbH3);
 
     // --- 2. Vertical ScrollBars ---
-    TextBlock* lblVert = createLabel("2. Vertical ScrollBars:", sbH3, 30);
+    Label* lblVert = createLabel("2. Vertical ScrollBars:", sbH3, 30);
 
     // Standard Vertical
     ScrollBar* sbV1 = new ScrollBar(Qt::Vertical, window);
@@ -126,7 +126,7 @@ TEST_F(ScrollBarTest, VisualPropertyVerification) {
     layout->addWidget(sbV2);
     
     // --- 3. Interaction Test ---
-    TextBlock* lblInteraction = createLabel("3. Try Hover and Drag:", sbV1, 30);
+    Label* lblInteraction = createLabel("3. Try Hover and Drag:", sbV1, 30);
     // ensure alignment for next label
     lblInteraction->anchors()->top = {sbV1, Edge::Bottom, 30};
 
@@ -140,7 +140,7 @@ TEST_F(ScrollBarTest, VisualPropertyVerification) {
     layout->addWidget(sbInteract);
     
     // Label to show value
-    TextBlock* lblValue = new TextBlock("Value: 0", window);
+    Label* lblValue = new Label("Value: 0", window);
     lblValue->anchors()->verticalCenter = {sbInteract, Edge::VCenter, 0};
     lblValue->anchors()->left = {sbInteract, Edge::Right, 20};
     layout->addWidget(lblValue);
@@ -160,7 +160,7 @@ public:
 
 // ...
 
-    TextBlock* lblIntegration = createLabel("4. Integrated in ScrollArea:", sbInteract, 30);
+    Label* lblIntegration = createLabel("4. Integrated in ScrollArea:", sbInteract, 30);
     
     FluentScrollArea* scrollArea = new FluentScrollArea(window);
     scrollArea->setFixedSize(200, 150);

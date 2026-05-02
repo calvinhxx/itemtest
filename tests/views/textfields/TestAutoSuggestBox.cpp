@@ -13,7 +13,7 @@
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/AutoSuggestBox.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 
 using namespace view;
 using namespace view::basicinput;
@@ -310,7 +310,7 @@ TEST_F(AutoSuggestBoxTest, VisualCheck) {
     using Edge = AnchorLayout::Edge;
     window->setFixedSize(520, 460);
 
-    TextBlock* title = new TextBlock("AutoSuggestBox", window);
+    Label* title = new Label("AutoSuggestBox", window);
     title->setFluentTypography(Typography::FontRole::Subtitle);
     title->anchors()->top = {window, Edge::Top, 28};
     title->anchors()->left = {window, Edge::Left, 40};

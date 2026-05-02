@@ -21,7 +21,7 @@
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
 #include "view/textfields/AutoSuggestBox.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/windowing/TitleBar.h"
 #include "view/windowing/Window.h"
 
@@ -29,7 +29,7 @@ using compatibility::WindowChromeCompat;
 using view::AnchorLayout;
 using view::basicinput::Button;
 using view::textfields::AutoSuggestBox;
-using view::textfields::TextBlock;
+using view::textfields::Label;
 using view::windowing::TitleBar;
 using view::windowing::Window;
 
@@ -108,8 +108,8 @@ void anchorFromRight(AnchorLayout* layout,
     layout->addAnchoredWidget(widget, anchors);
 }
 
-TextBlock* createTitleBarTitle(TitleBar* titleBar) {
-    auto* title = new TextBlock("Fluent Window", titleBar);
+Label* createTitleBarTitle(TitleBar* titleBar) {
+    auto* title = new Label("Fluent Window", titleBar);
     title->setObjectName(QStringLiteral("titleBarWindowTitle"));
     title->setFluentTypography(Typography::FontRole::Caption);
     title->setStyleSheet("#titleBarWindowTitle { font-weight: 600; }");
@@ -136,8 +136,8 @@ AutoSuggestBox* createTitleBarSearch(TitleBar* titleBar) {
     return search;
 }
 
-TextBlock* createTitleBarAvatar(TitleBar* titleBar) {
-    auto* avatar = new TextBlock("JD", titleBar);
+Label* createTitleBarAvatar(TitleBar* titleBar) {
+    auto* avatar = new Label("JD", titleBar);
     avatar->setObjectName(QStringLiteral("titleBarAvatar"));
     avatar->setAlignment(Qt::AlignCenter);
     avatar->setFixedSize(TitleBarAvatarSize, TitleBarAvatarSize);
@@ -171,7 +171,7 @@ void createTitleBarContent(Window* window) {
     if (!layout)
         return;
 
-    auto* appIcon = new TextBlock(titleBar);
+    auto* appIcon = new Label(titleBar);
     appIcon->setFixedSize(TitleBarAppIconSize, TitleBarAppIconSize);
     appIcon->setPixmap(createWindowAppIcon().pixmap(QSize(TitleBarAppIconSize, TitleBarAppIconSize)));
     anchorFromLeft(layout, appIcon, titleBar, titleBar, Edge::Left, titleBar->systemReservedLeadingWidth() + 8);
@@ -209,11 +209,11 @@ QWidget* createWindowContent() {
     contentLayout->setContentsMargins(24, 28, 24, 24);
     contentLayout->setSpacing(16);
 
-    auto* heading = new TextBlock("Native macOS traffic lights + custom TitleBar content", content);
+    auto* heading = new Label("Native macOS traffic lights + custom TitleBar content", content);
     heading->setFluentTypography(Typography::FontRole::Title);
     contentLayout->addWidget(heading);
 
-    auto* body = new TextBlock(
+    auto* body = new Label(
         "On macOS this Window uses a full-size native titlebar: the system traffic lights stay on the left, while back, pane toggle, search, actions, and avatar are Qt widgets in the titlebar area.",
         content);
     body->setFluentTypography(Typography::FontRole::Body);
@@ -350,8 +350,8 @@ TEST_F(WindowTest, TopLevelShowSmoke) {
 
 TEST_F(WindowTest, ContentWidgetInsertionAndReplacement) {
     Window window;
-    auto* first = new TextBlock("first");
-    auto* second = new TextBlock("second");
+    auto* first = new Label("first");
+    auto* second = new Label("second");
 
     window.setContentWidget(first);
     EXPECT_EQ(window.contentWidget(), first);
@@ -375,7 +375,7 @@ TEST_F(WindowTest, TitleBarHostsExternalContentAfterSystemArea) {
     auto* anchorLayout = qobject_cast<AnchorLayout*>(titleBar.layout());
     ASSERT_NE(anchorLayout, nullptr);
 
-    auto* title = new TextBlock("Fluent Window", &titleBar);
+    auto* title = new Label("Fluent Window", &titleBar);
     title->setFluentTypography(Typography::FontRole::Caption);
     title->setFixedSize(112, 24);
     auto* search = new AutoSuggestBox(&titleBar);
@@ -492,7 +492,7 @@ TEST_F(WindowTest, TitleBarInteractiveChildrenCreateDragExclusions) {
     auto* content = new QWidget();
     auto* layout = new QHBoxLayout(content);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(new TextBlock("Label", content));
+    layout->addWidget(new Label("Label", content));
     layout->addWidget(new QPushButton("Search", content));
     titleBar.setContentWidget(content);
     titleBar.resize(500, titleBar.titleBarHeight());

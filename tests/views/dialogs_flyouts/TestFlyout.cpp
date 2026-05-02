@@ -9,13 +9,13 @@
 #include "view/FluentElement.h"
 #include "view/QMLPlus.h"
 #include "view/basicinput/Button.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "design/Spacing.h"
 
 using namespace view::dialogs_flyouts;
 using view::AnchorLayout;
 using view::basicinput::Button;
-using view::textfields::TextBlock;
+using view::textfields::Label;
 
 // 与 Popup.cpp 内部 kShadowMargin 保持一致
 static constexpr int kShadowMargin = ::Spacing::Standard;  // 16
@@ -378,12 +378,12 @@ TEST_F(FlyoutTest, VisualCheck) {
 
         auto* pl = new AnchorLayout(fl);
         fl->setLayout(pl);
-        auto* title = new TextBlock(label, fl);
+        auto* title = new Label(label, fl);
         title->setFluentTypography("BodyStrong");
         title->anchors()->top  = {fl, Edge::Top,  20};
         title->anchors()->left = {fl, Edge::Left, 20};
         pl->addWidget(title);
-        auto* body = new TextBlock(QStringLiteral("Placement = %1").arg(label), fl);
+        auto* body = new Label(QStringLiteral("Placement = %1").arg(label), fl);
         body->anchors()->top  = {title, Edge::Bottom, 8};
         body->anchors()->left = {fl, Edge::Left, 20};
         pl->addWidget(body);

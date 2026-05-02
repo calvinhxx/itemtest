@@ -6,7 +6,7 @@
 #include "view/textfields/LineEdit.h"
 #include "design/Spacing.h"
 #include "design/Typography.h"
-#include "view/textfields/TextBlock.h"
+#include "view/textfields/Label.h"
 #include "view/basicinput/Button.h"
 #include "view/QMLPlus.h"
 
@@ -149,7 +149,7 @@ TEST_F(LineEditTest, VisualCheck) {
 
     using Edge = AnchorLayout::Edge;
 
-    TextBlock* header = new TextBlock("LineEdit (single-line):", window);
+    Label* header = new Label("LineEdit (single-line):", window);
     header->anchors()->top = {window, Edge::Top, 30};
     header->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(header);
@@ -165,7 +165,7 @@ TEST_F(LineEditTest, VisualCheck) {
     layout->addWidget(edit);
 
     // 带自定义 clearButtonOffset 的例子
-    TextBlock* offsetHeader = new TextBlock("With custom clearButtonOffset:", window);
+    Label* offsetHeader = new Label("With custom clearButtonOffset:", window);
     offsetHeader->anchors()->top = {edit, Edge::Bottom, 20};
     offsetHeader->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(offsetHeader);
@@ -181,7 +181,7 @@ TEST_F(LineEditTest, VisualCheck) {
     layout->addWidget(offsetEdit);
 
     // 带自定义边框粗细的例子
-    TextBlock* borderHeader = new TextBlock("Custom focused/unfocused border widths:", window);
+    Label* borderHeader = new Label("Custom focused/unfocused border widths:", window);
     borderHeader->anchors()->top = {offsetEdit, Edge::Bottom, 20};
     borderHeader->anchors()->left = {window, Edge::Left, 40};
     layout->addWidget(borderHeader);
