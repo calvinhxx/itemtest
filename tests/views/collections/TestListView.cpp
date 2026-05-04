@@ -1096,6 +1096,33 @@ TEST_F(ListViewTest, NoPhaseDiscreteBoundaryTailStartsBounceAndSettles) {
         << "The one-shot boundary bounce should settle back to the native offset";
 }
 
+TEST_F(ListViewTest, NoPhaseDiscreteBoundaryTailDoesNotExtendActiveBounce) {
+    auto* lv = makeInspectableScrollableListView(window);
+    if (lv->verticalScrollBar()->maximum() <= 0) {
+        GTEST_SKIP() << "Layout not scrollable in this environment";
+    }
+    scrollToBottom(lv);
+    const int beforeOffset = lv->exposedVerticalOffset();
+
+    sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+    const int firstDelta = lv->exposedVerticalOffset() - beforeOffset;
+    ASSERT_GT(firstDelta, 0)
+        << "Pre-condition: boundary input should create visible overscroll feedback";
+
+    for (int i = 0; i < 4; ++i) {
+        sendWheel(lv->viewport(), QPoint(0, 0), QPoint(0, -120), Qt::NoScrollPhase);
+        QTest::qWait(5);
+    }
+
+    const int tailDelta = lv->exposedVerticalOffset() - beforeOffset;
+    EXPECT_LE(tailDelta, firstDelta)
+        << "Same-direction boundary tails should not extend or restart the active bounce";
+
+    QTest::qWait(400);
+    EXPECT_EQ(lv->exposedVerticalOffset(), beforeOffset)
+        << "The original bounce should settle without being prolonged by tail events";
+}
+
 TEST_F(ListViewTest, NoPhaseDiscreteBoundaryTailAllowsReverseRecovery) {
     auto* lv = makeScrollableListView(window);
     if (lv->verticalScrollBar()->maximum() <= 0) {

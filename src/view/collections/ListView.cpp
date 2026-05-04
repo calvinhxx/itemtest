@@ -33,6 +33,7 @@ namespace {
 // kClusterGapMs:   gap (ms) that closes a NoPhaseDiscrete cluster — covers Mac RDP forwarding
 //                  jitter (typically 60-100ms between events for a single physical gesture).
 constexpr int   kClusterGapMs = 120;
+constexpr int   kNoPhaseBoundaryBounceDelayMs = 16;
 constexpr qreal kDiscreteWheelStepPx = ::Spacing::ControlHeight::Large;
 constexpr qreal kDiscreteBoundaryOverscrollMinPx = 12.0;
 constexpr qreal kDiscreteBoundaryOverscrollMaxPx = 48.0;
@@ -191,8 +192,8 @@ ListView::ListView(QWidget* parent)
 
     // --- Overscroll bounce ---
     m_bounceAnim = new QVariantAnimation(this);
-    m_bounceAnim->setDuration(300);
-    m_bounceAnim->setEasingCurve(QEasingCurve::OutCubic);
+    m_bounceAnim->setDuration(::Animation::Duration::Normal);
+    m_bounceAnim->setEasingCurve(::Animation::getEasing(::Animation::EasingType::Decelerate));
     connect(m_bounceAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant& v) {
         if (flow() == LeftToRight)
             m_overscrollX = v.toReal();
@@ -202,12 +203,16 @@ ListView::ListView(QWidget* parent)
     });
     connect(m_bounceAnim, &QVariantAnimation::finished, this, [this]() {
         resetNoPhaseCluster();
+        resetNoPhaseBoundaryBounce();
     });
 
     m_bounceTimer = new QTimer(this);
     m_bounceTimer->setSingleShot(true);
-    m_bounceTimer->setInterval(150);
-    connect(m_bounceTimer, &QTimer::timeout, this, &ListView::startBounceBack);
+    m_bounceTimer->setInterval(kNoPhaseBoundaryBounceDelayMs);
+    connect(m_bounceTimer, &QTimer::timeout, this, [this]() {
+        m_noPhaseBounceArmed = false;
+        startBounceBack();
+    });
 
     syncFluentScrollBar();
     syncFluentHScrollBar();
@@ -219,6 +224,7 @@ ListView::~ListView() {
     // a half-destroyed object (defensive — also helps Qt5 path stability).
     if (m_bounceAnim) m_bounceAnim->stop();
     if (m_bounceTimer) m_bounceTimer->stop();
+    resetNoPhaseBoundaryBounce();
 }
 
 // ── Selection mode ────────────────────────────────────────────────────────────
@@ -252,6 +258,12 @@ ListView::Flow ListView::flow() const {
 
 void ListView::setFlow(Flow f) {
     if (QListView::flow() == f) return;
+    if (m_bounceTimer) m_bounceTimer->stop();
+    if (m_bounceAnim) m_bounceAnim->stop();
+    m_overscrollX = 0.0;
+    m_overscrollY = 0.0;
+    resetNoPhaseCluster();
+    resetNoPhaseBoundaryBounce();
     QListView::setFlow(f);
     // Horizontal flow: scrollbar values must be in pixels so wheelEvent pixelDelta maps correctly.
     // Default ScrollPerItem makes scrollbar unit = item index, causing huge jumps.
@@ -843,14 +855,29 @@ void ListView::wheelEvent(QWheelEvent* event) {
     };
 
     auto startNoPhaseBoundaryBounce = [&]() {
+        const int boundaryDir = scrollSign(scrollPx);
+        if (boundaryDir == 0)
+            return;
+        if (m_noPhaseBoundaryDir == boundaryDir &&
+            (m_noPhaseBounceArmed ||
+             (m_bounceAnim && m_bounceAnim->state() == QAbstractAnimation::Running))) {
+            return;
+        }
+
         const qreal amount = qBound(kDiscreteBoundaryOverscrollMinPx,
                                     qAbs(scrollPx) * 0.5,
                                     kDiscreteBoundaryOverscrollMaxPx);
         overscroll = (scrollPx > 0.0) ? amount : -amount;
+        m_noPhaseBoundaryDir = boundaryDir;
+        m_noPhaseBounceArmed = true;
         viewport()->update();
-        resetNoPhaseCluster();
-        if (m_bounceTimer)
-            m_bounceTimer->start();
+        if (m_bounceTimer) {
+            if (!m_bounceTimer->isActive())
+                m_bounceTimer->start(kNoPhaseBoundaryBounceDelayMs);
+        } else {
+            m_noPhaseBounceArmed = false;
+            startBounceBack();
+        }
     };
 
     // ── NoPhaseDiscrete (mouse wheel / Mac RDP / Qt5) ─────────────────────
@@ -859,9 +886,14 @@ void ListView::wheelEvent(QWheelEvent* event) {
     if (kind == WheelKind::NoPhaseDiscrete) {
         const qint64 now = QDateTime::currentMSecsSinceEpoch();
         const int dir = scrollSign(scrollPx);
-        if (m_lastNoPhaseTs == 0 || now - m_lastNoPhaseTs > kClusterGapMs ||
-            (m_clusterDir != 0 && dir != 0 && m_clusterDir != dir)) {
+        const bool clusterExpired =
+            m_lastNoPhaseTs != 0 && now - m_lastNoPhaseTs > kClusterGapMs;
+        const bool directionChanged =
+            m_clusterDir != 0 && dir != 0 && m_clusterDir != dir;
+        if (m_lastNoPhaseTs == 0 || clusterExpired || directionChanged) {
             resetNoPhaseCluster();
+            if (clusterExpired || directionChanged)
+                resetNoPhaseBoundaryBounce();
         }
         m_lastNoPhaseTs = now;
         if (dir != 0)
@@ -883,6 +915,7 @@ void ListView::wheelEvent(QWheelEvent* event) {
             if (m_bounceTimer)
                 m_bounceTimer->stop();
             overscroll = 0.0;
+            resetNoPhaseBoundaryBounce();
             viewport()->update();
         }
 
@@ -903,8 +936,10 @@ void ListView::wheelEvent(QWheelEvent* event) {
         }
 
         sb->setValue(before - qRound(scrollPx));
-        if (sb->value() != before)
+        if (sb->value() != before) {
             resetNoPhaseCluster();
+            resetNoPhaseBoundaryBounce();
+        }
         syncFluentScrollBars();
         event->accept();
         return;
@@ -1015,11 +1050,18 @@ void ListView::resetNoPhaseCluster() {
     m_clusterDir = 0;
 }
 
+void ListView::resetNoPhaseBoundaryBounce() {
+    m_noPhaseBoundaryDir = 0;
+    m_noPhaseBounceArmed = false;
+}
+
 void ListView::startBounceBack() {
     if (!m_bounceAnim) return;
     const qreal val = (flow() == LeftToRight) ? m_overscrollX : m_overscrollY;
-    if (qFuzzyIsNull(val))
+    if (qFuzzyIsNull(val)) {
+        resetNoPhaseBoundaryBounce();
         return;
+    }
     resetNoPhaseCluster();
     m_bounceAnim->stop();
     m_bounceAnim->setStartValue(val);

@@ -190,6 +190,7 @@ private:
     void clearDragAnimations();
     QPixmap renderItemPixmap(int row) const;
     void resetNoPhaseCluster();
+    void resetNoPhaseBoundaryBounce();
 
     ListSelectionMode m_selectionMode = ListSelectionMode::Single;
     QString m_fontRole;
@@ -237,6 +238,8 @@ private:
     qint64 m_lastNoPhaseTs = 0;   // timestamp of last NoPhaseDiscrete event (ms)
     qreal  m_clusterAccum  = 0.0; // accumulated scrollPx within current cluster
     int    m_clusterDir    = 0;   // dominant scrollPx direction for current cluster
+    int    m_noPhaseBoundaryDir = 0; // active NoPhaseDiscrete boundary rebound direction
+    bool   m_noPhaseBounceArmed = false;
 };
 
 using ListSelectionMode = ListView::ListSelectionMode;
